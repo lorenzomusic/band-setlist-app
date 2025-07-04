@@ -2,21 +2,20 @@
 
 import { useState } from 'react';
 
-export default function AddSongForm({ onSongAdded }) {
-  const [isOpen, setIsOpen] = useState(false);
+export default function EditSongForm({ song, onSongUpdated, onCancel }) {
   const [formData, setFormData] = useState({
-    title: '',
-    artist: '',
-    key: '',
-    youtubeLink: '',
-    duration: '',
-    bassGuitar: '4-string',
-    guitar: 'Electric',
-    backingTrack: false,
-    form: '',
-    medley: '',
-    medleyPosition: '',
-    notes: ''
+    title: song.title || '',
+    artist: song.artist || '',
+    key: song.key || '',
+    youtubeLink: song.youtubeLink || '',
+    duration: song.duration || '',
+    bassGuitar: song.bassGuitar || '4-string',
+    guitar: song.guitar || 'Electric',
+    backingTrack: song.backingTrack || false,
+    form: song.form || '',
+    medley: song.medley || '',
+    medleyPosition: song.medleyPosition || '',
+    notes: song.notes || ''
   });
   const [saving, setSaving] = useState(false);
 
@@ -34,61 +33,36 @@ export default function AddSongForm({ onSongAdded }) {
 
     try {
       const response = await fetch('/api/songs', {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          id: song.id
+        }),
       });
 
       if (response.ok) {
-        const newSong = await response.json();
-        onSongAdded(newSong);
-        setFormData({
-          title: '',
-          artist: '',
-          key: '',
-          youtubeLink: '',
-          duration: '',
-          bassGuitar: '4-string',
-          guitar: 'Electric',
-          backingTrack: false,
-          form: '',
-          medley: '',
-          medleyPosition: '',
-          notes: ''
-        });
-        setIsOpen(false);
+        const updatedSong = await response.json();
+        onSongUpdated(updatedSong);
       } else {
-        alert('Failed to add song');
+        alert('Failed to update song');
       }
     } catch (error) {
-      console.error('Error adding song:', error);
-      alert('Error adding song');
+      console.error('Error updating song:', error);
+      alert('Error updating song');
     } finally {
       setSaving(false);
     }
   };
 
-  if (!isOpen) {
-    return (
-      <div className="mb-8 text-center">
-        <button
-          onClick={() => setIsOpen(true)}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium text-lg transition-colors"
-        >
-          ➕ Add New Song
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="mb-8 bg-white rounded-lg shadow-lg p-6 border-l-4 border-green-500">
+    <div className="mb-8 bg-white rounded-lg shadow-lg p-6 border-l-4 border-blue-500">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Add New Song</h2>
+        <h2 className="text-2xl font-black text-gray-900">✏️ Edit Song: {song.title}</h2>
         <button
-          onClick={() => setIsOpen(false)}
+          onClick={onCancel}
           className="text-gray-500 hover:text-gray-700 text-2xl"
         >
           ✕
@@ -96,9 +70,9 @@ export default function AddSongForm({ onSongAdded }) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-black text-gray-900 mb-1">
               Song Title *
             </label>
             <input
@@ -107,13 +81,13 @@ export default function AddSongForm({ onSongAdded }) {
               value={formData.title}
               onChange={handleChange}
               required
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
               placeholder="Enter song title"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-black text-gray-900 mb-1">
               Artist
             </label>
             <input
@@ -121,13 +95,15 @@ export default function AddSongForm({ onSongAdded }) {
               name="artist"
               value={formData.artist}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
               placeholder="Enter artist name"
             />
           </div>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-black text-gray-900 mb-1">
               Key *
             </label>
             <select
@@ -135,7 +111,7 @@ export default function AddSongForm({ onSongAdded }) {
               value={formData.key}
               onChange={handleChange}
               required
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
             >
               <option value="">Select key</option>
               <option value="C">C</option>
@@ -161,7 +137,7 @@ export default function AddSongForm({ onSongAdded }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-black text-gray-900 mb-1">
               Duration (mm:ss)
             </label>
             <input
@@ -169,13 +145,13 @@ export default function AddSongForm({ onSongAdded }) {
               name="duration"
               value={formData.duration}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
               placeholder="4:32"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-black text-gray-900 mb-1">
               YouTube Link
             </label>
             <input
@@ -183,20 +159,20 @@ export default function AddSongForm({ onSongAdded }) {
               name="youtubeLink"
               value={formData.youtubeLink}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
               placeholder="https://youtube.com/watch?v=..."
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-black text-gray-900 mb-1">
               Bass Guitar
             </label>
             <select
               name="bassGuitar"
               value={formData.bassGuitar}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
             >
               <option value="4-string">4-string</option>
               <option value="5-string">5-string</option>
@@ -205,14 +181,14 @@ export default function AddSongForm({ onSongAdded }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-black text-gray-900 mb-1">
               Guitar
             </label>
             <select
               name="guitar"
               value={formData.guitar}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
             >
               <option value="Electric">Electric</option>
               <option value="Acoustic">Acoustic</option>
@@ -230,13 +206,13 @@ export default function AddSongForm({ onSongAdded }) {
             onChange={handleChange}
             className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
           />
-          <label className="text-sm font-medium text-gray-700">
+          <label className="text-sm font-black text-gray-900">
             Has backing track
           </label>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-black text-gray-900 mb-1">
             Song Form
           </label>
           <input
@@ -244,14 +220,14 @@ export default function AddSongForm({ onSongAdded }) {
             name="form"
             value={formData.form}
             onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
             placeholder="Intro-Verse-Chorus-Verse-Chorus-Bridge-Chorus-Outro"
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-black text-gray-900 mb-1">
               Medley Name (if part of medley)
             </label>
             <input
@@ -259,13 +235,13 @@ export default function AddSongForm({ onSongAdded }) {
               name="medley"
               value={formData.medley}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
               placeholder="80s Rock Medley"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-black text-gray-900 mb-1">
               Position in Medley
             </label>
             <input
@@ -273,7 +249,7 @@ export default function AddSongForm({ onSongAdded }) {
               name="medleyPosition"
               value={formData.medleyPosition}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
               placeholder="1"
               min="1"
             />
@@ -281,7 +257,7 @@ export default function AddSongForm({ onSongAdded }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-black text-gray-900 mb-1">
             Notes
           </label>
           <textarea
@@ -289,7 +265,7 @@ export default function AddSongForm({ onSongAdded }) {
             value={formData.notes}
             onChange={handleChange}
             rows="3"
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
             placeholder="Any special notes about this song..."
           />
         </div>
@@ -298,13 +274,13 @@ export default function AddSongForm({ onSongAdded }) {
           <button
             type="submit"
             disabled={saving}
-            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-medium transition-colors"
           >
-            {saving ? 'Saving...' : 'Add Song'}
+            {saving ? 'Saving...' : '💾 Save Changes'}
           </button>
           <button
             type="button"
-            onClick={() => setIsOpen(false)}
+            onClick={onCancel}
             className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
           >
             Cancel

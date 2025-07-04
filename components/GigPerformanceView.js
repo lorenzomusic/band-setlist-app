@@ -261,8 +261,15 @@ export default function GigPerformanceView({ gig }) {
 
             {/* Current Song Display */}
             <div className="text-center mb-8">
-              <div className={`${fontSizeClasses[fontSize]} font-bold mb-4`}>
-                {currentSong.title}
+              <div>
+                <div className={`${fontSizeClasses[fontSize]} font-bold mb-2`}>
+                  {currentSong.title}
+                </div>
+                {currentSong.artist && (
+                  <div className={`${fontSize === 'xl' ? 'text-2xl' : 'text-xl'} text-gray-600 mb-4`}>
+                    by {currentSong.artist}
+                  </div>
+                )}
               </div>
               
               {currentSong.medley && (

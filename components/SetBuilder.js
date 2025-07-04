@@ -220,7 +220,7 @@ export default function SetBuilder({ songs }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Song Library */}
           <div>
-            <h3 className="text-xl font-bold mb-4">📚 Song Library</h3>
+            <h3 className="text-xl font-black mb-4 text-gray-900">📚 Song Library</h3>
             <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
               {songs.map(song => (
                 <div
@@ -230,12 +230,12 @@ export default function SetBuilder({ songs }) {
                 >
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="font-medium">{song.title}</p>
+                      <p className="font-black text-gray-900">{song.title}</p>
                       {song.medley && (
-                        <p className="text-sm text-purple-600">{song.medley} - Part {song.medleyPosition}</p>
+                        <p className="text-sm text-purple-700 font-bold">{song.medley} - Part {song.medleyPosition}</p>
                       )}
                     </div>
-                    <div className="text-right text-sm text-gray-600">
+                    <div className="text-right text-sm text-gray-900 font-bold">
                       <p>{song.key} | {song.duration}</p>
                       <p>{song.bassGuitar}</p>
                     </div>
@@ -248,9 +248,9 @@ export default function SetBuilder({ songs }) {
           {/* Current Set */}
           <div>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">🎵 {activeSet.name}</h3>
+              <h3 className="text-xl font-black text-gray-900">🎵 {activeSet.name}</h3>
               <div className="text-right">
-                <p className="text-sm text-gray-600">{activeSet.songs.length} songs</p>
+                <p className="text-sm text-gray-800 font-bold">{activeSet.songs.length} songs</p>
                 <p className="font-medium text-purple-600">{calculateTotalDuration(activeSet.songs)}</p>
               </div>
             </div>
@@ -279,21 +279,24 @@ export default function SetBuilder({ songs }) {
                   >
                     <div className="flex justify-between items-center">
                       <div>
-                        <p className="font-medium">
+                        <p className="font-black text-gray-900">
                           {index + 1}. {song.title}
                         </p>
                         {song.medley && (
-                          <p className="text-sm text-purple-600">{song.medley} - Part {song.medleyPosition}</p>
+                          <p className="text-sm text-purple-700 font-bold">{song.medley} - Part {song.medleyPosition}</p>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="text-right text-sm text-gray-600">
+                        <div className="text-right text-sm text-gray-900 font-bold">
                           <p>{song.key} | {song.duration}</p>
                           <p>{song.bassGuitar}</p>
                         </div>
                         <button
-                          onClick={() => removeSongFromSet(index)}
-                          className="text-red-600 hover:text-red-800 font-bold"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeSongFromSet(index);
+                          }}
+                          className="text-red-600 hover:text-red-800 font-bold text-lg px-2"
                         >
                           ✕
                         </button>

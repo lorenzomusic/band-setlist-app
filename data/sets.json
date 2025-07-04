@@ -3,20 +3,6 @@
     "name": "Pop Set 1",
     "songs": [
       {
-        "id": 1,
-        "title": "Sweet Child O' Mine",
-        "key": "D",
-        "youtubeLink": "https://youtube.com/watch?v=1w7OgIMMRc4",
-        "duration": "5:03",
-        "bassGuitar": "4-string",
-        "guitar": "Electric",
-        "backingTrack": false,
-        "form": "Intro-Verse-Chorus-Verse-Chorus-Solo-Chorus-Outro",
-        "medley": null,
-        "notes": "Guitar solo extended live",
-        "setPosition": 1
-      },
-      {
         "id": 2,
         "title": "Don't Stop Believin'",
         "key": "E",
@@ -28,22 +14,7 @@
         "form": "Intro-Verse-Chorus-Verse-Chorus-Bridge-Chorus-Outro",
         "medley": null,
         "notes": "Crowd favorite - always works",
-        "setPosition": 2
-      },
-      {
-        "title": "Highway to Hell",
-        "key": "A",
-        "youtubeLink": "https://youtu.be/0m1j-mr7mpQ",
-        "duration": "3:28",
-        "bassGuitar": "4-string",
-        "guitar": "Electric",
-        "backingTrack": false,
-        "form": "Intro–Verse–Chorus–Verse–Chorus–Solo–Verse–Chorus–Chorus",
-        "medley": null,
-        "medleyPosition": null,
-        "notes": "Rock out with your cock out",
-        "id": 5,
-        "setPosition": 3
+        "setPosition": 1
       },
       {
         "id": 3,
@@ -58,7 +29,7 @@
         "medley": "80s Rock Medley",
         "medleyPosition": 1,
         "notes": "Eye of the Tiger excerpt",
-        "setPosition": 4
+        "setPosition": 2
       },
       {
         "id": 4,
@@ -73,7 +44,7 @@
         "medley": "80s Rock Medley",
         "medleyPosition": 2,
         "notes": "Living on a Prayer excerpt",
-        "setPosition": 5
+        "setPosition": 3
       }
     ],
     "createdAt": "2025-07-04T21:27:37.231Z",

@@ -243,8 +243,8 @@ export default function GigBuilder({ songs }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Available Sets Library */}
           <div>
-            <h3 className="text-xl font-bold mb-4">🎼 Available Sets</h3>
-            <p className="text-sm text-gray-600 mb-4">Click to add sets to your gig</p>
+            <h3 className="text-xl font-black mb-4 text-gray-900">🎼 Available Sets</h3>
+            <p className="text-sm text-gray-800 font-bold mb-4">Click to add sets to your gig</p>
             <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
               {sets.length === 0 ? (
                 <div className="text-center py-8">
@@ -259,15 +259,15 @@ export default function GigBuilder({ songs }) {
                     onClick={() => addSetToGig(set)}
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-bold text-lg text-gray-800">{set.name}</h4>
+                      <h4 className="font-black text-lg text-gray-900">{set.name}</h4>
                       <div className="text-right">
                         <p className="text-purple-600 font-semibold">{calculateSetDuration(set.songs)}</p>
-                        <p className="text-sm text-gray-500">{set.songs.length} songs</p>
+                        <p className="text-sm text-gray-800 font-bold">{set.songs.length} songs</p>
                       </div>
                     </div>
                     
                     {/* Preview first few songs */}
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-gray-800 font-bold">
                       {set.songs.slice(0, 3).map((song, index) => (
                         <span key={song.id}>
                           {song.title}
@@ -285,7 +285,7 @@ export default function GigBuilder({ songs }) {
           {/* Current Gig */}
           <div>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">🎪 {activeGig.name}</h3>
+              <h3 className="text-xl font-black text-gray-900">🎪 {activeGig.name}</h3>
               <div className="text-right">
                 <p className="text-sm text-gray-600">{activeGig.sets.length} sets</p>
                 <p className="font-medium text-red-600">{calculateGigDuration(activeGig.sets)}</p>
@@ -317,8 +317,11 @@ export default function GigBuilder({ songs }) {
                           <p className="text-purple-600 font-semibold">{calculateSetDuration(set.songs)}</p>
                         </div>
                         <button
-                          onClick={() => removeSetFromGig(index)}
-                          className="text-red-600 hover:text-red-800 font-bold text-lg"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeSetFromGig(index);
+                          }}
+                          className="text-red-600 hover:text-red-800 font-bold text-lg px-2"
                         >
                           ✕
                         </button>

@@ -9,6 +9,7 @@ import PDFGenerator from '../components/PDFGenerator';
 import SetBuilder from '../components/SetBuilder';
 import GigBuilder from '../components/GigBuilder';
 import GigPerformanceView from '../components/GigPerformanceView';
+import EditSongForm from '../components/EditSongForm';
 
 export default function Home() {
   const [songs, setSongs] = useState([]);
@@ -18,38 +19,58 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('songs');
   const [selectedSetlist, setSelectedSetlist] = useState(null);
   const [selectedGig, setSelectedGig] = useState(null);
+  const [editingSong, setEditingSong] = useState(null);
 
- // Load songs and gigs
-useEffect(() => {
-  loadData();
-}, []);
+  // Load songs and gigs
+  useEffect(() => {
+    loadSongs();
+    loadGigs();
+  }, []);
 
-const loadData = async () => {
-  try {
-    // Load songs
-    const songsResponse = await fetch('/api/songs');
-    const songsData = await songsResponse.json();
-    setSongs(songsData);
-
-    // Load gigs
-    const gigsResponse = await fetch('/api/gigs');
-    if (gigsResponse.ok) {
-      const gigsData = await gigsResponse.json();
-      setGigs(gigsData);
-      // Auto-select first gig for performance view
-      if (gigsData.length > 0) {
-        setSelectedGig(gigsData[0]);
-      }
+  const loadSongs = async () => {
+    try {
+      const response = await fetch('/api/songs');
+      const data = await response.json();
+      setSongs(data);
+    } catch (error) {
+      console.error('Error loading songs:', error);
     }
-  } catch (error) {
-    console.error('Error loading data:', error);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
+  const loadGigs = async () => {
+    try {
+      const response = await fetch('/api/gigs');
+      if (response.ok) {
+        const data = await response.json();
+        setGigs(data);
+        if (data.length > 0) {
+          setSelectedGig(data[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading gigs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSongAdded = (newSong) => {
     setSongs(prev => [...prev, newSong]);
+  };
+
+  const handleEditSong = (song) => {
+    setEditingSong(song);
+  };
+
+  const handleSongUpdated = (updatedSong) => {
+    setSongs(prev => prev.map(song => 
+      song.id === updatedSong.id ? updatedSong : song
+    ));
+    setEditingSong(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingSong(null);
   };
 
   const calculateGigDuration = (gigSets) => {
@@ -130,81 +151,102 @@ const loadData = async () => {
           <>
             {activeTab === 'songs' && (
               <div>
-                <AddSongForm onSongAdded={handleSongAdded} />
-                
-                <div>
-                  <p className="text-center mb-6 text-gray-600">Found {songs.length} songs in your collection</p>
-                  
-                  <div className="grid gap-6">
-                    {songs.map(song => (
-                      <div key={song.id} className="bg-white rounded-lg shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h2 className="text-2xl font-bold text-gray-800">{song.title}</h2>
-                            {song.medley && (
-                              <p className="text-sm text-purple-600 font-medium mt-1">
-                                🎼 {song.medley} - Part {song.medleyPosition}
-                              </p>
+                {editingSong ? (
+                  <EditSongForm 
+                    song={editingSong}
+                    onSongUpdated={handleSongUpdated}
+                    onCancel={handleCancelEdit}
+                  />
+                ) : (
+                  <>
+                    <AddSongForm onSongAdded={handleSongAdded} />
+                    
+                    <div>
+                      <p className="text-center mb-6 text-gray-900 font-bold">Found {songs.length} songs in your collection</p>
+                      
+                      <div className="grid gap-6">
+                        {songs.map(song => (
+                          <div key={song.id} className="bg-white rounded-lg shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
+                            <div className="flex justify-between items-start mb-4">
+                              <div>
+                                <div>
+                                  <h2 className="text-2xl font-bold text-gray-800">{song.title}</h2>
+                                  {song.artist && (
+                                    <p className="text-lg text-gray-700 font-medium">by {song.artist}</p>
+                                  )}
+                                </div>
+                                {song.medley && (
+                                  <p className="text-sm text-purple-600 font-medium mt-1">
+                                    🎼 {song.medley} - Part {song.medleyPosition}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
+                                  Key: {song.key}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                              <div className="bg-gray-50 p-3 rounded">
+                                <span className="font-medium text-gray-600 text-xs uppercase tracking-wide">Duration</span>
+                                <p className="text-gray-800 font-semibold">{song.duration}</p>
+                              </div>
+                              <div className="bg-gray-50 p-3 rounded">
+                                <span className="font-medium text-gray-600 text-xs uppercase tracking-wide">Bass Guitar</span>
+                                <p className="text-gray-800 font-semibold">{song.bassGuitar}</p>
+                              </div>
+                              <div className="bg-gray-50 p-3 rounded">
+                                <span className="font-medium text-gray-600 text-xs uppercase tracking-wide">Guitar</span>
+                                <p className="text-gray-800 font-semibold">{song.guitar}</p>
+                              </div>
+                              <div className="bg-gray-50 p-3 rounded">
+                                <span className="font-medium text-gray-600 text-xs uppercase tracking-wide">Backing Track</span>
+                                <p className="text-gray-800 font-semibold">
+                                  {song.backingTrack ? '✅ Yes' : '❌ No'}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {song.form && (
+                              <div className="mb-4">
+                                <span className="font-medium text-gray-600 text-xs uppercase tracking-wide">Song Form</span>
+                                <p className="text-gray-800 mt-1 text-sm bg-yellow-50 p-2 rounded">{song.form}</p>
+                              </div>
                             )}
+                            
+                            {song.notes && (
+                              <div className="mb-4">
+                                <span className="font-medium text-gray-600 text-xs uppercase tracking-wide">Notes</span>
+                                <p className="text-gray-800 mt-1 text-sm italic bg-green-50 p-2 rounded">{song.notes}</p>
+                              </div>
+                            )}
+                            
+                            <div className="flex gap-3 items-center">
+                              {song.youtubeLink && (
+                                <a 
+                                  href={song.youtubeLink} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                                >
+                                  🎵 Listen on YouTube
+                                </a>
+                              )}
+                              <button
+                                onClick={() => handleEditSong(song)}
+                                className="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                              >
+                                ✏️ Edit Song
+                              </button>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
-                              Key: {song.key}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                          <div className="bg-gray-50 p-3 rounded">
-                            <span className="font-medium text-gray-600 text-xs uppercase tracking-wide">Duration</span>
-                            <p className="text-gray-800 font-semibold">{song.duration}</p>
-                          </div>
-                          <div className="bg-gray-50 p-3 rounded">
-                            <span className="font-medium text-gray-600 text-xs uppercase tracking-wide">Bass Guitar</span>
-                            <p className="text-gray-800 font-semibold">{song.bassGuitar}</p>
-                          </div>
-                          <div className="bg-gray-50 p-3 rounded">
-                            <span className="font-medium text-gray-600 text-xs uppercase tracking-wide">Guitar</span>
-                            <p className="text-gray-800 font-semibold">{song.guitar}</p>
-                          </div>
-                          <div className="bg-gray-50 p-3 rounded">
-                            <span className="font-medium text-gray-600 text-xs uppercase tracking-wide">Backing Track</span>
-                            <p className="text-gray-800 font-semibold">
-                              {song.backingTrack ? '✅ Yes' : '❌ No'}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        {song.form && (
-                          <div className="mb-4">
-                            <span className="font-medium text-gray-600 text-xs uppercase tracking-wide">Song Form</span>
-                            <p className="text-gray-800 mt-1 text-sm bg-yellow-50 p-2 rounded">{song.form}</p>
-                          </div>
-                        )}
-                        
-                        {song.notes && (
-                          <div className="mb-4">
-                            <span className="font-medium text-gray-600 text-xs uppercase tracking-wide">Notes</span>
-                            <p className="text-gray-800 mt-1 text-sm italic bg-green-50 p-2 rounded">{song.notes}</p>
-                          </div>
-                        )}
-                        
-                        {song.youtubeLink && (
-                          <div>
-                            <a 
-                              href={song.youtubeLink} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                            >
-                              🎵 Listen on YouTube
-                            </a>
-                          </div>
-                        )}
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
