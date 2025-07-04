@@ -1,103 +1,279 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from 'react';
+import SongList from '../components/SongList';
+import AddSongForm from '../components/AddSongForm';
+import SetListBuilder from '../components/SetListBuilder';
+import PerformanceView from '../components/PerformanceView';
+import PDFGenerator from '../components/PDFGenerator';
+import SetBuilder from '../components/SetBuilder';
+import GigBuilder from '../components/GigBuilder';
+import GigPerformanceView from '../components/GigPerformanceView';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [songs, setSongs] = useState([]);
+  const [setlists, setSetlists] = useState([]);
+  const [gigs, setGigs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('songs');
+  const [selectedSetlist, setSelectedSetlist] = useState(null);
+  const [selectedGig, setSelectedGig] = useState(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+ // Load songs and gigs
+useEffect(() => {
+  loadData();
+}, []);
+
+const loadData = async () => {
+  try {
+    // Load songs
+    const songsResponse = await fetch('/api/songs');
+    const songsData = await songsResponse.json();
+    setSongs(songsData);
+
+    // Load gigs
+    const gigsResponse = await fetch('/api/gigs');
+    if (gigsResponse.ok) {
+      const gigsData = await gigsResponse.json();
+      setGigs(gigsData);
+      // Auto-select first gig for performance view
+      if (gigsData.length > 0) {
+        setSelectedGig(gigsData[0]);
+      }
+    }
+  } catch (error) {
+    console.error('Error loading data:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const handleSongAdded = (newSong) => {
+    setSongs(prev => [...prev, newSong]);
+  };
+
+  const calculateGigDuration = (gigSets) => {
+    const totalMinutes = gigSets.reduce((total, set) => {
+      const setMinutes = set.songs.reduce((setTotal, song) => {
+        if (song.duration) {
+          const [minutes, seconds] = song.duration.split(':').map(Number);
+          return setTotal + minutes + (seconds / 60);
+        }
+        return setTotal;
+      }, 0);
+      return total + setMinutes;
+    }, 0);
+
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = Math.round(totalMinutes % 60);
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto p-6">
+        <h1 className="text-4xl font-black mb-8 text-center text-gray-900">🎵 Band Management App</h1>
+        
+      {/* Tab Navigation */}
+<div className="flex justify-center mb-8">
+  <div className="bg-white rounded-lg p-1 shadow-md">
+    <button
+      onClick={() => setActiveTab('songs')}
+      className={`px-4 py-3 rounded-md font-medium transition-colors ${
+        activeTab === 'songs'
+          ? 'bg-blue-600 text-white'
+          : 'text-gray-600 hover:text-gray-800'
+      }`}
+    >
+      📚 Songs
+    </button>
+    <button
+      onClick={() => setActiveTab('sets')}
+      className={`px-4 py-3 rounded-md font-medium transition-colors ${
+        activeTab === 'sets'
+          ? 'bg-blue-600 text-white'
+          : 'text-gray-600 hover:text-gray-800'
+      }`}
+    >
+      🎼 Sets
+    </button>
+    <button
+      onClick={() => setActiveTab('setlists')}
+      className={`px-4 py-3 rounded-md font-medium transition-colors ${
+        activeTab === 'setlists'
+          ? 'bg-blue-600 text-white'
+          : 'text-gray-600 hover:text-gray-800'
+      }`}
+    >
+      🎪 Gigs
+    </button>
+    <button
+      onClick={() => setActiveTab('performance')}
+      className={`px-4 py-3 rounded-md font-medium transition-colors ${
+        activeTab === 'performance'
+          ? 'bg-blue-600 text-white'
+          : 'text-gray-600 hover:text-gray-800'
+      }`}
+    >
+      🎭 Performance
+    </button>
+  </div>
+</div>
+
+        {loading ? (
+          <p className="text-center">Loading... 🎵</p>
+        ) : (
+          <>
+            {activeTab === 'songs' && (
+              <div>
+                <AddSongForm onSongAdded={handleSongAdded} />
+                
+                <div>
+                  <p className="text-center mb-6 text-gray-600">Found {songs.length} songs in your collection</p>
+                  
+                  <div className="grid gap-6">
+                    {songs.map(song => (
+                      <div key={song.id} className="bg-white rounded-lg shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h2 className="text-2xl font-bold text-gray-800">{song.title}</h2>
+                            {song.medley && (
+                              <p className="text-sm text-purple-600 font-medium mt-1">
+                                🎼 {song.medley} - Part {song.medleyPosition}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
+                              Key: {song.key}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                          <div className="bg-gray-50 p-3 rounded">
+                            <span className="font-medium text-gray-600 text-xs uppercase tracking-wide">Duration</span>
+                            <p className="text-gray-800 font-semibold">{song.duration}</p>
+                          </div>
+                          <div className="bg-gray-50 p-3 rounded">
+                            <span className="font-medium text-gray-600 text-xs uppercase tracking-wide">Bass Guitar</span>
+                            <p className="text-gray-800 font-semibold">{song.bassGuitar}</p>
+                          </div>
+                          <div className="bg-gray-50 p-3 rounded">
+                            <span className="font-medium text-gray-600 text-xs uppercase tracking-wide">Guitar</span>
+                            <p className="text-gray-800 font-semibold">{song.guitar}</p>
+                          </div>
+                          <div className="bg-gray-50 p-3 rounded">
+                            <span className="font-medium text-gray-600 text-xs uppercase tracking-wide">Backing Track</span>
+                            <p className="text-gray-800 font-semibold">
+                              {song.backingTrack ? '✅ Yes' : '❌ No'}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {song.form && (
+                          <div className="mb-4">
+                            <span className="font-medium text-gray-600 text-xs uppercase tracking-wide">Song Form</span>
+                            <p className="text-gray-800 mt-1 text-sm bg-yellow-50 p-2 rounded">{song.form}</p>
+                          </div>
+                        )}
+                        
+                        {song.notes && (
+                          <div className="mb-4">
+                            <span className="font-medium text-gray-600 text-xs uppercase tracking-wide">Notes</span>
+                            <p className="text-gray-800 mt-1 text-sm italic bg-green-50 p-2 rounded">{song.notes}</p>
+                          </div>
+                        )}
+                        
+                        {song.youtubeLink && (
+                          <div>
+                            <a 
+                              href={song.youtubeLink} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                            >
+                              🎵 Listen on YouTube
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+    {activeTab === 'sets' && (
+              <SetBuilder songs={songs} />
+            )}
+
+            {activeTab === 'setlists' && (
+              <GigBuilder songs={songs} />
+            )}
+           
+
+            {activeTab === 'performance' && (
+              <div>
+                {gigs.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-xl text-gray-600 mb-4">No gigs created yet</p>
+                    <p className="text-gray-500">Create a gig in the Gigs tab first</p>
+                  </div>
+                ) : (
+                  <div>
+                    {/* Gig Selector */}
+                    <div className="mb-6 text-center">
+                      <label className="block text-lg font-black mb-2 text-gray-900">Choose Gig for Performance:</label>
+                      <select
+                        value={selectedGig?.id || ''}
+                        onChange={(e) => {
+                          const gig = gigs.find(g => g.id === parseInt(e.target.value));
+                          setSelectedGig(gig);
+                        }}
+                        className="px-4 py-2 border-2 border-gray-400 rounded-lg text-lg font-bold text-gray-900 bg-white"
+                      >
+                        <option value="">Select a gig...</option>
+                        {gigs.map(gig => (
+                          <option key={gig.id} value={gig.id}>
+                            {gig.name} ({gig.sets.length} sets, {calculateGigDuration(gig.sets)})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {selectedGig && selectedGig.sets.length > 0 ? (
+  <div className="space-y-8">
+    {/* PDF Generator */}
+    <PDFGenerator setlist={{
+      ...selectedGig,
+      songs: selectedGig.sets.flatMap(set => set.songs)
+    }} />
+    
+    {/* Performance View */}
+    <GigPerformanceView gig={selectedGig} />
+  </div>
+                    ) : selectedGig ? (
+                      <div className="text-center py-12">
+                        <p className="text-xl text-gray-600">This gig has no sets</p>
+                        <p className="text-gray-500">Add sets to this gig first</p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <p className="text-xl text-gray-600">Select a gig to begin performance</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
