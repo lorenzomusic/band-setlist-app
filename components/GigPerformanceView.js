@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import InstrumentChangeIndicator from './InstrumentChangeIndicator';
 
 export default function GigPerformanceView({ gig }) {
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
@@ -183,7 +184,7 @@ export default function GigPerformanceView({ gig }) {
           <div>
             <h2 className="text-3xl font-black mb-6 text-center text-gray-900">Complete Gig Overview</h2>
             {gig.sets.map((set, setIdx) => (
-              <div key={setIdx} className={`mb-8 p-4 rounded-lg ${
+              <div key={`set-${setIdx}`} className={`mb-8 p-4 rounded-lg ${
                 darkMode ? 'bg-gray-800' : 'bg-gray-50'
               }`}>
                 <div className="flex justify-between items-center mb-4">
@@ -198,30 +199,55 @@ export default function GigPerformanceView({ gig }) {
                 </div>
                 
                 <div className="grid gap-2">
-                  {set.songs.map((song, songIdx) => (
-                    <div
-                      key={`${setIdx}-${songIdx}`}
-                      onClick={() => goToSong(setIdx, songIdx)}
-                      className={`p-3 rounded cursor-pointer transition-colors ${
-                        setIdx === currentSetIndex && songIdx === currentSongIndex
-                          ? darkMode
-                            ? 'bg-red-700 border-2 border-red-500'
-                            : 'bg-red-100 border-2 border-red-500'
-                          : darkMode
-                            ? 'bg-gray-700 hover:bg-gray-600'
-                            : 'bg-white hover:bg-gray-100'
-                      }`}
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium">
-                          {songIdx + 1}. {song.title}
-                        </span>
-                        <span className="text-sm opacity-75">
-                          {song.key} | {song.duration}
-                        </span>
+                  {set.songs.map((song, songIdx) => {
+                    // Check for instrument changes from previous song (even across sets)
+                    let previousSong = null;
+                    if (songIdx > 0) {
+                      previousSong = set.songs[songIdx - 1];
+                    } else if (setIdx > 0) {
+                      const previousSet = gig.sets[setIdx - 1];
+                      if (previousSet.songs && previousSet.songs.length > 0) {
+                        previousSong = previousSet.songs[previousSet.songs.length - 1];
+                      }
+                    }
+
+                    return (
+                      <div key={`${setIdx}-${songIdx}`}>
+                        {/* Instrument Change Indicator */}
+                        {previousSong && (
+                          <div className="my-2">
+                            <InstrumentChangeIndicator 
+                              previousSong={previousSong} 
+                              currentSong={song} 
+                            />
+                          </div>
+                        )}
+                        
+                        {/* Song Display */}
+                        <div
+                          onClick={() => goToSong(setIdx, songIdx)}
+                          className={`p-3 rounded cursor-pointer transition-colors ${
+                            setIdx === currentSetIndex && songIdx === currentSongIndex
+                              ? darkMode
+                                ? 'bg-red-700 border-2 border-red-500'
+                                : 'bg-red-100 border-2 border-red-500'
+                              : darkMode
+                                ? 'bg-gray-700 hover:bg-gray-600'
+                                : 'bg-white hover:bg-gray-100'
+                          }`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">
+                              {songIdx + 1}. {song.title}
+                            </span>
+                            <span className="text-sm opacity-75">
+                              {song.key} | {song.duration}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 
                 {setIdx < gig.sets.length - 1 && (
@@ -240,7 +266,7 @@ export default function GigPerformanceView({ gig }) {
               <div className="flex justify-center gap-2 mb-2">
                 {gig.sets.map((set, idx) => (
                   <button
-                    key={idx}
+                    key={`nav-set-${idx}`}
                     onClick={() => goToSet(idx)}
                     className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                       idx === currentSetIndex

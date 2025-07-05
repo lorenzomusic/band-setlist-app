@@ -2,248 +2,248 @@
 
 import { useState } from 'react';
 
-export default function PDFGenerator({ setlist }) {
+export default function PDFGenerator({ setlist, gigName = "Setlist" }) {
   const [generating, setGenerating] = useState(false);
-  const [pdfSettings, setPdfSettings] = useState({
-    fontSize: 'large', // small, medium, large
-    includeDetails: true,
-    showMedleyParts: true,
-    darkMode: false,
-    orientation: 'portrait' // portrait, landscape
-  });
 
-  const generatePDF = async () => {
+  // Robust validation to prevent errors
+  const validateSetlist = () => {
+    if (!setlist) {
+      console.warn('PDFGenerator: setlist is null or undefined');
+      return false;
+    }
+
+    // Check if it's an array (individual set)
+    if (Array.isArray(setlist)) {
+      if (setlist.length === 0) {
+        console.warn('PDFGenerator: setlist array is empty');
+        return false;
+      }
+      return true;
+    }
+
+    // Check if it's a gig object with sets
+    if (setlist.sets) {
+      if (!Array.isArray(setlist.sets) || setlist.sets.length === 0) {
+        console.warn('PDFGenerator: gig has no sets or empty sets array');
+        return false;
+      }
+      return true;
+    }
+
+    // Check if it's a set object with songs
+    if (setlist.songs) {
+      if (!Array.isArray(setlist.songs) || setlist.songs.length === 0) {
+        console.warn('PDFGenerator: set has no songs or empty songs array');
+        return false;
+      }
+      return true;
+    }
+
+    console.warn('PDFGenerator: setlist format not recognized', setlist);
+    return false;
+  };
+
+  const generatePDF = () => {
+    if (!validateSetlist()) {
+      alert('Cannot generate PDF: No valid setlist data available');
+      return;
+    }
+
     setGenerating(true);
     
     try {
-      // Import jsPDF dynamically to avoid SSR issues
-      const { default: jsPDF } = await import('jspdf');
+      // Create a new window for printing
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Please allow popups to generate PDF');
+        setGenerating(false);
+        return;
+      }
+
+      const printDocument = printWindow.document;
+
+      // PDF content
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>${gigName} - Setlist</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                margin: 20px;
+                line-height: 1.4;
+              }
+              .header {
+                text-align: center;
+                border-bottom: 2px solid #333;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+              }
+              .set {
+                margin-bottom: 30px;
+                page-break-inside: avoid;
+              }
+              .set-title {
+                font-size: 18px;
+                font-weight: bold;
+                background-color: #f0f0f0;
+                padding: 8px;
+                margin-bottom: 10px;
+              }
+              .song {
+                margin: 8px 0;
+                padding: 5px;
+                border-left: 3px solid #333;
+                padding-left: 10px;
+              }
+              .song-title {
+                font-weight: bold;
+                font-size: 14px;
+              }
+              .song-details {
+                font-size: 12px;
+                color: #666;
+                margin-top: 2px;
+              }
+              .notes {
+                font-style: italic;
+                color: #888;
+                font-size: 11px;
+                margin-top: 3px;
+              }
+              @media print {
+                body { margin: 10px; }
+                .no-print { display: none; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>${gigName}</h1>
+              <p>Generated on ${new Date().toLocaleDateString()}</p>
+            </div>
+      `;
+
+      let bodyContent = '';
+
+      // Handle different setlist formats
+      if (Array.isArray(setlist)) {
+        // Single set (array of songs)
+        bodyContent += `
+          <div class="set">
+            ${setlist.map((song, index) => `
+              <div class="song">
+                <div class="song-title">${index + 1}. ${song.title || 'Untitled'}</div>
+                <div class="song-details">
+                  ${song.artist || 'Unknown Artist'} 
+                  ${song.key ? `• Key: ${song.key}` : ''}
+                  ${song.duration ? `• ${song.duration}` : ''}
+                  ${song.language ? `• ${song.language === 'danish' ? '🇩🇰 Danish' : '🇬🇧 English'}` : ''}
+                  ${song.vocalist ? `• 🎤 ${song.vocalist}` : ''}
+                  ${song.bassGuitar ? `• 🎸 ${song.bassGuitar}` : ''}
+                  ${song.guitar ? `• 🎸 ${song.guitar}` : ''}
+                  ${song.backingTrack ? `• 🎵 Backing Track` : ''}
+                </div>
+                ${song.notes ? `<div class="notes">Notes: ${song.notes}</div>` : ''}
+                ${song.tags && song.tags.length > 0 ? `<div class="notes">Tags: ${song.tags.join(', ')}</div>` : ''}
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else if (setlist.sets && Array.isArray(setlist.sets)) {
+        // Multiple sets (gig)
+        bodyContent += setlist.sets.map((set, setIndex) => `
+          <div class="set">
+            <div class="set-title">Set ${setIndex + 1}: ${set.name || 'Untitled Set'}</div>
+            ${set.songs && Array.isArray(set.songs) ? set.songs.map((song, songIndex) => `
+              <div class="song">
+                <div class="song-title">${songIndex + 1}. ${song.title || 'Untitled'}</div>
+                <div class="song-details">
+                  ${song.artist || 'Unknown Artist'} 
+                  ${song.key ? `• Key: ${song.key}` : ''}
+                  ${song.duration ? `• ${song.duration}` : ''}
+                  ${song.language ? `• ${song.language === 'danish' ? '🇩🇰 Danish' : '🇬🇧 English'}` : ''}
+                  ${song.vocalist ? `• 🎤 ${song.vocalist}` : ''}
+                  ${song.bassGuitar ? `• 🎸 ${song.bassGuitar}` : ''}
+                  ${song.guitar ? `• 🎸 ${song.guitar}` : ''}
+                  ${song.backingTrack ? `• 🎵 Backing Track` : ''}
+                </div>
+                ${song.notes ? `<div class="notes">Notes: ${song.notes}</div>` : ''}
+                ${song.tags && song.tags.length > 0 ? `<div class="notes">Tags: ${song.tags.join(', ')}</div>` : ''}
+              </div>
+            `).join('') : '<p>No songs in this set</p>'}
+            ${setIndex < setlist.sets.length - 1 ? '<div style="text-align: center; margin: 20px 0; font-style: italic; color: #666;">☕ Break (15-20 minutes)</div>' : ''}
+          </div>
+        `).join('');
+      } else if (setlist.songs && Array.isArray(setlist.songs)) {
+        // Single set object with songs
+        bodyContent += `
+          <div class="set">
+            <div class="set-title">${setlist.name || 'Setlist'}</div>
+            ${setlist.songs.map((song, index) => `
+              <div class="song">
+                <div class="song-title">${index + 1}. ${song.title || 'Untitled'}</div>
+                <div class="song-details">
+                  ${song.artist || 'Unknown Artist'} 
+                  ${song.key ? `• Key: ${song.key}` : ''}
+                  ${song.duration ? `• ${song.duration}` : ''}
+                  ${song.language ? `• ${song.language === 'danish' ? '🇩🇰 Danish' : '🇬🇧 English'}` : ''}
+                  ${song.vocalist ? `• 🎤 ${song.vocalist}` : ''}
+                  ${song.bassGuitar ? `• 🎸 ${song.bassGuitar}` : ''}
+                  ${song.guitar ? `• 🎸 ${song.guitar}` : ''}
+                  ${song.backingTrack ? `• 🎵 Backing Track` : ''}
+                </div>
+                ${song.notes ? `<div class="notes">Notes: ${song.notes}</div>` : ''}
+                ${song.tags && song.tags.length > 0 ? `<div class="notes">Tags: ${song.tags.join(', ')}</div>` : ''}
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      const footerContent = `
+          </body>
+        </html>
+      `;
+
+      // Write content and print
+      printDocument.write(htmlContent + bodyContent + footerContent);
+      printDocument.close();
       
-      const doc = new jsPDF({
-        orientation: pdfSettings.orientation,
-        unit: 'mm',
-        format: 'a4'
-      });
-
-      // PDF dimensions
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 20;
-      const contentWidth = pageWidth - (margin * 2);
-      
-      let yPosition = margin;
-
-      // Helper function to add text with line wrapping
-      const addText = (text, fontSize, isBold = false) => {
-        if (yPosition > pageHeight - 30) {
-          doc.addPage();
-          yPosition = margin;
-        }
-        
-        doc.setFontSize(fontSize);
-        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-        
-        const lines = doc.splitTextToSize(text, contentWidth);
-        doc.text(lines, margin, yPosition);
-        yPosition += lines.length * (fontSize * 0.4) + 5;
-        
-        return yPosition;
-      };
-
-      // Title
-      const titleSize = pdfSettings.fontSize === 'small' ? 24 : pdfSettings.fontSize === 'medium' ? 28 : 32;
-      addText(setlist.name.toUpperCase(), titleSize, true);
-      yPosition += 10;
-
-      // Setlist info
-      const totalDuration = calculateTotalDuration(setlist.songs);
-      const infoSize = pdfSettings.fontSize === 'small' ? 10 : pdfSettings.fontSize === 'medium' ? 12 : 14;
-      addText(`${setlist.songs.length} songs • Total duration: ${totalDuration}`, infoSize);
-      addText(`Generated: ${new Date().toLocaleDateString()}`, infoSize);
-      yPosition += 10;
-
-      // Add line separator
-      doc.setLineWidth(0.5);
-      doc.line(margin, yPosition, pageWidth - margin, yPosition);
-      yPosition += 15;
-
-      // Songs
-      const songTitleSize = pdfSettings.fontSize === 'small' ? 16 : pdfSettings.fontSize === 'medium' ? 18 : 22;
-      const songDetailSize = pdfSettings.fontSize === 'small' ? 10 : pdfSettings.fontSize === 'medium' ? 11 : 12;
-
-      setlist.songs.forEach((song, index) => {
-        // Song number and title
-        const songTitle = `${index + 1}. ${song.title.toUpperCase()}`;
-        addText(songTitle, songTitleSize, true);
-
-        // Medley info
-        if (song.medley && pdfSettings.showMedleyParts) {
-          addText(`   ${song.medley} - Part ${song.medleyPosition}`, songDetailSize);
-        }
-
-        // Song details
-        if (pdfSettings.includeDetails) {
-          const details = [
-            `Key: ${song.key}`,
-            song.duration ? `Duration: ${song.duration}` : null,
-            `Bass: ${song.bassGuitar}`,
-            `Guitar: ${song.guitar}`,
-            song.backingTrack ? 'Backing Track: Yes' : null
-          ].filter(Boolean).join(' • ');
-          
-          addText(`   ${details}`, songDetailSize);
-
-          // Song form
-          if (song.form) {
-            addText(`   Form: ${song.form}`, songDetailSize);
-          }
-
-          // Notes
-          if (song.notes) {
-            addText(`   Notes: ${song.notes}`, songDetailSize);
-          }
-        }
-
-        yPosition += 8; // Extra space between songs
-      });
-
-      // Add footer
-      const footerY = pageHeight - 15;
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Generated by Band Management App', margin, footerY);
-
-      // Save the PDF
-      const fileName = `${setlist.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_setlist.pdf`;
-      doc.save(fileName);
-
+      // Auto-print after a short delay
+      setTimeout(() => {
+        printWindow.print();
+        setGenerating(false);
+      }, 500);
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('Error generating PDF. Please try again.');
-    } finally {
       setGenerating(false);
     }
   };
 
-  // Calculate total duration
-  const calculateTotalDuration = (songs) => {
-    const totalMinutes = songs.reduce((total, song) => {
-      if (song.duration) {
-        const [minutes, seconds] = song.duration.split(':').map(Number);
-        return total + minutes + (seconds / 60);
-      }
-      return total;
-    }, 0);
-
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = Math.round(totalMinutes % 60);
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m`;
-  };
-
-  if (!setlist || setlist.songs.length === 0) {
-    return (
-      <div className="bg-gray-100 rounded-lg p-6 text-center">
-        <p className="text-gray-600">No songs in setlist to generate PDF</p>
-      </div>
-    );
+  // Don't render if no valid data
+  if (!validateSetlist()) {
+    return null;
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <h3 className="text-2xl font-black mb-6 text-center text-gray-900">📄 Generate PDF Setlist</h3>
-      
-      {/* PDF Settings */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Font Size
-          </label>
-          <select
-            value={pdfSettings.fontSize}
-            onChange={(e) => setPdfSettings(prev => ({ ...prev, fontSize: e.target.value }))}
-            className="w-full p-3 border-2 border-gray-400 rounded-md font-black text-gray-900 bg-white focus:text-gray-900"
-          >
-            <option value="small">Small (Compact)</option>
-            <option value="medium">Medium (Balanced)</option>
-            <option value="large">Large (Easy to Read)</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Orientation
-          </label>
-          <select
-            value={pdfSettings.orientation}
-            onChange={(e) => setPdfSettings(prev => ({ ...prev, orientation: e.target.value }))}
-            className="w-full p-3 border-2 border-gray-400 rounded-md font-black text-gray-900 bg-white focus:text-gray-900"
-          >
-            <option value="portrait">Portrait (A4)</option>
-            <option value="landscape">Landscape (A4)</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Options */}
-      <div className="space-y-3 mb-6">
-        <label className="flex items-center">
-          <input
-            type="checkbox"
-            checked={pdfSettings.includeDetails}
-            onChange={(e) => setPdfSettings(prev => ({ ...prev, includeDetails: e.target.checked }))}
-            className="mr-3 h-4 w-4 text-blue-600"
-          />
-          <span className="text-sm font-medium text-gray-700">
-            Include song details (key, duration, instruments, notes)
-          </span>
-        </label>
-
-        <label className="flex items-center">
-          <input
-            type="checkbox"
-            checked={pdfSettings.showMedleyParts}
-            onChange={(e) => setPdfSettings(prev => ({ ...prev, showMedleyParts: e.target.checked }))}
-            className="mr-3 h-4 w-4 text-blue-600"
-          />
-          <span className="text-sm font-medium text-gray-700">
-            Show medley parts
-          </span>
-        </label>
-      </div>
-
-      {/* Preview Info */}
-      <div className="bg-gray-50 rounded-lg p-4 mb-6">
-        <h4 className="font-medium text-gray-800 mb-2">PDF Preview:</h4>
-        <div className="text-sm text-gray-600 space-y-1">
-          <p>• Setlist: <strong>{setlist.name}</strong></p>
-          <p>• Songs: <strong>{setlist.songs.length}</strong></p>
-          <p>• Duration: <strong>{calculateTotalDuration(setlist.songs)}</strong></p>
-          <p>• Format: <strong>{pdfSettings.orientation} • {pdfSettings.fontSize} text</strong></p>
-        </div>
-      </div>
-
-      {/* Generate Button */}
-      <div className="text-center">
-        <button
-          onClick={generatePDF}
-          disabled={generating}
-          className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-8 py-4 rounded-lg font-bold text-lg transition-colors"
-        >
-          {generating ? (
-            <>⏳ Generating PDF...</>
-          ) : (
-            <>📄 Generate PDF Setlist</>
-          )}
-        </button>
-      </div>
-
-      <p className="text-xs text-gray-500 text-center mt-4">
-        PDF will download automatically when ready
-      </p>
-    </div>
+    <button
+      onClick={generatePDF}
+      disabled={generating}
+      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 transition-colors flex items-center gap-2"
+    >
+      {generating ? (
+        <>
+          <span className="animate-spin">⏳</span>
+          Generating...
+        </>
+      ) : (
+        <>
+          📄 Generate PDF
+        </>
+      )}
+    </button>
   );
 }

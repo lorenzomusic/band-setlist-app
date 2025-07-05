@@ -1,228 +1,407 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import InstrumentChangeIndicator from './InstrumentChangeIndicator';
 
-export default function PerformanceView({ setlist }) {
-  const [currentSongIndex, setCurrentSongIndex] = useState(0);
-  const [darkMode, setDarkMode] = useState(false);
-  const [fontSize, setFontSize] = useState('large'); // small, medium, large, xl
+export default function PerformanceView({ songs, onSetSelect, onGigSelect }) {
+  const [gigs, setGigs] = useState([]);
+  const [sets, setSets] = useState([]);
+  const [selectedGig, setSelectedGig] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [viewMode, setViewMode] = useState('gigs');
 
-  // Auto-advance to next song (optional)
-  const nextSong = () => {
-    if (currentSongIndex < setlist.songs.length - 1) {
-      setCurrentSongIndex(currentSongIndex + 1);
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Reset selection when component mounts or props change
+  useEffect(() => {
+    setSelectedGig(null);
+    setError(null);
+  }, [onSetSelect, onGigSelect]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      
+      const [gigsResponse, setsResponse] = await Promise.all([
+        fetch('/api/gigs'),
+        fetch('/api/sets')
+      ]);
+      
+      if (!gigsResponse.ok || !setsResponse.ok) {
+        throw new Error('Failed to load data');
+      }
+      
+      const gigsData = await gigsResponse.json();
+      const setsData = await setsResponse.json();
+      
+      // Filter valid gigs
+      const validGigs = (gigsData || []).filter(gig => {
+        const hasValidSets = gig.sets && Array.isArray(gig.sets) && gig.sets.length > 0;
+        const setsHaveSongs = gig.sets?.some(set => set.songs && Array.isArray(set.songs) && set.songs.length > 0);
+        return hasValidSets && setsHaveSongs;
+      });
+      
+      // Filter valid sets
+      const validSets = (setsData || []).filter(set => 
+        set.songs && Array.isArray(set.songs) && set.songs.length > 0
+      );
+      
+      setGigs(validGigs);
+      setSets(validSets);
+      setSelectedGig(null);
+      
+      if (validGigs.length === 0 && validSets.length === 0) {
+        setError('No gigs or sets available for performance. Create some sets with songs first.');
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setError('Failed to load performance data');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const prevSong = () => {
-    if (currentSongIndex > 0) {
-      setCurrentSongIndex(currentSongIndex - 1);
+  const selectGig = (gig) => {
+    // Validate gig has required data
+    if (!gig || !gig.sets || !Array.isArray(gig.sets) || gig.sets.length === 0) {
+      setError('This gig has no sets available for performance');
+      return;
     }
+    
+    // Check if sets have songs
+    const setsWithSongs = gig.sets.filter(set => set.songs && Array.isArray(set.songs) && set.songs.length > 0);
+    if (setsWithSongs.length === 0) {
+      setError('This gig has no sets with songs available for performance');
+      return;
+    }
+    
+    // Use callback if provided, otherwise set local state
+    if (onGigSelect) {
+      onGigSelect(gig);
+    } else {
+      setSelectedGig(gig);
+    }
+    setError(null);
   };
 
-  const fontSizeClasses = {
-    small: 'text-xl md:text-2xl',
-    medium: 'text-2xl md:text-4xl',
-    large: 'text-3xl md:text-5xl',
-    xl: 'text-4xl md:text-6xl'
+  const selectSet = (set) => {
+    if (!set || !set.songs || !Array.isArray(set.songs) || set.songs.length === 0) {
+      setError('This set has no songs available for performance');
+      return;
+    }
+    
+    if (onSetSelect) {
+      onSetSelect(set);
+    }
+    setError(null);
   };
 
-  const currentSong = setlist.songs[currentSongIndex];
+  const backToSelection = () => {
+    setSelectedGig(null);
+    setError(null);
+  };
 
-  return (
-    <div className={`min-h-screen transition-colors ${
-      darkMode 
-        ? 'bg-gray-900 text-white' 
-        : 'bg-white text-gray-900'
-    }`}>
-      {/* Header Controls */}
-      <div className={`p-4 border-b ${
-        darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
-      }`}>
-        <div className="max-w-6xl mx-auto flex justify-between items-center flex-wrap gap-4">
-          <div>
-            <h1 className="text-xl font-bold">{setlist.name}</h1>
-            <p className="text-sm opacity-75">
-              Song {currentSongIndex + 1} of {setlist.songs.length}
-            </p>
-          </div>
-          
-          <div className="flex gap-2 flex-wrap">
-            {/* Font Size Controls */}
-            <select
-              value={fontSize}
-              onChange={(e) => setFontSize(e.target.value)}
-              className={`px-3 py-1 rounded border text-sm ${
-                darkMode 
-                  ? 'bg-gray-700 border-gray-600 text-white' 
-                  : 'bg-white border-gray-300 text-gray-900'
-              }`}
-            >
-              <option value="small">Small Text</option>
-              <option value="medium">Medium Text</option>
-              <option value="large">Large Text</option>
-              <option value="xl">XL Text</option>
-            </select>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-64">
+        <div className="text-gray-600">Loading performance data...</div>
+      </div>
+    );
+  }
 
-            {/* Dark Mode Toggle */}
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className={`px-3 py-1 rounded border text-sm font-medium transition-colors ${
-                darkMode
-                  ? 'bg-yellow-600 border-yellow-500 text-white hover:bg-yellow-700'
-                  : 'bg-gray-800 border-gray-700 text-white hover:bg-gray-900'
-              }`}
-            >
-              {darkMode ? '☀️ Light' : '🌙 Dark'}
-            </button>
-          </div>
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <h3 className="text-red-800 font-medium">Performance Error</h3>
+          <p className="text-red-700 mt-1">{error}</p>
+          <button
+            onClick={() => {
+              setError(null);
+              loadData();
+            }}
+            className="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
         </div>
       </div>
+    );
+  }
 
-      {/* Main Performance Area */}
-      <div className="max-w-6xl mx-auto p-6">
-        {setlist.songs.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-2xl opacity-75">No songs in this setlist</p>
-          </div>
-        ) : (
+  // Show selection screen unless a gig is explicitly selected
+  if (!selectedGig) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <h1 className="text-3xl font-bold mb-6">🎭 Performance Mode</h1>
+        
+        {/* View Mode Toggle */}
+        <div className="flex space-x-1 mb-6 bg-gray-100 rounded-lg p-1">
+          <button
+            onClick={() => setViewMode('gigs')}
+            className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${
+              viewMode === 'gigs'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            🎪 Full Gigs ({gigs.length})
+          </button>
+          <button
+            onClick={() => setViewMode('sets')}
+            className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${
+              viewMode === 'sets'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            🎵 Individual Sets ({sets.length})
+          </button>
+        </div>
+        
+        {viewMode === 'gigs' ? (
+          // Gigs View
           <>
-            {/* Current Song Display */}
-            <div className="text-center mb-8">
-              <div className={`${fontSizeClasses[fontSize]} font-bold mb-4`}>
-                {currentSong.title}
-              </div>
-              
-              {currentSong.medley && (
-                <div className={`${fontSize === 'xl' ? 'text-2xl' : 'text-xl'} text-purple-400 mb-4`}>
-                  🎼 {currentSong.medley} - Part {currentSong.medleyPosition}
-                </div>
-              )}
-
-              <div className={`grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 ${
-                fontSize === 'xl' ? 'text-lg' : 'text-base'
-              }`}>
-                <div className={`p-4 rounded-lg ${
-                  darkMode ? 'bg-gray-800' : 'bg-gray-100'
-                }`}>
-                  <div className="font-medium opacity-75">Key</div>
-                  <div className="text-2xl font-bold text-blue-400">{currentSong.key}</div>
-                </div>
-                
-                <div className={`p-4 rounded-lg ${
-                  darkMode ? 'bg-gray-800' : 'bg-gray-100'
-                }`}>
-                  <div className="font-medium opacity-75">Duration</div>
-                  <div className="text-2xl font-bold">{currentSong.duration}</div>
-                </div>
-                
-                <div className={`p-4 rounded-lg ${
-                  darkMode ? 'bg-gray-800' : 'bg-gray-100'
-                }`}>
-                  <div className="font-medium opacity-75">Bass</div>
-                  <div className="text-xl font-bold text-green-400">{currentSong.bassGuitar}</div>
-                </div>
-                
-                <div className={`p-4 rounded-lg ${
-                  darkMode ? 'bg-gray-800' : 'bg-gray-100'
-                }`}>
-                  <div className="font-medium opacity-75">Guitar</div>
-                  <div className="text-xl font-bold text-orange-400">{currentSong.guitar}</div>
-                </div>
-              </div>
-
-              {currentSong.form && (
-                <div className={`mb-6 p-4 rounded-lg ${
-                  darkMode ? 'bg-gray-800' : 'bg-yellow-50'
-                }`}>
-                  <div className="font-medium opacity-75 mb-2">Song Form</div>
-                  <div className={`${fontSize === 'xl' ? 'text-lg' : 'text-base'}`}>
-                    {currentSong.form}
+            {gigs.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                  <h3 className="text-yellow-800 font-medium mb-2">No Gigs Ready for Performance</h3>
+                  <p className="text-yellow-700">
+                    To perform gigs, you need gigs that contain sets with songs.
+                  </p>
+                  <div className="mt-4 text-sm text-yellow-600">
+                    <p>1. Create sets with songs in SetBuilder</p>
+                    <p>2. Create gigs with those sets in GigBuilder</p>
+                    <p>3. Return here to perform complete gigs</p>
                   </div>
                 </div>
-              )}
-
-              {currentSong.notes && (
-                <div className={`mb-6 p-4 rounded-lg ${
-                  darkMode ? 'bg-gray-800' : 'bg-green-50'
-                }`}>
-                  <div className="font-medium opacity-75 mb-2">Notes</div>
-                  <div className={`${fontSize === 'xl' ? 'text-lg' : 'text-base'} italic`}>
-                    {currentSong.notes}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Navigation Controls */}
-            <div className="flex justify-center gap-4 mb-8">
-              <button
-                onClick={prevSong}
-                disabled={currentSongIndex === 0}
-                className={`px-6 py-3 rounded-lg font-bold text-lg transition-colors ${
-                  currentSongIndex === 0
-                    ? 'opacity-50 cursor-not-allowed'
-                    : darkMode
-                      ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                      : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
-                }`}
-              >
-                ⬅️ Previous
-              </button>
-              
-              <button
-                onClick={nextSong}
-                disabled={currentSongIndex === setlist.songs.length - 1}
-                className={`px-6 py-3 rounded-lg font-bold text-lg transition-colors ${
-                  currentSongIndex === setlist.songs.length - 1
-                    ? 'opacity-50 cursor-not-allowed'
-                    : darkMode
-                      ? 'bg-blue-700 hover:bg-blue-600 text-white'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
-              >
-                Next ➡️
-              </button>
-            </div>
-
-            {/* Quick Setlist Overview */}
-            <div className={`border-t pt-6 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-              <h3 className="text-lg font-bold mb-4 text-center">Full Setlist</h3>
-              <div className="grid gap-2">
-                {setlist.songs.map((song, index) => (
-                  <div
-                    key={`${song.id}-${index}`}
-                    onClick={() => setCurrentSongIndex(index)}
-                    className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                      index === currentSongIndex
-                        ? darkMode
-                          ? 'bg-blue-800 border-2 border-blue-600'
-                          : 'bg-blue-100 border-2 border-blue-500'
-                        : darkMode
-                          ? 'bg-gray-800 hover:bg-gray-700'
-                          : 'bg-gray-100 hover:bg-gray-200'
-                    }`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <span className="font-medium">
-                          {index + 1}. {song.title}
-                        </span>
-                        {song.medley && (
-                          <span className="text-sm text-purple-400 ml-2">
-                            ({song.medley})
-                          </span>
-                        )}
+              </div>
+            ) : (
+              <>
+                <p className="text-gray-600 mb-6">Select a gig to perform:</p>
+                <div className="grid gap-4">
+                  {gigs.map((gig, index) => {
+                    const totalSongs = gig.sets?.reduce((total, set) => total + (set.songs?.length || 0), 0) || 0;
+                    const totalDuration = gig.sets?.reduce((total, set) => {
+                      return total + (set.songs?.reduce((setTotal, song) => {
+                        const [min, sec] = (song.duration || '0:00').split(':').map(Number);
+                        return setTotal + (min * 60 + sec);
+                      }, 0) || 0);
+                    }, 0) || 0;
+                    
+                    const hours = Math.floor(totalDuration / 3600);
+                    const minutes = Math.floor((totalDuration % 3600) / 60);
+                    const durationText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+                    
+                    return (
+                      <div key={`gig-${gig.id || index}`} className="border border-gray-300 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-medium text-gray-900">{gig.name}</h3>
+                            <p className="text-gray-600 text-sm mt-1">
+                              {gig.sets?.length || 0} sets • {totalSongs} songs • ~{durationText}
+                            </p>
+                            {gig.sets && gig.sets.length > 0 && (
+                              <div className="mt-2 text-sm text-gray-700">
+                                <strong>Sets:</strong> {gig.sets.map((set, setIndex) => 
+                                  `${set.name} (${set.songs?.length || 0} songs)`
+                                ).join(', ')}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => selectGig(gig)}
+                            className="ml-4 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                          >
+                            🎭 Perform This Gig
+                          </button>
+                        </div>
                       </div>
-                      <div className="text-sm opacity-75">
-                        {song.key} | {song.duration}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </>
+        ) : (
+          // Individual Sets View
+          <>
+            {sets.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                  <h3 className="text-yellow-800 font-medium mb-2">No Sets Ready for Performance</h3>
+                  <p className="text-yellow-700">
+                    To perform individual sets, you need sets with songs.
+                  </p>
+                  <div className="mt-4 text-sm text-yellow-600">
+                    <p>1. Create sets with songs in SetBuilder</p>
+                    <p>2. Return here to perform individual sets</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="text-gray-600 mb-6">Select an individual set to perform:</p>
+                <div className="grid gap-4">
+                  {sets.map((set, index) => {
+                    const totalDuration = set.songs?.reduce((total, song) => {
+                      const [min, sec] = (song.duration || '0:00').split(':').map(Number);
+                      return total + (min * 60 + sec);
+                    }, 0) || 0;
+                    
+                    const minutes = Math.floor(totalDuration / 60);
+                    const seconds = totalDuration % 60;
+                    const durationText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    
+                    return (
+                      <div key={`set-${set.id || index}`} className="border border-gray-300 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-medium text-gray-900">{set.name}</h3>
+                            <p className="text-gray-600 text-sm mt-1">
+                              {set.songs?.length || 0} songs • {durationText}
+                            </p>
+                            {set.songs && set.songs.length > 0 && (
+                              <div className="mt-2 text-sm text-gray-700">
+                                <strong>Songs:</strong> {set.songs.slice(0, 3).map(song => song.title).join(', ')}
+                                {set.songs.length > 3 && ` + ${set.songs.length - 3} more`}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => selectSet(set)}
+                            className="ml-4 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                          >
+                            🎵 Perform This Set
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // Performance Mode - Only reached if selectedGig is set
+  return (
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="max-w-4xl mx-auto p-6">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">{selectedGig.name}</h1>
+            <p className="text-gray-300">
+              {selectedGig.sets?.length || 0} sets • Performance Mode
+            </p>
+          </div>
+          <button
+            onClick={backToSelection}
+            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+          >
+            ← Back to Selection
+          </button>
+        </div>
+
+        {/* Sets Display */}
+        {selectedGig.sets && selectedGig.sets.length > 0 ? (
+          selectedGig.sets.map((set, setIndex) => (
+            <div key={`set-${set.id || setIndex}`} className="mb-8">
+              <h2 className="text-2xl font-bold text-white mb-4 border-b border-gray-600 pb-2">
+                Set {setIndex + 1}: {set.name}
+              </h2>
+              
+              {set.songs && set.songs.length > 0 ? (
+                <div className="space-y-1">
+                  {set.songs.map((song, songIndex) => {
+                    let previousSong = null;
+                    if (songIndex > 0) {
+                      previousSong = set.songs[songIndex - 1];
+                    } else if (setIndex > 0) {
+                      const previousSet = selectedGig.sets[setIndex - 1];
+                      if (previousSet.songs && previousSet.songs.length > 0) {
+                        previousSong = previousSet.songs[previousSet.songs.length - 1];
+                      }
+                    }
+
+                    return (
+                      <div key={`song-${song.id || songIndex}`}>
+                        {previousSong && (
+                          <div className="my-3">
+                            <InstrumentChangeIndicator 
+                              previousSong={previousSong} 
+                              currentSong={song} 
+                            />
+                          </div>
+                        )}
+                        
+                        <div className="bg-gray-800 p-4 rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="text-xl font-bold text-white">{song.title}</h3>
+                              <p className="text-gray-300">{song.artist}</p>
+                              
+                              <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
+                                {song.key && <span>Key: {song.key}</span>}
+                                {song.duration && <span>⏱️ {song.duration}</span>}
+                                <span>🎸 Bass: {song.bassGuitar}</span>
+                                <span>🎸 Guitar: {song.guitar}</span>
+                                {song.language === 'danish' && <span>🇩🇰 Danish</span>}
+                                {song.language === 'english' && <span>🇬🇧 English</span>}
+                                {song.vocalist && <span>🎤 {song.vocalist}</span>}
+                                {song.backingTrack && <span>🎵 Backing Track</span>}
+                              </div>
+                              
+                              {song.tags && song.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                  {song.tags.map((tag, tagIndex) => (
+                                    <span
+                                      key={`${song.id || songIndex}-tag-${tagIndex}`}
+                                      className="inline-flex items-center px-2 py-1 bg-purple-600 text-purple-100 text-xs rounded-full"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              
+                              {song.notes && (
+                                <div className="mt-2 p-2 bg-gray-700 rounded">
+                                  <p className="text-yellow-300 text-sm">{song.notes}</p>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {song.youtubeLink && (
+                              <a
+                                href={song.youtubeLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                              >
+                                YouTube
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-gray-400 italic">This set has no songs</div>
+              )}
+            </div>
+          ))
+        ) : (
+          <div className="text-gray-400 italic">This gig has no sets</div>
         )}
       </div>
     </div>

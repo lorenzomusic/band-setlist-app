@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import TagInput from './TagInput';
 
-export default function EditSongForm({ song, onSongUpdated, onCancel }) {
+export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDeleted }) {
   const [formData, setFormData] = useState({
     title: song.title || '',
     artist: song.artist || '',
@@ -11,19 +12,50 @@ export default function EditSongForm({ song, onSongUpdated, onCancel }) {
     duration: song.duration || '',
     bassGuitar: song.bassGuitar || '4-string',
     guitar: song.guitar || 'Electric',
+    language: song.language || 'english',
+    vocalist: song.vocalist || 'Rikke',
     backingTrack: song.backingTrack || false,
     form: song.form || '',
     medley: song.medley || '',
     medleyPosition: song.medleyPosition || '',
-    notes: song.notes || ''
+    notes: song.notes || '',
+    tags: song.tags || [],
   });
   const [saving, setSaving] = useState(false);
+
+  // Update form data when song changes
+  useEffect(() => {
+    setFormData({
+      title: song.title || '',
+      artist: song.artist || '',
+      key: song.key || '',
+      youtubeLink: song.youtubeLink || '',
+      duration: song.duration || '',
+      bassGuitar: song.bassGuitar || '4-string',
+      guitar: song.guitar || 'Electric',
+      language: song.language || 'english',
+      vocalist: song.vocalist || 'Rikke',
+      backingTrack: song.backingTrack || false,
+      form: song.form || '',
+      medley: song.medley || '',
+      medleyPosition: song.medleyPosition || '',
+      notes: song.notes || '',
+      tags: song.tags || [],
+    });
+  }, [song]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleTagChange = (newTags) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: newTags
     }));
   };
 
@@ -54,6 +86,32 @@ export default function EditSongForm({ song, onSongUpdated, onCancel }) {
       alert('Error updating song');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${song.title}"?\n\nThis action cannot be undone.`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/songs?id=${song.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        alert(`"${song.title}" has been deleted successfully.`);
+        // Call a callback to handle the deletion in the parent component
+        onSongDeleted(song.id);
+      } else {
+        const error = await response.json();
+        alert(`Failed to delete song: ${error.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting song:', error);
+      alert('Error deleting song. Please try again.');
     }
   };
 
@@ -196,6 +254,50 @@ export default function EditSongForm({ song, onSongUpdated, onCancel }) {
               <option value="Classical">Classical</option>
             </select>
           </div>
+
+          <div>
+            <label className="block text-sm font-black text-gray-900 mb-1">
+              Language
+            </label>
+            <select
+              name="language"
+              value={formData.language}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
+              required
+            >
+              <option value="english">🇬🇧 English</option>
+              <option value="danish">🇩🇰 Danish</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-black text-gray-900 mb-1">
+              Main Vocalist
+            </label>
+            <select
+              name="vocalist"
+              value={formData.vocalist}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
+              required
+            >
+              <option value="Rikke">🎤 Rikke</option>
+              <option value="Lorentz">🎤 Lorentz</option>
+              <option value="Both">🎤🎤 Both</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-black text-gray-900 mb-1">
+            Tags
+          </label>
+          <TagInput
+            tags={formData.tags}
+            onChange={handleTagChange}
+            placeholder="Add tags like 'High Energy', 'Wedding', 'Rock'..."
+          />
         </div>
 
         <div className="flex items-center">
@@ -284,6 +386,13 @@ export default function EditSongForm({ song, onSongUpdated, onCancel }) {
             className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
           >
             Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors ml-auto"
+          >
+            🗑️ Delete Song
           </button>
         </div>
       </form>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import TagInput from './TagInput';
 
 export default function AddSongForm({ onSongAdded }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -16,7 +17,10 @@ export default function AddSongForm({ onSongAdded }) {
     form: '',
     medley: '',
     medleyPosition: '',
-    notes: ''
+    notes: '',
+    language: 'english',
+    vocalist: 'Rikke',
+    tags: [],
   });
   const [saving, setSaving] = useState(false);
 
@@ -25,6 +29,13 @@ export default function AddSongForm({ onSongAdded }) {
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleTagChange = (newTags) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: newTags
     }));
   };
 
@@ -56,7 +67,10 @@ export default function AddSongForm({ onSongAdded }) {
           form: '',
           medley: '',
           medleyPosition: '',
-          notes: ''
+          notes: '',
+          language: 'english',
+          vocalist: 'Rikke',
+          tags: [],
         });
         setIsOpen(false);
       } else {
@@ -220,6 +234,50 @@ export default function AddSongForm({ onSongAdded }) {
               <option value="Classical">Classical</option>
             </select>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Language
+            </label>
+            <select
+              name="language"
+              value={formData.language}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            >
+              <option value="english">🇬🇧 English</option>
+              <option value="danish">🇩🇰 Danish</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Main Vocalist
+            </label>
+            <select
+              name="vocalist"
+              value={formData.vocalist}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            >
+              <option value="Rikke">🎤 Rikke</option>
+              <option value="Lorentz">🎤 Lorentz</option>
+              <option value="Both">🎤🎤 Both</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Tags
+          </label>
+          <TagInput
+            tags={formData.tags}
+            onChange={handleTagChange}
+            placeholder="Add tags like 'High Energy', 'Wedding', 'Rock'..."
+          />
         </div>
 
         <div className="flex items-center">

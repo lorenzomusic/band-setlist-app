@@ -1,6 +1,7 @@
 {
-  "name": "band-setlist-app",
+  "name": "greatest-gig",
   "version": "0.1.0",
+  "description": "Professional setlist and gig management for Greatest Hit",
   "private": true,
   "scripts": {
     "dev": "next dev",
