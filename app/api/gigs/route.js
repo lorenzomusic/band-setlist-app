@@ -41,7 +41,7 @@ export async function PUT(request) {
     const updatedGig = await request.json();
     const gigs = await redis.get('gigs') || [];
     
-    const index = gigs.findIndex(gig => gig.id === updatedGig.id);
+    const index = gigs.findIndex(gig => String(gig.id) === String(updatedGig.id));
     if (index !== -1) {
       gigs[index] = updatedGig;
       await redis.set('gigs', gigs);
@@ -65,7 +65,7 @@ export async function DELETE(request) {
     }
     
     const gigs = await redis.get('gigs') || [];
-    const filteredGigs = gigs.filter(gig => gig.id !== id);
+    const filteredGigs = gigs.filter(gig => String(gig.id) !== String(id));
     
     if (filteredGigs.length === gigs.length) {
       return Response.json({ error: 'Gig not found' }, { status: 404 });
