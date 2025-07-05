@@ -780,7 +780,7 @@ export default function GigBuilder({ songs }) {
                   <div className="text-center py-8 text-gray-500">
                     {setSearchText ? (
                       <>
-                        <p>No sets match "{setSearchText}"</p>
+                        <p>No sets match &quot;{setSearchText}&quot;</p>
                         <button
                           onClick={() => setSetSearchText('')}
                           className="mt-2 text-blue-600 hover:text-blue-800"
