@@ -1,85 +1,97 @@
-import fs from 'fs';
-import path from 'path';
+import { Redis } from '@upstash/redis'
+
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 export async function GET() {
   try {
-    const filePath = path.join(process.cwd(), 'data', 'songs.json');
-    const fileContents = fs.readFileSync(filePath, 'utf8');
-    const songs = JSON.parse(fileContents);
-    
+    const songs = await redis.get('songs') || [];
     return Response.json(songs);
   } catch (error) {
-    console.error('Error reading songs file:', error);
-    return Response.json({ error: 'Failed to load songs' }, { status: 500 });
+    console.error('Error fetching songs:', error);
+    return Response.json({ error: 'Failed to fetch songs' }, { status: 500 });
   }
 }
 
 export async function POST(request) {
   try {
     const newSong = await request.json();
+    const songs = await redis.get('songs') || [];
     
-    // Read existing songs
-    const filePath = path.join(process.cwd(), 'data', 'songs.json');
-    const fileContents = fs.readFileSync(filePath, 'utf8');
-    const songs = JSON.parse(fileContents);
-    
-    // Generate new ID
-    const maxId = songs.length > 0 ? Math.max(...songs.map(song => song.id)) : 0;
-    newSong.id = maxId + 1;
+    // Generate unique ID
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    const songWithId = {
+      ...newSong,
+      id
+    };
     
     // Clean up the data
-    if (!newSong.medley) {
-      newSong.medley = null;
-      newSong.medleyPosition = null;
-    } else if (newSong.medleyPosition) {
-      newSong.medleyPosition = parseInt(newSong.medleyPosition);
+    if (!songWithId.medley) {
+      songWithId.medley = null;
+      songWithId.medleyPosition = null;
+    } else if (songWithId.medleyPosition) {
+      songWithId.medleyPosition = parseInt(songWithId.medleyPosition);
     }
     
-    // Add to songs array
-    songs.push(newSong);
+    songs.push(songWithId);
+    await redis.set('songs', songs);
     
-    // Write back to file
-    fs.writeFileSync(filePath, JSON.stringify(songs, null, 2));
-    
-    return Response.json(newSong, { status: 201 });
+    return Response.json(songWithId, { status: 201 });
   } catch (error) {
-    console.error('Error saving song:', error);
-    return Response.json({ error: 'Failed to save song' }, { status: 500 });
+    console.error('Error creating song:', error);
+    return Response.json({ error: 'Failed to create song' }, { status: 500 });
   }
 }
 
 export async function PUT(request) {
   try {
     const updatedSong = await request.json();
+    const songs = await redis.get('songs') || [];
     
-    // Read existing songs
-    const filePath = path.join(process.cwd(), 'data', 'songs.json');
-    const fileContents = fs.readFileSync(filePath, 'utf8');
-    const songs = JSON.parse(fileContents);
-    
-    // Find and update the song
-    const songIndex = songs.findIndex(song => song.id === updatedSong.id);
-    if (songIndex === -1) {
+    const index = songs.findIndex(song => song.id === updatedSong.id);
+    if (index !== -1) {
+      // Clean up the data
+      if (!updatedSong.medley) {
+        updatedSong.medley = null;
+        updatedSong.medleyPosition = null;
+      } else if (updatedSong.medleyPosition) {
+        updatedSong.medleyPosition = parseInt(updatedSong.medleyPosition);
+      }
+      
+      songs[index] = updatedSong;
+      await redis.set('songs', songs);
+      return Response.json(updatedSong);
+    } else {
       return Response.json({ error: 'Song not found' }, { status: 404 });
     }
-    
-    // Clean up the data
-    if (!updatedSong.medley) {
-      updatedSong.medley = null;
-      updatedSong.medleyPosition = null;
-    } else if (updatedSong.medleyPosition) {
-      updatedSong.medleyPosition = parseInt(updatedSong.medleyPosition);
-    }
-    
-    // Update the song
-    songs[songIndex] = updatedSong;
-    
-    // Write back to file
-    fs.writeFileSync(filePath, JSON.stringify(songs, null, 2));
-    
-    return Response.json(updatedSong);
   } catch (error) {
     console.error('Error updating song:', error);
     return Response.json({ error: 'Failed to update song' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    
+    if (!id) {
+      return Response.json({ error: 'Song ID is required' }, { status: 400 });
+    }
+    
+    const songs = await redis.get('songs') || [];
+    const filteredSongs = songs.filter(song => song.id !== id);
+    
+    if (filteredSongs.length === songs.length) {
+      return Response.json({ error: 'Song not found' }, { status: 404 });
+    }
+    
+    await redis.set('songs', filteredSongs);
+    return Response.json({ message: 'Song deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting song:', error);
+    return Response.json({ error: 'Failed to delete song' }, { status: 500 });
   }
 }

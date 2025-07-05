@@ -1,80 +1,54 @@
-import fs from 'fs';
-import path from 'path';
+import { Redis } from '@upstash/redis'
 
-// Helper function to get sets file path
-const getSetsPath = () => path.join(process.cwd(), 'data', 'sets.json');
-
-// Helper function to ensure sets file exists
-const ensureSetsFile = () => {
-  const filePath = getSetsPath();
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, JSON.stringify([], null, 2));
-  }
-};
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 export async function GET() {
   try {
-    ensureSetsFile();
-    const filePath = getSetsPath();
-    const fileContents = fs.readFileSync(filePath, 'utf8');
-    const sets = JSON.parse(fileContents);
-    
+    const sets = await redis.get('sets') || [];
     return Response.json(sets);
   } catch (error) {
-    console.error('Error reading sets file:', error);
-    return Response.json({ error: 'Failed to load sets' }, { status: 500 });
+    console.error('Error fetching sets:', error);
+    return Response.json({ error: 'Failed to fetch sets' }, { status: 500 });
   }
 }
 
 export async function POST(request) {
   try {
-    ensureSetsFile();
     const newSet = await request.json();
+    const sets = await redis.get('sets') || [];
     
-    // Read existing sets
-    const filePath = getSetsPath();
-    const fileContents = fs.readFileSync(filePath, 'utf8');
-    const sets = JSON.parse(fileContents);
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    const setWithId = {
+      ...newSet,
+      id
+    };
     
-    // Generate new ID
-    const maxId = sets.length > 0 ? Math.max(...sets.map(set => set.id || 0)) : 0;
-    newSet.id = maxId + 1;
+    sets.push(setWithId);
+    await redis.set('sets', sets);
     
-    // Add to sets array
-    sets.push(newSet);
-    
-    // Write back to file
-    fs.writeFileSync(filePath, JSON.stringify(sets, null, 2));
-    
-    return Response.json(newSet, { status: 201 });
+    return Response.json(setWithId, { status: 201 });
   } catch (error) {
-    console.error('Error saving set:', error);
-    return Response.json({ error: 'Failed to save set' }, { status: 500 });
+    console.error('Error creating set:', error);
+    return Response.json({ error: 'Failed to create set' }, { status: 500 });
   }
 }
 
 export async function PUT(request) {
   try {
-    ensureSetsFile();
     const updatedSet = await request.json();
+    const sets = await redis.get('sets') || [];
     
-    // Read existing sets
-    const filePath = getSetsPath();
-    const fileContents = fs.readFileSync(filePath, 'utf8');
-    const sets = JSON.parse(fileContents);
-    
-    // Find and update the set
-    const setIndex = sets.findIndex(set => set.id === updatedSet.id);
-    if (setIndex === -1) {
+    const index = sets.findIndex(set => set.id === updatedSet.id);
+    if (index !== -1) {
+      sets[index] = updatedSet;
+      await redis.set('sets', sets);
+      return Response.json(updatedSet);
+    } else {
       return Response.json({ error: 'Set not found' }, { status: 404 });
     }
-    
-    sets[setIndex] = updatedSet;
-    
-    // Write back to file
-    fs.writeFileSync(filePath, JSON.stringify(sets, null, 2));
-    
-    return Response.json(updatedSet);
   } catch (error) {
     console.error('Error updating set:', error);
     return Response.json({ error: 'Failed to update set' }, { status: 500 });
@@ -83,29 +57,21 @@ export async function PUT(request) {
 
 export async function DELETE(request) {
   try {
-    ensureSetsFile();
     const { searchParams } = new URL(request.url);
-    const setId = parseInt(searchParams.get('id'));
+    const id = searchParams.get('id');
     
-    if (!setId) {
-      return Response.json({ error: 'Set ID required' }, { status: 400 });
+    if (!id) {
+      return Response.json({ error: 'Set ID is required' }, { status: 400 });
     }
     
-    // Read existing sets
-    const filePath = getSetsPath();
-    const fileContents = fs.readFileSync(filePath, 'utf8');
-    const sets = JSON.parse(fileContents);
-    
-    // Filter out the set to delete
-    const filteredSets = sets.filter(set => set.id !== setId);
+    const sets = await redis.get('sets') || [];
+    const filteredSets = sets.filter(set => set.id !== id);
     
     if (filteredSets.length === sets.length) {
       return Response.json({ error: 'Set not found' }, { status: 404 });
     }
     
-    // Write back to file
-    fs.writeFileSync(filePath, JSON.stringify(filteredSets, null, 2));
-    
+    await redis.set('sets', filteredSets);
     return Response.json({ message: 'Set deleted successfully' });
   } catch (error) {
     console.error('Error deleting set:', error);

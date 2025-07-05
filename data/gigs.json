@@ -82,6 +82,116 @@
         "createdAt": "2025-07-04T21:27:37.231Z",
         "id": 1,
         "gigPosition": 1
+      },
+      {
+        "name": "Pop Set 2",
+        "songs": [
+          {
+            "title": "Highway to Hell",
+            "key": "A",
+            "youtubeLink": "https://youtu.be/0m1j-mr7mpQ",
+            "duration": "3:28",
+            "bassGuitar": "4-string",
+            "guitar": "Electric",
+            "backingTrack": false,
+            "form": "Intro–Verse–Chorus–Verse–Chorus–Solo–Verse–Chorus–Chorus",
+            "medley": null,
+            "medleyPosition": null,
+            "notes": "Rock out with your cock out",
+            "id": 5,
+            "setPosition": 1
+          }
+        ],
+        "createdAt": "2025-07-04T21:36:53.513Z",
+        "id": 2,
+        "gigPosition": 2
+      },
+      {
+        "name": "Bryllupssæt high energy",
+        "songs": [
+          {
+            "title": "Sweet Child O' Mine",
+            "artist": "Guns N' Roses",
+            "key": "D",
+            "youtubeLink": "https://youtube.com/watch?v=1w7OgIMMRc4",
+            "duration": "5:03",
+            "bassGuitar": "4-string",
+            "guitar": "Electric",
+            "backingTrack": false,
+            "form": "Intro-Verse-Chorus-Verse-Chorus-Solo-Chorus-Outro",
+            "medley": null,
+            "medleyPosition": null,
+            "notes": "Guitar solo extended live - long hair and great solos baby",
+            "id": 1,
+            "setPosition": 1
+          },
+          {
+            "id": 3,
+            "title": "80s Rock Medley - Part 1",
+            "artist": "Survivor",
+            "key": "A",
+            "youtubeLink": "",
+            "duration": "3:30",
+            "bassGuitar": "4-string",
+            "guitar": "Electric",
+            "backingTrack": false,
+            "form": "Verse-Chorus-Verse-Chorus",
+            "medley": "80s Rock Medley",
+            "medleyPosition": 1,
+            "notes": "Eye of the Tiger excerpt",
+            "setPosition": 2
+          },
+          {
+            "id": 2,
+            "title": "Don't Stop Believin'",
+            "artist": "Journey",
+            "key": "E",
+            "youtubeLink": "https://youtube.com/watch?v=1k8craCGpgs",
+            "duration": "4:11",
+            "bassGuitar": "4-string",
+            "guitar": "Electric",
+            "backingTrack": false,
+            "form": "Intro-Verse-Chorus-Verse-Chorus-Bridge-Chorus-Outro",
+            "medley": null,
+            "notes": "Crowd favorite - always works",
+            "setPosition": 3
+          },
+          {
+            "title": "Highway to Hell",
+            "artist": "AC/DC",
+            "key": "A",
+            "youtubeLink": "https://youtu.be/0m1j-mr7mpQ",
+            "duration": "3:28",
+            "bassGuitar": "4-string",
+            "guitar": "Electric",
+            "backingTrack": false,
+            "form": "Intro–Verse–Chorus–Verse–Chorus–Solo–Verse–Chorus–Chorus",
+            "medley": null,
+            "medleyPosition": null,
+            "notes": "Rock out with your cock out",
+            "id": 5,
+            "setPosition": 4
+          },
+          {
+            "title": "Hot",
+            "artist": "Infernal",
+            "key": "A",
+            "youtubeLink": "",
+            "duration": "4:30",
+            "bassGuitar": "synth bass",
+            "guitar": "Electric",
+            "backingTrack": false,
+            "form": "",
+            "medley": null,
+            "medleyPosition": null,
+            "notes": "",
+            "id": 6,
+            "setPosition": 5
+          }
+        ],
+        "createdAt": "2025-07-05T06:32:41.846Z",
+        "id": 3,
+        "gigPosition": 3
       }
     ],
     "createdAt": "2025-07-04T21:37:08.517Z",
