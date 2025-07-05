@@ -60,14 +60,23 @@ export async function DELETE(request) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     
+    console.log('DELETE request received for set ID:', id);
+    console.log('Type of received ID:', typeof id);
+    
     if (!id) {
       return Response.json({ error: 'Set ID is required' }, { status: 400 });
     }
     
     const sets = await redis.get('sets') || [];
+    
+    console.log('All sets in database:', sets);
+    console.log('Looking for set with ID:', id);
+    console.log('Available set IDs:', sets.map(set => ({ id: set.id, type: typeof set.id, name: set.name })));
+    
     const filteredSets = sets.filter(set => set.id !== id);
     
     if (filteredSets.length === sets.length) {
+      console.log('Set not found - no sets were filtered out');
       return Response.json({ error: 'Set not found' }, { status: 404 });
     }
     

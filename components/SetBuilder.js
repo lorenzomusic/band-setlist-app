@@ -158,6 +158,11 @@ export default function SetBuilder({ songs }) {
   };
 
   const deleteSet = async (setToDelete) => {
+    // DEBUG: Add logging to understand the issue
+    console.log('Trying to delete set with ID:', setToDelete.id);
+    console.log('Type of ID:', typeof setToDelete.id);
+    console.log('Set object being deleted:', setToDelete);
+
     const confirmed = window.confirm(
       `Are you sure you want to delete the set "${setToDelete.name}"?\n\nThis action cannot be undone.`
     );
