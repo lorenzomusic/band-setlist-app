@@ -41,7 +41,7 @@ export async function PUT(request) {
     const updatedSet = await request.json();
     const sets = await redis.get('sets') || [];
     
-    const index = sets.findIndex(set => set.id === updatedSet.id);
+    const index = sets.findIndex(set => String(set.id) === String(updatedSet.id));
     if (index !== -1) {
       sets[index] = updatedSet;
       await redis.set('sets', sets);
@@ -73,7 +73,7 @@ export async function DELETE(request) {
     console.log('Looking for set with ID:', id);
     console.log('Available set IDs:', sets.map(set => ({ id: set.id, type: typeof set.id, name: set.name })));
     
-    const filteredSets = sets.filter(set => set.id !== id);
+    const filteredSets = sets.filter(set => String(set.id) !== String(id));
     
     if (filteredSets.length === sets.length) {
       console.log('Set not found - no sets were filtered out');
