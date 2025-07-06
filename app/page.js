@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { Bot } from 'lucide-react';
 import SongList from '../components/SongList';
 import AddSongForm from '../components/AddSongForm';
 import SetListBuilder from '../components/SetListBuilder';
@@ -464,6 +465,17 @@ export default function Home() {
             Gig Builder
           </button>
           <button
+            onClick={() => handleTabChange('ai-setlist')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+              activeTab === 'ai-setlist'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+            }`}
+          >
+            <Bot className="w-4 h-4" />
+            AI Setlist Builder
+          </button>
+          <button
             onClick={() => handleTabChange('performance')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               activeTab === 'performance'
@@ -778,6 +790,16 @@ export default function Home() {
 
             {activeTab === 'gigbuilder' && (
               <GigBuilder songs={songs} />
+            )}
+
+            {activeTab === 'ai-setlist' && (
+              <div className="min-h-screen">
+                <iframe 
+                  src="/ai-setlist" 
+                  className="w-full h-screen border-0"
+                  title="AI Setlist Builder"
+                />
+              </div>
             )}
            
             {activeTab === 'performance' && (
