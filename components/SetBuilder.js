@@ -563,16 +563,16 @@ export default function SetBuilder({ songs }) {
         <div className="flex flex-wrap gap-2 mb-4">
           {sets.map((set, index) => (
             <div key={`set-${set.id || index}`} className="flex items-center gap-1">
-              <button
-                onClick={() => setActiveSet(set)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  activeSet?.id === set.id
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                {set.name} ({set.songs.length} songs, {calculateTotalDuration(set.songs)})
-              </button>
+            <button
+              onClick={() => setActiveSet(set)}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeSet?.id === set.id
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {set.name} ({set.songs.length} songs, {calculateTotalDuration(set.songs)})
+            </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -645,26 +645,26 @@ export default function SetBuilder({ songs }) {
                         gigName={`${activeSet.name} - Set`} 
                       />
                     )}
-                  </div>
-                </div>
+              </div>
+            </div>
 
-                {/* Instrument Warnings */}
-                {activeSet.songs.length > 1 && (
-                  <div className="mb-4">
-                    {getInstrumentWarnings(activeSet.songs).map((warning, index) => (
-                      <div key={index} className="bg-yellow-50 border border-yellow-200 rounded-md p-2 mb-2">
-                        <p className="text-sm text-yellow-800">⚠️ {warning}</p>
-                      </div>
-                    ))}
+            {/* Instrument Warnings */}
+            {activeSet.songs.length > 1 && (
+              <div className="mb-4">
+                {getInstrumentWarnings(activeSet.songs).map((warning, index) => (
+                  <div key={index} className="bg-yellow-50 border border-yellow-200 rounded-md p-2 mb-2">
+                    <p className="text-sm text-yellow-800">⚠️ {warning}</p>
                   </div>
-                )}
+                ))}
+              </div>
+            )}
 
                 {/* Setup Summary */}
                 <SetupSummary songs={activeSet.songs} />
 
                 {/* Expanded Songs Container - No Height Restriction */}
                 <div className="bg-purple-50 rounded-lg p-4">
-                  {activeSet.songs.length === 0 ? (
+              {activeSet.songs.length === 0 ? (
                     <div className="text-center py-12">
                       <p className="text-gray-500 text-lg">
                         No songs in this set yet
@@ -829,7 +829,7 @@ export default function SetBuilder({ songs }) {
                 </div>
                 
                 {/* Tag Filter */}
-                <div>
+                      <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     🏷️ Filter by Tags
                   </label>
@@ -893,8 +893,8 @@ export default function SetBuilder({ songs }) {
                                   </span>
                                 ))}
                               </div>
-                            )}
-                          </div>
+                        )}
+                      </div>
                           
                           <button
                             onClick={() => addSongToSet(song)}
@@ -906,10 +906,10 @@ export default function SetBuilder({ songs }) {
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
+        </div>
         </>
       ) : (
         <div className="text-center py-12">
