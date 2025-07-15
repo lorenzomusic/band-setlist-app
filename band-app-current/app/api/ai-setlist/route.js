@@ -250,7 +250,7 @@ function calculateEnergyDistribution(songs) {
 function calculateSingerBalance(songs) {
   const singerCount = {};
   songs.forEach(song => {
-    const singer = song.vocalist || 'Both';
+    const singer = song.leadSinger || 'Both';
     singerCount[singer] = (singerCount[singer] || 0) + 1;
   });
   return singerCount;

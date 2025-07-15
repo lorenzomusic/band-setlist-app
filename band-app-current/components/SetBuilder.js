@@ -680,9 +680,9 @@ export default function SetBuilder({ songs: propSongs }) {
                                 {song.energy}
                               </span>
                             )}
-                            {song.vocalist && (
+                            {song.leadSinger && (
                               <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded text-apple-caption font-normal uppercase tracking-wider">
-                                {song.vocalist} Lead
+                                {song.leadSinger} Lead
                               </span>
                             )}
                           </div>
