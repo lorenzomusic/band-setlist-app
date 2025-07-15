@@ -332,7 +332,7 @@ export default function PerformanceView({ songs, onSetSelect, onGigSelect }) {
                     }
 
                     return (
-                      <div key={`song-${song.id || songIndex}`}>
+                      <div key={`perf-song-${song.id}-${songIndex}`}>
                         {previousSong && (
                           <div className="my-3">
                             <InstrumentChangeIndicator 
@@ -363,7 +363,7 @@ export default function PerformanceView({ songs, onSetSelect, onGigSelect }) {
                                 <div className="flex flex-wrap gap-1 mt-2">
                                   {song.tags.map((tag, tagIndex) => (
                                     <span
-                                      key={`${song.id || songIndex}-tag-${tagIndex}`}
+                                      key={`perf-tag-${song.id}-${tagIndex}`}
                                       className="inline-flex items-center px-2 py-1 bg-purple-600 text-purple-100 text-xs rounded-full"
                                     >
                                       {tag}

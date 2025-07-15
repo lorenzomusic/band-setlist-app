@@ -1,67 +1,90 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
-export const useDragDrop = (items, onReorder) => {
-  const [draggedIndex, setDraggedIndex] = useState(null);
-  const [dragOverIndex, setDragOverIndex] = useState(null);
+export const useDragDrop = () => {
+  const [isDragging, setIsDragging] = useState(false);
+  const [draggedItem, setDraggedItem] = useState(null);
+  const dragRef = useRef(null);
+  const dropRef = useRef(null);
 
-  const handleDragStart = (e, index) => {
-    setDraggedIndex(index);
+  // Throttle function to limit event frequency
+  const throttle = useCallback((func, delay) => {
+    let timeoutId;
+    let lastExecTime = 0;
+    return function (...args) {
+      const currentTime = Date.now();
+      
+      if (currentTime - lastExecTime > delay) {
+        func.apply(this, args);
+        lastExecTime = currentTime;
+      } else {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          func.apply(this, args);
+          lastExecTime = Date.now();
+        }, delay - (currentTime - lastExecTime));
+      }
+    };
+  }, []);
+
+  const handleDragStart = useCallback((e, item) => {
+    setIsDragging(true);
+    setDraggedItem(item);
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', index.toString());
-  };
+    e.dataTransfer.setData('text/json', JSON.stringify(item));
+    
+    // Hide default drag image for better UX
+    const emptyImg = new Image();
+    emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
+    e.dataTransfer.setDragImage(emptyImg, 0, 0);
+  }, []);
 
-  const handleDragEnd = () => {
-    setDraggedIndex(null);
-    setDragOverIndex(null);
-  };
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+    setDraggedItem(null);
+  }, []);
 
-  const handleDragOver = (e) => {
+  // Throttled drag over handler
+  const handleDragOver = useCallback(throttle((e) => {
+    e.preventDefault(); // CRITICAL: Allow drop
+    e.dataTransfer.dropEffect = 'move';
+  }, 16), []); // ~60fps
+
+  const handleDragEnter = useCallback((e) => {
     e.preventDefault();
-  };
+  }, []);
 
-  const handleDragEnter = (e, index) => {
+  const handleDragLeave = useCallback((e) => {
     e.preventDefault();
-    if (draggedIndex !== null && draggedIndex !== index) {
-      setDragOverIndex(index);
+  }, []);
+
+  const handleDrop = useCallback((e, onDrop) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    try {
+      const data = JSON.parse(e.dataTransfer.getData('text/json'));
+      if (onDrop && data) {
+        onDrop(data);
+      }
+    } catch (error) {
+      console.error('Error parsing dropped data:', error);
     }
-  };
-
-  const handleDragLeave = () => {
-    // Don't clear immediately - let dragenter handle it
-  };
-
-  const handleDrop = (e, dropIndex) => {
-    e.preventDefault();
     
-    if (draggedIndex === null || draggedIndex === dropIndex) {
-      setDragOverIndex(null);
-      return;
-    }
-
-    const newItems = [...items];
-    const draggedItem = newItems[draggedIndex];
-    
-    // Remove the dragged item
-    newItems.splice(draggedIndex, 1);
-    
-    // Insert at new position (adjust if dragging backwards)
-    const insertIndex = draggedIndex < dropIndex ? dropIndex - 1 : dropIndex;
-    newItems.splice(insertIndex, 0, draggedItem);
-    
-    onReorder(newItems);
-    setDragOverIndex(null);
-  };
+    setDraggedItem(null);
+  }, []);
 
   return {
-    draggedIndex,
-    dragOverIndex,
+    isDragging,
+    draggedItem,
+    dragRef,
+    dropRef,
     handleDragStart,
     handleDragEnd,
     handleDragOver,
     handleDragEnter,
     handleDragLeave,
-    handleDrop,
+    handleDrop
   };
 }; 

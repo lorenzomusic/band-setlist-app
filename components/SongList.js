@@ -27,7 +27,7 @@ export default function SongList() {
   }, []);
 
   const getLanguageFlag = (language) => {
-    return language === 'danish' ? '🇩��' : '🇬🇧';
+    return language === 'danish' ? '🇰🇳' : '🇬🇧';
   };
 
   if (loading) {
@@ -54,8 +54,8 @@ export default function SongList() {
       <p className="text-center mb-6 text-gray-600">Found {songs.length} songs in your collection</p>
       
       <div className="grid gap-6">
-        {songs.map(song => (
-          <div key={song.id} className="bg-white rounded-lg shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
+        {songs.map((song, index) => (
+          <div key={`songlist-${song.id}-${index}`} className="bg-white rounded-lg shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h2 className="text-2xl font-bold text-gray-800">{song.title}</h2>

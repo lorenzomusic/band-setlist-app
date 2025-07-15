@@ -1,28 +1,13 @@
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata = {
-  title: 'Greatest Gig - Band Management',
-  description: 'Professional setlist and gig management for Greatest Hit',
-};
+import AppleLayout from '../components/AppleLayout';
+import './globals.css';
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body>
+        <AppleLayout>
+          {children}
+        </AppleLayout>
       </body>
     </html>
   );

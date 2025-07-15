@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Bot, Sparkles, Clock, Music, Users, Volume2, Save, RefreshCw, Play, Download } from 'lucide-react';
+import { safeDuration } from '../../utils/duration';
 
 const AISetlistBuilder = () => {
   const [songs, setSongs] = useState([]);
@@ -74,23 +75,39 @@ const AISetlistBuilder = () => {
     if (!generatedSetlist?.setlist) return;
 
     try {
+      // Prepare the set data with full song objects, not just IDs
+      const setData = {
+        name: generatedSetlist.setlist.name,
+        songs: generatedSetlist.setlist.songs, // Save full song objects
+        createdBy: 'AI Assistant',
+        metadata: {
+          ...generatedSetlist.metadata,
+          aiGenerated: true,
+          generatedAt: new Date().toISOString(),
+          parameters: {
+            duration,
+            englishPercentage,
+            energyMix,
+            singerBalance,
+            vibe,
+            customInstructions
+          }
+        }
+      };
+
       const response = await fetch('/api/sets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: generatedSetlist.setlist.name,
-          songs: generatedSetlist.setlist.songs.map(song => song.id),
-          createdBy: 'AI Assistant',
-          metadata: generatedSetlist.metadata
-        }),
+        body: JSON.stringify(setData),
       });
 
       if (response.ok) {
         alert('Setlist saved successfully!');
       } else {
-        alert('Error saving setlist');
+        const errorData = await response.json();
+        alert('Error saving setlist: ' + (errorData.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error saving setlist:', error);
@@ -115,8 +132,23 @@ const AISetlistBuilder = () => {
   };
 
   const formatDuration = (duration) => {
-    const mins = Math.floor(duration);
-    const secs = Math.round((duration - mins) * 60);
+    // Handle both number (4.1) and string ("4:06") formats
+    let totalMinutes;
+    
+    if (typeof duration === 'string' && duration.includes(':')) {
+      // String format like "4:06"
+      const [mins, secs] = duration.split(':').map(Number);
+      totalMinutes = mins + (secs / 60);
+    } else if (typeof duration === 'number') {
+      // Number format like 4.1
+      totalMinutes = duration;
+    } else {
+      // Fallback
+      totalMinutes = parseFloat(duration) || 0;
+    }
+    
+    const mins = Math.floor(totalMinutes);
+    const secs = Math.round((totalMinutes - mins) * 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -268,8 +300,8 @@ const AISetlistBuilder = () => {
               </h2>
               
               <div className="space-y-4 max-h-96 overflow-y-auto">
-                {songs.map((song) => (
-                  <div key={song.id} className="bg-white/10 rounded-lg p-4 border border-white/20">
+                {songs.map((song, index) => (
+                  <div key={`ai-preference-${song.id}-${index}`} className="bg-white/10 rounded-lg p-4 border border-white/20">
                     <div className="flex items-center justify-between mb-2">
                       <div>
                         <h3 className="text-white font-medium">{song.title}</h3>
@@ -356,7 +388,7 @@ const AISetlistBuilder = () => {
             {/* Setlist */}
             <div className="space-y-3">
               {generatedSetlist?.setlist?.songs?.map((song, index) => (
-                <div key={song.id} className="bg-white/10 rounded-lg p-4 border border-white/20">
+                <div key={`ai-setlist-${song.id}-${index}`} className="bg-white/10 rounded-lg p-4 border border-white/20">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold">

@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import TagInput from './TagInput';
 import InstrumentChangeIndicator from './InstrumentChangeIndicator';
 import SetupSummary from './SetupSummary';
 import PDFGenerator from './PDFGenerator';
-import { useDragDrop } from '../hooks/useDragDrop';
 import DraggableSong from './DraggableSong';
+import { safeDuration } from '../utils/duration';
 
-export default function SetBuilder({ songs }) {
+export default function SetBuilder({ songs: propSongs }) {
+  const [songs, setSongs] = useState([]);
   const [sets, setSets] = useState([]);
   const [activeSet, setActiveSet] = useState(null);
   const [newSetName, setNewSetName] = useState('');
@@ -24,7 +25,7 @@ export default function SetBuilder({ songs }) {
     selectedTags: []
   });
 
-  // Load sets on component mount
+  // Load sets and songs on component mount
   useEffect(() => {
     loadSets();
   }, []);
@@ -39,6 +40,9 @@ export default function SetBuilder({ songs }) {
       if (setsResponse.ok && songsResponse.ok) {
         const setsData = await setsResponse.json();
         const songsData = await songsResponse.json();
+        
+        // Set songs state
+        setSongs(songsData);
         
         // Update sets with fresh song data
         const updatedSets = setsData.map(set => ({
@@ -61,21 +65,45 @@ export default function SetBuilder({ songs }) {
   const createSet = async () => {
     if (!newSetName.trim()) return;
 
+    const newSet = {
+      id: `set_${Date.now()}_${Math.random().toString(36).substring(2)}`,
+      name: newSetName.trim(),
+      songs: [], // ALWAYS include this
+      createdAt: new Date().toISOString(),
+      createdBy: 'User',
+      metadata: {}
+    };
+    
+    console.log('Creating new set:', newSet);
+    
     try {
       const response = await fetch('/api/sets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newSetName,
-          songs: [],
-          createdAt: new Date().toISOString()
-        })
+        body: JSON.stringify(newSet)
       });
 
       if (response.ok) {
-        const newSet = await response.json();
-        setSets(prev => [...prev, newSet]);
-        setActiveSet(newSet);
+        const apiResponse = await response.json();
+        console.log('API Response:', apiResponse);
+        
+        // FIXED: Extract the actual set from the API response
+        const createdSet = apiResponse.set || apiResponse; // Handle both response formats
+        
+        // Ensure the set has a songs array
+        if (!createdSet.songs) {
+          createdSet.songs = [];
+        }
+        
+        console.log('Actual set data:', createdSet);
+        console.log('New set created and activated');
+        
+        // Add to sets array
+        setSets(prev => [...prev, createdSet]);
+        
+        // Set as active - use the actual set, not the API response
+        setActiveSet(createdSet);
+        
         setNewSetName('');
         setShowNewSetForm(false);
       }
@@ -84,76 +112,74 @@ export default function SetBuilder({ songs }) {
     }
   };
 
-  const addSongToSet = async (song) => {
-    if (!activeSet) return;
-
-    // Check if song already exists in the set
-    const songExists = activeSet.songs.some(existingSong => 
-      existingSong.id === song.id || 
-      (existingSong.title === song.title && existingSong.artist === song.artist)
-    );
-    
-    if (songExists) {
-      alert('This song is already in the set!');
-      return;
-    }
-
-    const updatedSongs = [...activeSet.songs, {
-      ...song,
-      setPosition: activeSet.songs.length + 1
-    }];
-
-    const updatedSet = {
-      ...activeSet,
-      songs: updatedSongs
-    };
-
+  const handleDrop = (e) => {
+    e.preventDefault();
     try {
-      const response = await fetch('/api/sets', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedSet)
-      });
-
-      if (response.ok) {
-        setActiveSet(updatedSet);
-        setSets(prev => 
-          prev.map(set => 
-            set.id === updatedSet.id ? updatedSet : set
-          )
-        );
+      const data = JSON.parse(e.dataTransfer.getData('text/json'));
+      console.log('Dropped data:', data);
+      if (data) {
+        addSongToSet(data);
       }
     } catch (error) {
-      console.error('Error updating set:', error);
+      console.error('Error parsing dropped data:', error);
     }
   };
 
-  const removeSongFromSet = async (songIndex) => {
-    if (!activeSet) return;
+  const addSongToSet = useCallback((song, dropIndex = -1) => {
+    console.log('Adding/reordering song in active set:', song.title);
+    if (!activeSet) {
+      console.log('No active set to add to');
+      return;
+    }
+    const existingIndex = (activeSet?.songs || []).findIndex(s => s.id === song.id);
+    if (existingIndex !== -1) {
+      // Song already exists - show user-friendly message
+      console.log('Song already in set at position', existingIndex);
+      alert(`"${song.title}" is already in this set`);
+      return; // For now, don't reorder - just prevent duplicates
+    } else {
+      // New song - add to set
+      console.log('Adding new song to set');
+      const updatedSet = {
+        ...activeSet,
+        songs: [...(activeSet?.songs || []), song]
+      };
+      console.log('Updated set with new song:', updatedSet.name, 'now has', updatedSet.songs.length, 'songs');
+      setSets(prevSets => 
+        prevSets.map(set => 
+          set.id === activeSet.id ? updatedSet : set
+        )
+      );
+      setActiveSet(updatedSet);
+    }
+  }, [activeSet, setSets, setActiveSet]);
 
-    const updatedSongs = activeSet.songs.filter((_, index) => index !== songIndex);
+  const removeSongFromSet = async (songId) => {
+    if (!activeSet) return;
+    
     const updatedSet = {
       ...activeSet,
-      songs: updatedSongs
+      songs: activeSet.songs.filter(s => s.id !== songId)
     };
-
+    
     try {
-      const response = await fetch('/api/sets', {
+      const response = await fetch(`/api/sets`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedSet)
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedSet),
       });
-
+      
       if (response.ok) {
         setActiveSet(updatedSet);
-        setSets(prev => 
-          prev.map(set => 
-            set.id === updatedSet.id ? updatedSet : set
-          )
-        );
+        setSets(prev => prev.map(s => s.id === activeSet.id ? updatedSet : s));
+        console.log('Removed song from set');
+      } else {
+        console.error('Failed to remove song from set');
       }
     } catch (error) {
-      console.error('Error updating set:', error);
+      console.error('Error removing song from set:', error);
     }
   };
 
@@ -193,14 +219,13 @@ export default function SetBuilder({ songs }) {
   const calculateTotalDuration = (setSongs) => {
     const totalMinutes = setSongs.reduce((total, song) => {
       if (song.duration) {
-        const [minutes, seconds] = song.duration.split(':').map(Number);
-        return total + minutes + (seconds / 60);
+        return total + safeDuration(song.duration);
       }
       return total;
     }, 0);
 
     const hours = Math.floor(totalMinutes / 60);
-    const minutes = Math.round(totalMinutes % 60);
+    const minutes = totalMinutes % 60;
     
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
@@ -256,13 +281,16 @@ export default function SetBuilder({ songs }) {
 
   // Get available songs (songs not in the current set)
   const getAvailableSongs = () => {
+    if (!songs || songs.length === 0) return [];
     if (!activeSet) return songs;
-    return songs.filter(song => !activeSet.songs.some(setSong => setSong.id === song.id));
+    return songs.filter(song => !(activeSet?.songs || []).some(setSong => setSong.id === song.id));
   };
 
   // Comprehensive filtering function
   const getFilteredAvailableSongs = () => {
     const availableSongs = getAvailableSongs();
+    
+    if (!availableSongs || availableSongs.length === 0) return [];
     
     return availableSongs.filter(song => {
       // Text search
@@ -307,29 +335,13 @@ export default function SetBuilder({ songs }) {
 
   // Language Analytics Functions
   const calculateLanguageStats = (songs) => {
-    // DEBUG: Let's see what we're actually getting
-    console.log('=== LANGUAGE ANALYTICS DEBUG ===');
-    console.log('Songs received:', songs);
-    songs.forEach((song, index) => {
-      console.log(`Song ${index + 1}:`, {
-        title: song.title,
-        language: song.language,
-        languageType: typeof song.language,
-        vocalist: song.vocalist,
-        vocalistType: typeof song.vocalist,
-        duration: song.duration
-      });
-    });
-    console.log('=== END DEBUG ===');
-
     if (!songs || songs.length === 0) {
       return { danish: 0, english: 0, totalDuration: 0 };
     }
 
     const totalDuration = songs.reduce((sum, song) => {
       if (song.duration) {
-        const [minutes, seconds] = song.duration.split(':').map(Number);
-        return sum + minutes + (seconds / 60);
+        return sum + safeDuration(song.duration);
       }
       return sum;
     }, 0);
@@ -338,8 +350,7 @@ export default function SetBuilder({ songs }) {
       .filter(song => song.language === 'danish')
       .reduce((sum, song) => {
         if (song.duration) {
-          const [minutes, seconds] = song.duration.split(':').map(Number);
-          return sum + minutes + (seconds / 60);
+          return sum + safeDuration(song.duration);
         }
         return sum;
       }, 0);
@@ -348,8 +359,7 @@ export default function SetBuilder({ songs }) {
       .filter(song => song.language === 'english')
       .reduce((sum, song) => {
         if (song.duration) {
-          const [minutes, seconds] = song.duration.split(':').map(Number);
-          return sum + minutes + (seconds / 60);
+          return sum + safeDuration(song.duration);
         }
         return sum;
       }, 0);
@@ -371,8 +381,7 @@ export default function SetBuilder({ songs }) {
 
     const totalDuration = songs.reduce((sum, song) => {
       if (song.duration) {
-        const [minutes, seconds] = song.duration.split(':').map(Number);
-        return sum + minutes + (seconds / 60);
+        return sum + safeDuration(song.duration);
       }
       return sum;
     }, 0);
@@ -381,10 +390,9 @@ export default function SetBuilder({ songs }) {
       .filter(song => song.vocalist === 'Rikke' || song.vocalist === 'Both')
       .reduce((sum, song) => {
         if (song.duration) {
-          const [minutes, seconds] = song.duration.split(':').map(Number);
           // If both vocalists, split the time
           const timeShare = song.vocalist === 'Both' ? 0.5 : 1;
-          return sum + (minutes + (seconds / 60)) * timeShare;
+          return sum + safeDuration(song.duration) * timeShare;
         }
         return sum;
       }, 0);
@@ -393,10 +401,9 @@ export default function SetBuilder({ songs }) {
       .filter(song => song.vocalist === 'Lorentz' || song.vocalist === 'Both')
       .reduce((sum, song) => {
         if (song.duration) {
-          const [minutes, seconds] = song.duration.split(':').map(Number);
           // If both vocalists, split the time
           const timeShare = song.vocalist === 'Both' ? 0.5 : 1;
-          return sum + (minutes + (seconds / 60)) * timeShare;
+          return sum + safeDuration(song.duration) * timeShare;
         }
         return sum;
       }, 0);
@@ -405,8 +412,7 @@ export default function SetBuilder({ songs }) {
       .filter(song => song.vocalist === 'Both')
       .reduce((sum, song) => {
         if (song.duration) {
-          const [minutes, seconds] = song.duration.split(':').map(Number);
-          return sum + minutes + (seconds / 60);
+          return sum + safeDuration(song.duration);
         }
         return sum;
       }, 0);
@@ -446,7 +452,7 @@ export default function SetBuilder({ songs }) {
         <div className="w-full bg-gray-200 rounded-full h-3">
           <div className="flex h-3 rounded-full overflow-hidden">
             <div 
-              className="bg-blue-500" 
+              className="bg-blue" 
               style={{ width: `${stats.danish}%` }}
             ></div>
             <div 
@@ -522,401 +528,387 @@ export default function SetBuilder({ songs }) {
     );
   };
 
-  // Drag & Drop functionality for songs
-  const handleSongReorder = async (newSongs) => {
-    if (!activeSet) return;
-
-    const updatedSet = { ...activeSet, songs: newSongs };
-    setActiveSet(updatedSet);
-    
-    // Update in sets array
-    const updatedSets = sets.map(set => 
-      set.id === activeSet.id ? updatedSet : set
-    );
-    setSets(updatedSets);
-    
-    // Save to database
-    try {
-      const response = await fetch('/api/sets', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedSet)
-      });
-
-      if (!response.ok) {
-        console.error('Failed to save reordered songs');
-      }
-    } catch (error) {
-      console.error('Error saving reordered songs:', error);
-    }
-  };
-
-  const songDragHandlers = useDragDrop(activeSet?.songs || [], handleSongReorder);
-
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <h2 className="text-3xl font-black mb-6 text-center text-gray-900">🎼 Set Builder</h2>
-      <p className="text-center text-gray-600 mb-6">Create reusable sets that you can use in multiple gigs</p>
+    <>
+      {/* Header */}
+      <div className="bg-white rounded-apple shadow-apple overflow-hidden">
+        <div className="px-8 pt-8 pb-6 bg-gradient-to-r from-blue-50 to-purple-50">
+          <h1 className="text-apple-title-1 text-primary mb-2">🎼 Set Builder</h1>
+          <p className="text-apple-body text-secondary">Create reusable sets that you can use in multiple gigs</p>
+        </div>
+      </div>
 
       {/* Set Selection */}
-      <div className="mb-6">
-        <div className="flex flex-wrap gap-2 mb-4">
-          {sets.map((set, index) => (
-            <div key={`set-${set.id || index}`} className="flex items-center gap-1">
-            <button
-              onClick={() => setActiveSet(set)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                activeSet?.id === set.id
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              {set.name} ({set.songs.length} songs, {calculateTotalDuration(set.songs)})
-            </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteSet(set);
-                }}
-                className="bg-red-600 hover:bg-red-700 text-white px-2 py-2 rounded-lg text-sm font-medium transition-colors"
-                title={`Delete ${set.name}`}
-              >
-                🗑️
-              </button>
-            </div>
-          ))}
-          
-          <button
-            onClick={() => setShowNewSetForm(true)}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
-          >
-            ➕ New Set
-          </button>
+      <div className="bg-white rounded-apple shadow-apple overflow-hidden">
+        <div className="px-6 pt-6 pb-4 border-b border-light">
+          <h3 className="text-apple-title-3 text-primary">Your Sets</h3>
         </div>
-
-        {showNewSetForm && (
-          <div className="flex gap-2 mb-4">
-            <input
-              type="text"
-              value={newSetName}
-              onChange={(e) => setNewSetName(e.target.value)}
-              placeholder="Set name (e.g., 'High Energy Openers', 'Wedding Dance Hits')"
-              className="flex-1 p-2 border border-gray-300 rounded-md"
-              onKeyPress={(e) => e.key === 'Enter' && createSet()}
-            />
+        <div className="p-6">
+          <div className="flex flex-wrap gap-2 mb-4">
+            {sets.map((set, index) => (
+              <div key={`set-${set.id || index}`} className="flex items-center gap-1">
+                <button
+                  onClick={() => setActiveSet(set)}
+                  className={`px-4 py-2 rounded-apple-button font-medium transition-apple-fast ${
+                    activeSet?.id === set.id
+                      ? 'bg-blue text-white'
+                      : 'bg-gray-100 text-primary hover:bg-gray-200'
+                  }`}
+                >
+                  {set.name} ({(set.songs || []).length} songs, {calculateTotalDuration(set.songs || [])})
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteSet(set);
+                  }}
+                  className="bg-red-600 hover:bg-red-700 text-white px-2 py-2 rounded-apple-button text-sm font-medium transition-apple-fast"
+                  title={`Delete ${set.name}`}
+                >
+                  🗑️
+                </button>
+              </div>
+            ))}
+            
             <button
-              onClick={createSet}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+              onClick={() => setShowNewSetForm(true)}
+              className="px-4 py-2 bg-green-600 text-white rounded-apple-button font-medium hover:bg-green-700 transition-apple-fast"
             >
-              Create
-            </button>
-            <button
-              onClick={() => {
-                setShowNewSetForm(false);
-                setNewSetName('');
-              }}
-              className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
-            >
-              Cancel
+              ➕ New Set
             </button>
           </div>
-        )}
+
+          {showNewSetForm && (
+            <div className="flex gap-2 mb-4">
+              <input
+                type="text"
+                value={newSetName}
+                onChange={(e) => setNewSetName(e.target.value)}
+                placeholder="Set name (e.g., 'High Energy Openers', 'Wedding Dance Hits')"
+                className="flex-1 apple-input"
+                onKeyPress={(e) => e.key === 'Enter' && createSet()}
+              />
+              <button
+                onClick={createSet}
+                className="px-4 py-2 bg-green-600 text-white rounded-apple-button hover:bg-green-700 transition-apple-fast"
+              >
+                Create
+              </button>
+              <button
+                onClick={() => {
+                  setShowNewSetForm(false);
+                  setNewSetName('');
+                }}
+                className="px-4 py-2 bg-gray-500 text-white rounded-apple-button hover:bg-gray-600 transition-apple-fast"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {activeSet ? (
         <>
           {/* Analytics Section */}
           <div className="mb-6">
-            <SetAnalytics songs={activeSet.songs} />
+            <SetAnalytics songs={activeSet?.songs || []} />
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             {/* Current Set - Take 2/3 width on large screens */}
             <div className="xl:col-span-2">
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">
-                    Current Set: {activeSet.name} ({activeSet.songs.length} songs)
-                  </h3>
-                  <div className="flex gap-2">
-                    {activeSet && activeSet.songs && activeSet.songs.length > 0 && (
-                      <PDFGenerator 
-                        setlist={activeSet.songs} 
-                        gigName={`${activeSet.name} - Set`} 
-                      />
-                    )}
-              </div>
-            </div>
+              {/* Apple-style Active Set Display */}
+              <div className="bg-white rounded-apple shadow-apple overflow-hidden">
+                {/* Apple-style panel header */}
+                <div className="px-8 pt-8 pb-6 border-b border-light bg-gradient-to-b from-gray-50 to-white">
+                  <h1 className="text-apple-title-1 text-primary mb-1">
+                    {activeSet.name}
+                  </h1>
+                  <p className="text-apple-body text-secondary">
+                    {activeSet.songs ? activeSet.songs.length : 0} songs • 
+                    {activeSet.songs ? Math.round(activeSet.songs.reduce((total, song) => {
+                      const duration = typeof song.duration === 'string' ? 
+                        song.duration.split(':').reduce((acc, time) => (60 * acc) + +time, 0) / 60 :
+                        song.duration || 0;
+                      return total + duration;
+                    }, 0)) : 0} minutes total
+                  </p>
+                  <span className="inline-flex items-center gap-1.5 bg-blue text-white px-3 py-1.5 rounded-2xl text-xs font-medium mt-4">
+                    <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
+                    Active Set
+                  </span>
+                </div>
 
-            {/* Instrument Warnings */}
-            {activeSet.songs.length > 1 && (
-              <div className="mb-4">
-                {getInstrumentWarnings(activeSet.songs).map((warning, index) => (
-                  <div key={index} className="bg-yellow-50 border border-yellow-200 rounded-md p-2 mb-2">
-                    <p className="text-sm text-yellow-800">⚠️ {warning}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-                {/* Setup Summary */}
-                <SetupSummary songs={activeSet.songs} />
-
-                {/* Expanded Songs Container - No Height Restriction */}
-                <div className="bg-purple-50 rounded-lg p-4">
-              {activeSet.songs.length === 0 ? (
-                    <div className="text-center py-12">
-                      <p className="text-gray-500 text-lg">
-                        No songs in this set yet
-                      </p>
-                      <p className="text-gray-400 text-sm mt-2">
-                        Click songs from the library below to add them to this set
-                      </p>
-                    </div>
+                {/* Apple-style song list */}
+                <div className="divide-y divide-gray-50">
+                  {activeSet.songs && activeSet.songs.length > 0 ? (
+                    activeSet.songs.map((song, index) => (
+                      <div 
+                        key={`active-set-${song.id}-${index}`}
+                        className="group px-8 py-5 hover:bg-gray-50 transition-colors duration-200 flex items-center gap-4"
+                      >
+                        {/* Song number */}
+                        <div className="w-8 h-8 rounded-apple-small bg-gray-100 text-gray-500 flex items-center justify-center text-sm font-semibold font-mono">
+                          {index + 1}
+                        </div>
+                        
+                        {/* Song content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-apple-headline text-primary mb-0.5 leading-tight">
+                            {song.title}
+                          </div>
+                          <div className="text-apple-body text-secondary">
+                            {song.artist}
+                          </div>
+                          <div className="flex gap-2 mt-2">
+                            <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded text-apple-caption font-normal uppercase tracking-wider">
+                              {song.key}
+                            </span>
+                            {song.duration && (
+                              <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded text-apple-caption font-normal uppercase tracking-wider">
+                                {song.duration}
+                              </span>
+                            )}
+                            {song.language && (
+                              <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded text-apple-caption">
+                                {song.language === 'english' ? '🇺🇸' : song.language === 'danish' ? '🇩🇰' : '🌐'}
+                              </span>
+                            )}
+                            {song.energy && (
+                              <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded text-apple-caption font-normal uppercase tracking-wider">
+                                {song.energy}
+                              </span>
+                            )}
+                            {song.leadSinger && (
+                              <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded text-apple-caption font-normal uppercase tracking-wider">
+                                {song.leadSinger} Lead
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Apple-style controls */}
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          {/* Move to top */}
+                          <button
+                            onClick={() => {
+                              if (index === 0) return;
+                              console.log('Move to top:', song.title);
+                              
+                              const newSongs = [...activeSet.songs];
+                              const [movedSong] = newSongs.splice(index, 1);
+                              newSongs.unshift(movedSong);
+                              
+                              const updatedSet = { ...activeSet, songs: newSongs };
+                              setActiveSet(updatedSet);
+                              setSets(prev => prev.map(s => s.id === activeSet.id ? updatedSet : s));
+                            }}
+                            disabled={index === 0}
+                            className={`w-7 h-7 rounded-apple-small flex items-center justify-center text-xs transition-apple-fast ${
+                              index === 0 
+                                ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:scale-105 active:scale-95'
+                            }`}
+                            title="Move to top"
+                          >
+                            ⤴
+                          </button>
+                          
+                          {/* Move up */}
+                          <button
+                            onClick={() => {
+                              if (index === 0) return;
+                              console.log('Move up:', song.title);
+                              
+                              const newSongs = [...activeSet.songs];
+                              [newSongs[index - 1], newSongs[index]] = [newSongs[index], newSongs[index - 1]];
+                              
+                              const updatedSet = { ...activeSet, songs: newSongs };
+                              setActiveSet(updatedSet);
+                              setSets(prev => prev.map(s => s.id === activeSet.id ? updatedSet : s));
+                            }}
+                            disabled={index === 0}
+                            className={`w-7 h-7 rounded-apple-small flex items-center justify-center text-xs transition-apple-fast ${
+                              index === 0 
+                                ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:scale-105 active:scale-95'
+                            }`}
+                            title="Move up"
+                          >
+                            ↑
+                          </button>
+                          
+                          {/* Move down */}
+                          <button
+                            onClick={() => {
+                              if (index === activeSet.songs.length - 1) return;
+                              console.log('Move down:', song.title);
+                              
+                              const newSongs = [...activeSet.songs];
+                              [newSongs[index], newSongs[index + 1]] = [newSongs[index + 1], newSongs[index]];
+                              
+                              const updatedSet = { ...activeSet, songs: newSongs };
+                              setActiveSet(updatedSet);
+                              setSets(prev => prev.map(s => s.id === activeSet.id ? updatedSet : s));
+                            }}
+                            disabled={index === activeSet.songs.length - 1}
+                            className={`w-7 h-7 rounded-apple-small flex items-center justify-center text-xs transition-apple-fast ${
+                              index === activeSet.songs.length - 1 
+                                ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:scale-105 active:scale-95'
+                            }`}
+                            title="Move down"
+                          >
+                            ↓
+                          </button>
+                          
+                          {/* Move to bottom */}
+                          <button
+                            onClick={() => {
+                              if (index === activeSet.songs.length - 1) return;
+                              console.log('Move to bottom:', song.title);
+                              
+                              const newSongs = [...activeSet.songs];
+                              const [movedSong] = newSongs.splice(index, 1);
+                              newSongs.push(movedSong);
+                              
+                              const updatedSet = { ...activeSet, songs: newSongs };
+                              setActiveSet(updatedSet);
+                              setSets(prev => prev.map(s => s.id === activeSet.id ? updatedSet : s));
+                            }}
+                            disabled={index === activeSet.songs.length - 1}
+                            className={`w-7 h-7 rounded-apple-small flex items-center justify-center text-xs transition-apple-fast ${
+                              index === activeSet.songs.length - 1 
+                                ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:scale-105 active:scale-95'
+                            }`}
+                            title="Move to bottom"
+                          >
+                            ⤵
+                          </button>
+                          
+                          {/* Remove song */}
+                          <button
+                            onClick={() => removeSongFromSet(song.id)}
+                            className="w-7 h-7 rounded-apple-small bg-red-100 text-red-500 hover:bg-red-200 hover:scale-105 active:scale-95 flex items-center justify-center text-xs transition-apple-fast"
+                            title="Remove song"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                    ))
                   ) : (
-                    <div className="space-y-2">
-                      {activeSet.songs.map((song, index) => (
-                        <DraggableSong
-                          key={`song-${index}-${song.id || song.title || Math.random()}`}
-                          song={song}
-                          index={index}
-                          previousSong={index > 0 ? activeSet.songs[index - 1] : null}
-                          onRemove={removeSongFromSet}
-                          dragHandlers={{
-                            ...songDragHandlers,
-                            handleDragStart: (e, idx) => songDragHandlers.handleDragStart(e, idx),
-                            handleDrop: (e, idx) => songDragHandlers.handleDrop(e, idx),
-                          }}
-                          isDraggedOver={songDragHandlers.dragOverIndex === index}
-                          isDragging={songDragHandlers.draggedIndex === index}
-                        />
-                      ))}
+                    <div className="px-8 py-12 text-center">
+                      <div className="text-3xl opacity-30 mb-4">🎵</div>
+                      <h3 className="text-apple-headline text-primary mb-2">No Songs in Set</h3>
+                      <p className="text-apple-body text-secondary">Add songs from the available songs list</p>
                     </div>
                   )}
                 </div>
+              </div>
 
-                {/* Set Analytics - Move to Bottom */}
-                {activeSet.songs.length > 0 && (
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-3">📊 Set Analytics</h4>
-                    <SetAnalytics songs={activeSet.songs} />
+              {/* Set Analytics - Move to Bottom */}
+              {activeSet.songs && activeSet.songs.length > 0 && (
+                <div className="mt-6 p-4 bg-gray-50 rounded-apple">
+                  <h4 className="font-semibold text-gray-800 mb-3">📊 Set Analytics</h4>
+                  <SetAnalytics songs={activeSet?.songs || []} />
+                </div>
+              )}
+            </div>
+
+            {/* Apple-style Available Songs */}
+            <div className="bg-white rounded-apple shadow-apple overflow-hidden">
+              <div className="px-6 pt-6 pb-4 border-b border-light">
+                <h3 className="text-apple-title-3 text-primary">Available Songs</h3>
+              </div>
+              <div className="p-6 pb-0">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search songs..."
+                    value={availableSongFilters.searchText}
+                    onChange={(e) => updateAvailableFilter('searchText', e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-100 border-none rounded-apple-small text-apple-body text-primary placeholder-gray-500 outline-none focus:bg-gray-200 transition-colors pr-10"
+                  />
+                  {availableSongFilters.searchText && (
+                    <button
+                      onClick={() => updateAvailableFilter('searchText', '')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-gray-300 hover:bg-gray-400 rounded-full flex items-center justify-center text-gray-600 hover:text-gray-800 transition-colors"
+                      title="Clear search"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              <div className="max-h-80 overflow-y-auto">
+                {getFilteredAvailableSongs().length > 0 ? (
+                  getFilteredAvailableSongs().slice(0, 15).map((song, index) => (
+                    <div
+                      key={`available-songs-${song.id}-${index}`}
+                      className="px-6 py-3 border-b border-gray-50 last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors duration-150"
+                      onClick={async () => {
+                        if (!activeSet) {
+                          alert('Please select or create a set first');
+                          return;
+                        }
+                        if ((activeSet.songs || []).some(s => s.id === song.id)) {
+                          alert(`"${song.title}" is already in this set`);
+                          return;
+                        }
+                        const updatedSet = {
+                          ...activeSet,
+                          songs: [...(activeSet.songs || []), song]
+                        };
+                        try {
+                          const response = await fetch('/api/sets', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(updatedSet)
+                          });
+                          if (response.ok) {
+                            setActiveSet(updatedSet);
+                            setSets(prev => prev.map(s => s.id === activeSet.id ? updatedSet : s));
+                            console.log('Added song:', song.title);
+                          } else {
+                            alert('Failed to save set. Please try again.');
+                          }
+                        } catch (err) {
+                          alert('Failed to save set. Please try again.');
+                          console.error(err);
+                        }
+                      }}
+                    >
+                      <div className="text-apple-body text-primary mb-0.5">
+                        {song.title}
+                      </div>
+                      <div className="text-apple-callout text-secondary">
+                        {song.artist} • {song.key} • {song.duration}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-6 py-8 text-center">
+                    <div className="text-2xl opacity-30 mb-2">🔍</div>
+                    <p className="text-apple-body text-secondary">
+                      {availableSongFilters.searchText ? 'No songs found matching your search' : 'No songs available'}
+                    </p>
                   </div>
                 )}
               </div>
             </div>
-
-            {/* Available Songs Section with Filters */}
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Available Songs</h3>
-                <span className="text-sm text-gray-500">
-                  {getFilteredAvailableSongs().length} of {getAvailableSongs().length} songs
-                </span>
-              </div>
-              
-              {/* Search and Filters */}
-              <div className="space-y-4 mb-6 p-4 bg-gray-50 rounded-lg">
-                {/* Search */}
-                <div>
-                  <input
-                    type="text"
-                    placeholder="🔍 Search songs by title or artist..."
-                    value={availableSongFilters.searchText}
-                    onChange={(e) => updateAvailableFilter('searchText', e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                </div>
-                
-                {/* Filter Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {/* Language Filter */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Language</label>
-                    <select
-                      value={availableSongFilters.language}
-                      onChange={(e) => updateAvailableFilter('language', e.target.value)}
-                      className="w-full p-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500"
-                    >
-                      <option value="all">🌐 All</option>
-                      <option value="english">🇬🇧 English</option>
-                      <option value="danish">🇩🇰 Danish</option>
-                    </select>
-                  </div>
-
-                  {/* Key Filter */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Key</label>
-                    <select
-                      value={availableSongFilters.key}
-                      onChange={(e) => updateAvailableFilter('key', e.target.value)}
-                      className="w-full p-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500"
-                    >
-                      <option value="all">🎵 All Keys</option>
-                      <option value="C">C</option>
-                      <option value="C#">C#</option>
-                      <option value="D">D</option>
-                      <option value="D#">D#</option>
-                      <option value="E">E</option>
-                      <option value="F">F</option>
-                      <option value="F#">F#</option>
-                      <option value="G">G</option>
-                      <option value="G#">G#</option>
-                      <option value="A">A</option>
-                      <option value="A#">A#</option>
-                      <option value="B">B</option>
-                    </select>
-                  </div>
-
-                  {/* Bass Filter */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Bass</label>
-                    <select
-                      value={availableSongFilters.bassType}
-                      onChange={(e) => updateAvailableFilter('bassType', e.target.value)}
-                      className="w-full p-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500"
-                    >
-                      <option value="all">🎸 All Bass</option>
-                      <option value="4-string">4-string</option>
-                      <option value="5-string">5-string</option>
-                      <option value="synth bass">Synth Bass</option>
-                    </select>
-                  </div>
-
-                  {/* Guitar Filter */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Guitar</label>
-                    <select
-                      value={availableSongFilters.guitarType}
-                      onChange={(e) => updateAvailableFilter('guitarType', e.target.value)}
-                      className="w-full p-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500"
-                    >
-                      <option value="all">🎸 All Guitar</option>
-                      <option value="Electric">Electric</option>
-                      <option value="Acoustic">Acoustic</option>
-                      <option value="12-string">12-string</option>
-                      <option value="Classical">Classical</option>
-                    </select>
-                  </div>
-
-                  {/* Vocalist Filter */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Vocalist</label>
-                    <select
-                      value={availableSongFilters.vocalist}
-                      onChange={(e) => updateAvailableFilter('vocalist', e.target.value)}
-                      className="w-full p-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500"
-                    >
-                      <option value="all">🎤 All</option>
-                      <option value="Rikke">🎤 Rikke</option>
-                      <option value="Lorentz">🎤 Lorentz</option>
-                      <option value="Both">🎤🎤 Both</option>
-                    </select>
-                  </div>
-
-                  {/* Backing Track Filter */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Backing Track</label>
-                    <select
-                      value={availableSongFilters.backingTrack}
-                      onChange={(e) => updateAvailableFilter('backingTrack', e.target.value)}
-                      className="w-full p-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500"
-                    >
-                      <option value="all">🎵 All</option>
-                      <option value="yes">✅ Has Track</option>
-                      <option value="no">❌ No Track</option>
-                    </select>
-                  </div>
-                </div>
-                
-                {/* Tag Filter */}
-                      <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    🏷️ Filter by Tags
-                  </label>
-                  <TagInput
-                    tags={availableSongFilters.selectedTags}
-                    onChange={handleAvailableTagChange}
-                    placeholder="Filter by tags like 'Ballad', 'Wedding', 'High Energy'..."
-                  />
-                </div>
-                
-                {/* Results Summary */}
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <span className="text-blue-800 font-medium">
-                    📊 Showing {getFilteredAvailableSongs().length} of {getAvailableSongs().length} available songs
-                  </span>
-                </div>
-              </div>
-              
-              {/* Available Songs List - Increased Height */}
-              <div className="max-h-[600px] overflow-y-auto border border-gray-200 rounded-lg">
-                {getFilteredAvailableSongs().length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>No songs match your current filters</p>
-                    <button
-                      onClick={clearAvailableFilters}
-                      className="mt-2 text-blue-600 hover:text-blue-800"
-                    >
-                      Clear all filters
-                    </button>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-gray-200">
-                    {getFilteredAvailableSongs().map((song, index) => (
-                      <div key={`available-song-${index}-${song.id || song.title || Math.random()}`} className="p-4 hover:bg-gray-50">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-medium">{song.title}</span>
-                              <span className="text-gray-600">by {song.artist}</span>
-                              {song.language === 'danish' && <span>🇩🇰</span>}
-                              {song.language === 'english' && <span>🇬🇧</span>}
-                              {song.vocalist === 'Rikke' && <span>🎤</span>}
-                              {song.vocalist === 'Lorentz' && <span>🎤</span>}
-                              {song.vocalist === 'Both' && <span>🎤🎤</span>}
-                            </div>
-                            
-                            <div className="text-sm text-gray-600 mb-2">
-                              {song.key && <span className="mr-3">Key: {song.key}</span>}
-                              {song.duration && <span className="mr-3">⏱️ {song.duration}</span>}
-                              {song.backingTrack && <span className="mr-3">🎵 Track</span>}
-                            </div>
-                            
-                            {song.tags && song.tags.length > 0 && (
-                              <div className="flex flex-wrap gap-1">
-                                {song.tags.map((tag, tagIndex) => (
-                                  <span
-                                    key={`${song.id || index}-tag-${tagIndex}`}
-                                    className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full"
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-                        )}
-                      </div>
-                          
-                          <button
-                            onClick={() => addSongToSet(song)}
-                            className="ml-3 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                          >
-                            Add to Set
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-              )}
-            </div>
           </div>
-        </div>
         </>
       ) : (
-        <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">Select a set or create a new one to get started</p>
-          <p className="text-sm text-gray-400">Sets are reusable collections of songs you can use in multiple gigs</p>
+        <div className="px-8 py-20 text-center bg-white rounded-apple shadow-apple">
+          <div className="text-5xl opacity-30 mb-4">📋</div>
+          <h3 className="text-apple-headline text-primary mb-2">No Active Set Selected</h3>
+          <p className="text-apple-body text-secondary">Please select a set from the list above or create a new one</p>
         </div>
       )}
-    </div>
+    </>
   );
 }

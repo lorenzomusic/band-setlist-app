@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import TagInput from './TagInput';
 
-export default function AddSongForm({ onSongAdded }) {
-  const [isOpen, setIsOpen] = useState(false);
+export default function AddSongForm({ onSongAdded, onCancel }) {
   const [formData, setFormData] = useState({
     title: '',
     artist: '',
@@ -72,7 +71,7 @@ export default function AddSongForm({ onSongAdded }) {
           vocalist: 'Rikke',
           tags: [],
         });
-        setIsOpen(false);
+        // setIsOpen(false); // This line is removed as per the edit hint
       } else {
         alert('Failed to add song');
       }
@@ -84,25 +83,25 @@ export default function AddSongForm({ onSongAdded }) {
     }
   };
 
-  if (!isOpen) {
-    return (
-      <div className="mb-8 text-center">
-        <button
-          onClick={() => setIsOpen(true)}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium text-lg transition-colors"
-        >
-          ➕ Add New Song
-        </button>
-      </div>
-    );
-  }
+  // if (!isOpen) { // This block is removed as per the edit hint
+  //   return (
+  //     <div className="mb-8 text-center">
+  //       <button
+  //         onClick={() => setIsOpen(true)}
+  //         className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium text-lg transition-colors"
+  //       >
+  //         ➕ Add New Song
+  //       </button>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="mb-8 bg-white rounded-lg shadow-lg p-6 border-l-4 border-green-500">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Add New Song</h2>
         <button
-          onClick={() => setIsOpen(false)}
+          onClick={onCancel}
           className="text-gray-500 hover:text-gray-700 text-2xl"
         >
           ✕
@@ -121,7 +120,7 @@ export default function AddSongForm({ onSongAdded }) {
               value={formData.title}
               onChange={handleChange}
               required
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue focus:border-transparent"
               placeholder="Enter song title"
             />
           </div>
@@ -135,7 +134,7 @@ export default function AddSongForm({ onSongAdded }) {
               name="artist"
               value={formData.artist}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue focus:border-transparent"
               placeholder="Enter artist name"
             />
           </div>
@@ -149,7 +148,7 @@ export default function AddSongForm({ onSongAdded }) {
               value={formData.key}
               onChange={handleChange}
               required
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue focus:border-transparent"
             >
               <option value="">Select key</option>
               <option value="C">C</option>
@@ -183,7 +182,7 @@ export default function AddSongForm({ onSongAdded }) {
               name="duration"
               value={formData.duration}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue focus:border-transparent"
               placeholder="4:32"
             />
           </div>
@@ -197,7 +196,7 @@ export default function AddSongForm({ onSongAdded }) {
               name="youtubeLink"
               value={formData.youtubeLink}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue focus:border-transparent"
               placeholder="https://youtube.com/watch?v=..."
             />
           </div>
@@ -210,7 +209,7 @@ export default function AddSongForm({ onSongAdded }) {
               name="bassGuitar"
               value={formData.bassGuitar}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue focus:border-transparent"
             >
               <option value="4-string">4-string</option>
               <option value="5-string">5-string</option>
@@ -226,7 +225,7 @@ export default function AddSongForm({ onSongAdded }) {
               name="guitar"
               value={formData.guitar}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue focus:border-transparent"
             >
               <option value="Electric">Electric</option>
               <option value="Acoustic">Acoustic</option>
@@ -243,7 +242,7 @@ export default function AddSongForm({ onSongAdded }) {
               name="language"
               value={formData.language}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue focus:border-transparent"
               required
             >
               <option value="english">🇬🇧 English</option>
@@ -259,7 +258,7 @@ export default function AddSongForm({ onSongAdded }) {
               name="vocalist"
               value={formData.vocalist}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue focus:border-transparent"
               required
             >
               <option value="Rikke">🎤 Rikke</option>
@@ -286,7 +285,7 @@ export default function AddSongForm({ onSongAdded }) {
             name="backingTrack"
             checked={formData.backingTrack}
             onChange={handleChange}
-            className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue border-gray-300 rounded"
           />
           <label className="text-sm font-medium text-gray-700">
             Has backing track
@@ -302,7 +301,7 @@ export default function AddSongForm({ onSongAdded }) {
             name="form"
             value={formData.form}
             onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue focus:border-transparent"
             placeholder="Intro-Verse-Chorus-Verse-Chorus-Bridge-Chorus-Outro"
           />
         </div>
@@ -317,7 +316,7 @@ export default function AddSongForm({ onSongAdded }) {
               name="medley"
               value={formData.medley}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue focus:border-transparent"
               placeholder="80s Rock Medley"
             />
           </div>
@@ -331,7 +330,7 @@ export default function AddSongForm({ onSongAdded }) {
               name="medleyPosition"
               value={formData.medleyPosition}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue focus:border-transparent"
               placeholder="1"
               min="1"
             />
@@ -347,7 +346,7 @@ export default function AddSongForm({ onSongAdded }) {
             value={formData.notes}
             onChange={handleChange}
             rows="3"
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue focus:border-transparent"
             placeholder="Any special notes about this song..."
           />
         </div>
@@ -362,7 +361,7 @@ export default function AddSongForm({ onSongAdded }) {
           </button>
           <button
             type="button"
-            onClick={() => setIsOpen(false)}
+            onClick={onCancel}
             className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
           >
             Cancel

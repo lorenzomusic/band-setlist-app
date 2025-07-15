@@ -146,6 +146,7 @@ SETLIST BUILDING PRINCIPLES:
 6. Consider key changes and transitions between songs
 7. Balance different artists/genres throughout
 8. Account for performer stamina and vocal rest
+9. NEVER repeat the same song - each song should appear only once in the setlist
 
 Return your response as valid JSON in this exact format:
 {
@@ -174,13 +175,46 @@ Focus on creating a cohesive musical journey that matches the requested criteria
 function validateAndEnhanceSetlist(setlistData, allSongs) {
   const songMap = new Map(allSongs.map(song => [song.id, song]));
   
-  // Validate that all songs exist and add full song data
+  // Validate that all songs exist and remove duplicates
+  const seenSongIds = new Set();
   const validatedSongs = setlistData.songs
-    .filter(item => songMap.has(item.id))
-    .map(item => ({
-      ...item,
-      ...songMap.get(item.id)
-    }));
+    .filter(item => {
+      // Check if song exists and hasn't been seen before
+      if (!songMap.has(item.id) || seenSongIds.has(item.id)) {
+        return false;
+      }
+      seenSongIds.add(item.id);
+      return true;
+    })
+    .map((item, index) => {
+      // Get full song data from database
+      const fullSongData = songMap.get(item.id);
+      
+      return {
+        // AI-specific fields
+        position: index + 1,
+        reasoning: item.reasoning,
+        
+        // Complete song data from database
+        id: fullSongData.id,
+        title: fullSongData.title,
+        artist: fullSongData.artist,
+        duration: fullSongData.duration,
+        key: fullSongData.key,
+        language: fullSongData.language,
+        energy: fullSongData.energy,
+        leadSinger: fullSongData.leadSinger,
+        vocalist: fullSongData.vocalist || fullSongData.leadSinger, // Add this for compatibility
+        tags: fullSongData.tags || [],
+        notes: fullSongData.notes || '',
+        bassGuitar: fullSongData.bassGuitar,
+        guitar: fullSongData.guitar,
+        backingTrack: fullSongData.backingTrack,
+        
+        // Any other fields that might exist
+        ...fullSongData
+      };
+    });
 
   return {
     ...setlistData,

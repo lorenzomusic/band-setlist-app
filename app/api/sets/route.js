@@ -17,22 +17,57 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    const newSet = await request.json();
-    const sets = await redis.get('sets') || [];
+    const { name, songs, createdBy, metadata } = await request.json();
+
+    // Get existing sets
+    const existingSets = await redis.get('sets') || [];
     
-    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-    const setWithId = {
-      ...newSet,
-      id
+    // Generate unique ID
+    const id = 'set_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
+    // Get all songs from database to resolve IDs if needed
+    const allSongs = await redis.get('songs') || [];
+    const songMap = new Map(allSongs.map(song => [song.id, song]));
+    
+    // Handle both song ID arrays and full song objects
+    let processedSongs;
+    if (songs.length > 0 && typeof songs[0] === 'string') {
+      // Old format: array of song IDs
+      processedSongs = songs
+        .map(songId => songMap.get(songId))
+        .filter(song => song !== undefined);
+    } else {
+      // New format: array of full song objects (from AI)
+      processedSongs = songs.map(song => ({
+        ...song,
+        // Ensure we have the latest song data from database
+        ...(songMap.get(song.id) || {})
+      }));
+    }
+
+    const newSet = {
+      id,
+      name,
+      songs: processedSongs, // Always store full song objects
+      createdAt: new Date().toISOString(),
+      createdBy: createdBy || 'User',
+      metadata: metadata || {}
     };
-    
-    sets.push(setWithId);
-    await redis.set('sets', sets);
-    
-    return Response.json(setWithId, { status: 201 });
+
+    const updatedSets = [...existingSets, newSet];
+    await redis.set('sets', updatedSets);
+
+    return Response.json({ 
+      success: true, 
+      set: newSet,
+      message: 'Set created successfully' 
+    });
   } catch (error) {
     console.error('Error creating set:', error);
-    return Response.json({ error: 'Failed to create set' }, { status: 500 });
+    return Response.json({ 
+      error: 'Failed to create set',
+      details: error.message 
+    }, { status: 500 });
   }
 }
 

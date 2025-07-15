@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import InstrumentChangeIndicator from './InstrumentChangeIndicator';
+import { safeDuration } from '../utils/duration';
 
 export default function GigPerformanceView({ gig }) {
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
@@ -83,8 +84,7 @@ export default function GigPerformanceView({ gig }) {
   const calculateSetDuration = (set) => {
     const totalMinutes = set.songs.reduce((total, song) => {
       if (song.duration) {
-        const [minutes, seconds] = song.duration.split(':').map(Number);
-        return total + minutes + (seconds / 60);
+        return total + safeDuration(song.duration);
       }
       return total;
     }, 0);
@@ -212,7 +212,7 @@ export default function GigPerformanceView({ gig }) {
                     }
 
                     return (
-                      <div key={`${setIdx}-${songIdx}`}>
+                      <div key={`${setIdx}-${song.id}-${songIdx}`}>
                         {/* Instrument Change Indicator */}
                         {previousSong && (
                           <div className="my-2">

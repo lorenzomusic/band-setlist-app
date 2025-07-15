@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { safeDuration } from '../utils/duration';
 
 export default function SetlistBuilder({ songs }) {
   const [setlists, setSetlists] = useState([]);
@@ -124,7 +125,7 @@ export default function SetlistBuilder({ songs }) {
   const calculateTotalDuration = (setlistSongs) => {
     const totalMinutes = setlistSongs.reduce((total, song) => {
       if (song.duration) {
-        const [minutes, seconds] = song.duration.split(':').map(Number);
+        const [minutes, seconds] = safeDuration(song.duration).split(':').map(Number);
         return total + minutes + (seconds / 60);
       }
       return total;
@@ -221,9 +222,9 @@ export default function SetlistBuilder({ songs }) {
           <div>
             <h3 className="text-xl font-bold mb-4">📚 Song Library</h3>
             <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
-              {songs.map(song => (
+              {songs.map((song, index) => (
                 <div
-                  key={song.id}
+                  key={`song-library-${song.id}-${index}`}
                   className="bg-white rounded-md p-3 mb-2 border border-gray-200 hover:border-blue-300 cursor-pointer transition-colors"
                   onClick={() => addSongToSetlist(song)}
                 >
@@ -235,7 +236,7 @@ export default function SetlistBuilder({ songs }) {
                       )}
                     </div>
                     <div className="text-right text-sm text-gray-600">
-                      <p>{song.key} | {song.duration}</p>
+                      <p>{song.key} | {safeDuration(song.duration)}</p>
                       <p>{song.bassGuitar}</p>
                     </div>
                   </div>
@@ -287,7 +288,7 @@ export default function SetlistBuilder({ songs }) {
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="text-right text-sm text-gray-600">
-                          <p>{song.key} | {song.duration}</p>
+                          <p>{song.key} | {safeDuration(song.duration)}</p>
                           <p>{song.bassGuitar}</p>
                         </div>
                         <button

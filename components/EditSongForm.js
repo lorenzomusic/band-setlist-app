@@ -116,12 +116,12 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
   };
 
   return (
-    <div className="mb-8 bg-white rounded-lg shadow-lg p-6 border-l-4 border-blue-500">
+    <div className="mb-8 bg-white rounded-apple shadow-apple p-6 border-l-4 border-blue">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-black text-gray-900">✏️ Edit Song: {song.title}</h2>
+        <h2 className="text-apple-title-2 text-primary">✏️ Edit Song: {song.title}</h2>
         <button
           onClick={onCancel}
-          className="text-gray-500 hover:text-gray-700 text-2xl"
+          className="text-secondary hover:text-primary text-2xl transition-apple-fast"
         >
           ✕
         </button>
@@ -130,7 +130,7 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-sm font-black text-gray-900 mb-1">
+            <label className="apple-label">
               Song Title *
             </label>
             <input
@@ -139,13 +139,13 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
               value={formData.title}
               onChange={handleChange}
               required
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
+              className="apple-input"
               placeholder="Enter song title"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-black text-gray-900 mb-1">
+            <label className="apple-label">
               Artist
             </label>
             <input
@@ -153,7 +153,7 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
               name="artist"
               value={formData.artist}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
+              className="apple-input"
               placeholder="Enter artist name"
             />
           </div>
@@ -161,7 +161,7 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-black text-gray-900 mb-1">
+            <label className="apple-label">
               Key *
             </label>
             <select
@@ -169,7 +169,7 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
               value={formData.key}
               onChange={handleChange}
               required
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
+              className="apple-input"
             >
               <option value="">Select key</option>
               <option value="C">C</option>
@@ -195,7 +195,7 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
           </div>
 
           <div>
-            <label className="block text-sm font-black text-gray-900 mb-1">
+            <label className="apple-label">
               Duration (mm:ss)
             </label>
             <input
@@ -203,13 +203,13 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
               name="duration"
               value={formData.duration}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
+              className="apple-input"
               placeholder="4:32"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-black text-gray-900 mb-1">
+            <label className="apple-label">
               YouTube Link
             </label>
             <input
@@ -217,20 +217,20 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
               name="youtubeLink"
               value={formData.youtubeLink}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
+              className="apple-input"
               placeholder="https://youtube.com/watch?v=..."
             />
           </div>
 
           <div>
-            <label className="block text-sm font-black text-gray-900 mb-1">
+            <label className="apple-label">
               Bass Guitar
             </label>
             <select
               name="bassGuitar"
               value={formData.bassGuitar}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
+              className="apple-input"
             >
               <option value="4-string">4-string</option>
               <option value="5-string">5-string</option>
@@ -239,14 +239,14 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
           </div>
 
           <div>
-            <label className="block text-sm font-black text-gray-900 mb-1">
+            <label className="apple-label">
               Guitar
             </label>
             <select
               name="guitar"
               value={formData.guitar}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
+              className="apple-input"
             >
               <option value="Electric">Electric</option>
               <option value="Acoustic">Acoustic</option>
@@ -256,30 +256,30 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
           </div>
 
           <div>
-            <label className="block text-sm font-black text-gray-900 mb-1">
+            <label className="apple-label">
               Language
             </label>
             <select
               name="language"
               value={formData.language}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
+              className="apple-input"
               required
             >
               <option value="english">🇬🇧 English</option>
-              <option value="danish">🇩🇰 Danish</option>
+              <option value="danish">��🇰 Danish</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-black text-gray-900 mb-1">
+            <label className="apple-label">
               Main Vocalist
             </label>
             <select
               name="vocalist"
               value={formData.vocalist}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
+              className="apple-input"
               required
             >
               <option value="Rikke">🎤 Rikke</option>
@@ -290,7 +290,7 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
         </div>
 
         <div>
-          <label className="block text-sm font-black text-gray-900 mb-1">
+          <label className="apple-label">
             Tags
           </label>
           <TagInput
@@ -306,7 +306,7 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
             name="backingTrack"
             checked={formData.backingTrack}
             onChange={handleChange}
-            className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue border-gray-300 rounded"
           />
           <label className="text-sm font-black text-gray-900">
             Has backing track
@@ -314,7 +314,7 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
         </div>
 
         <div>
-          <label className="block text-sm font-black text-gray-900 mb-1">
+          <label className="apple-label">
             Song Form
           </label>
           <input
@@ -322,14 +322,14 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
             name="form"
             value={formData.form}
             onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
+            className="apple-input"
             placeholder="Intro-Verse-Chorus-Verse-Chorus-Bridge-Chorus-Outro"
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-black text-gray-900 mb-1">
+            <label className="apple-label">
               Medley Name (if part of medley)
             </label>
             <input
@@ -337,13 +337,13 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
               name="medley"
               value={formData.medley}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
+              className="apple-input"
               placeholder="80s Rock Medley"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-black text-gray-900 mb-1">
+            <label className="apple-label">
               Position in Medley
             </label>
             <input
@@ -351,7 +351,7 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
               name="medleyPosition"
               value={formData.medleyPosition}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
+              className="apple-input"
               placeholder="1"
               min="1"
             />
@@ -359,7 +359,7 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
         </div>
 
         <div>
-          <label className="block text-sm font-black text-gray-900 mb-1">
+          <label className="apple-label">
             Notes
           </label>
           <textarea
@@ -367,7 +367,7 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
             value={formData.notes}
             onChange={handleChange}
             rows="3"
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900"
+            className="apple-input"
             placeholder="Any special notes about this song..."
           />
         </div>
