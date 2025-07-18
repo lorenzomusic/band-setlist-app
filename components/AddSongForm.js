@@ -9,6 +9,7 @@ export default function AddSongForm({ onSongAdded, onCancel }) {
     artist: '',
     key: '',
     youtubeLink: '',
+    spotifyUrl: '',
     duration: '',
     bassGuitar: '4-string',
     guitar: 'Electric',
@@ -22,6 +23,7 @@ export default function AddSongForm({ onSongAdded, onCancel }) {
     tags: [],
   });
   const [saving, setSaving] = useState(false);
+  const [isSearchingSpotify, setIsSearchingSpotify] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -36,6 +38,45 @@ export default function AddSongForm({ onSongAdded, onCancel }) {
       ...prev,
       tags: newTags
     }));
+  };
+
+  const searchSpotify = async () => {
+    if (!formData.title || !formData.artist) {
+      alert('Please enter both title and artist before searching Spotify');
+      return;
+    }
+
+    setIsSearchingSpotify(true);
+    try {
+      const response = await fetch('/api/spotify/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.title,
+          artist: formData.artist
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.url) {
+          setFormData(prev => ({
+            ...prev,
+            spotifyUrl: data.url
+          }));
+          alert(`Found Spotify track! Confidence: ${data.confidence}%`);
+        } else {
+          alert('No Spotify track found for this song');
+        }
+      } else {
+        alert('Failed to search Spotify. Make sure you\'re connected in the admin panel.');
+      }
+    } catch (error) {
+      console.error('Spotify search error:', error);
+      alert('Error searching Spotify');
+    } finally {
+      setIsSearchingSpotify(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -59,6 +100,7 @@ export default function AddSongForm({ onSongAdded, onCancel }) {
           artist: '',
           key: '',
           youtubeLink: '',
+          spotifyUrl: '',
           duration: '',
           bassGuitar: '4-string',
           guitar: 'Electric',
@@ -83,26 +125,13 @@ export default function AddSongForm({ onSongAdded, onCancel }) {
     }
   };
 
-  // if (!isOpen) { // This block is removed as per the edit hint
-  //   return (
-  //     <div className="mb-8 text-center">
-  //       <button
-  //         onClick={() => setIsOpen(true)}
-  //         className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium text-lg transition-colors"
-  //       >
-  //         ➕ Add New Song
-  //       </button>
-  //     </div>
-  //   );
-  // }
-
   return (
-    <div className="mb-8 bg-white rounded-lg shadow-lg p-6 border-l-4 border-green-500">
+    <div className="mb-8 bg-white rounded-lg shadow-lg p-6 border-l-4 border-blue-500">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Add New Song</h2>
+        <h2 className="text-2xl font-bold text-gray-900">➕ Add New Song</h2>
         <button
           onClick={onCancel}
-          className="text-gray-500 hover:text-gray-700 text-2xl"
+          className="text-gray-400 hover:text-gray-600 text-2xl transition-colors"
         >
           ✕
         </button>
@@ -203,6 +232,41 @@ export default function AddSongForm({ onSongAdded, onCancel }) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
+              🎵 Spotify URL
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                name="spotifyUrl"
+                value={formData.spotifyUrl}
+                onChange={handleChange}
+                className="flex-1 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue focus:border-transparent"
+                placeholder="https://open.spotify.com/track/..."
+              />
+              <button
+                type="button"
+                onClick={searchSpotify}
+                disabled={isSearchingSpotify}
+                className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                title="Search for this song on Spotify"
+              >
+                {isSearchingSpotify ? '🔍' : '🎵'}
+              </button>
+            </div>
+            {formData.spotifyUrl && (
+              <a
+                href={formData.spotifyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-green-600 hover:text-green-700 text-sm mt-1 inline-block"
+              >
+                🎵 Open in Spotify
+              </a>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Bass Guitar
             </label>
             <select
@@ -285,9 +349,9 @@ export default function AddSongForm({ onSongAdded, onCancel }) {
             name="backingTrack"
             checked={formData.backingTrack}
             onChange={handleChange}
-            className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue border-gray-300 rounded"
+            className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
           />
-          <label className="text-sm font-medium text-gray-700">
+          <label className="text-sm font-medium text-gray-900">
             Has backing track
           </label>
         </div>
@@ -351,20 +415,27 @@ export default function AddSongForm({ onSongAdded, onCancel }) {
           />
         </div>
 
-        <div className="flex gap-4 pt-4">
-          <button
-            type="submit"
-            disabled={saving}
-            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-          >
-            {saving ? 'Saving...' : 'Add Song'}
-          </button>
+        <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
           <button
             type="button"
             onClick={onCancel}
-            className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
           >
             Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          >
+            {saving ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Adding...
+              </>
+            ) : (
+              'Add Song'
+            )}
           </button>
         </div>
       </form>

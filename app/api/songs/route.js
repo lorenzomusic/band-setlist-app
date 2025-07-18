@@ -25,7 +25,7 @@ export async function POST(request) {
   try {
     // Add language to the destructuring
     const songData = await request.json();
-    const { title, artist, key, duration, bassGuitar, guitar, language, vocalist, youtubeLink, backingTrack, form, medley, medleyPosition, notes, tags } = songData;
+    const { title, artist, key, duration, bassGuitar, guitar, language, vocalist, youtubeLink, spotifyUrl, backingTrack, form, medley, medleyPosition, notes, tags } = songData;
 
     // Add language validation
     if (!language || !['danish', 'english'].includes(language.toLowerCase())) {
@@ -56,6 +56,7 @@ export async function POST(request) {
       language: language.toLowerCase(),
       vocalist,
       youtubeLink,
+      spotifyUrl,
       backingTrack,
       form,
       medley,
@@ -79,30 +80,60 @@ export async function POST(request) {
 
 export async function PUT(request) {
   try {
-    const updatedSong = await request.json();
-    const songs = await redis.get('songs') || [];
-    
-    // Add tags validation
-    if (!Array.isArray(updatedSong.tags)) {
-      updatedSong.tags = [];
+    const songData = await request.json();
+    const { id, title, artist, key, duration, bassGuitar, guitar, language, vocalist, youtubeLink, spotifyUrl, backingTrack, form, medley, medleyPosition, notes, tags } = songData;
+
+    if (!id) {
+      return Response.json({ error: 'Song ID is required' }, { status: 400 });
     }
-    
-    const index = songs.findIndex(song => song.id === updatedSong.id);
-    if (index !== -1) {
-      // Clean up the data
-      if (!updatedSong.medley) {
-        updatedSong.medley = null;
-        updatedSong.medleyPosition = null;
-      } else if (updatedSong.medleyPosition) {
-        updatedSong.medleyPosition = parseInt(updatedSong.medleyPosition);
-      }
-      
-      songs[index] = updatedSong;
-      await redis.set('songs', songs);
-      return Response.json(updatedSong);
-    } else {
+
+    // Add language validation
+    if (!language || !['danish', 'english'].includes(language.toLowerCase())) {
+      return Response.json({ error: 'Language must be either "danish" or "english"' }, { status: 400 });
+    }
+
+    // Add vocalist validation
+    if (!vocalist || !['Rikke', 'Lorentz', 'Both'].includes(vocalist)) {
+      return Response.json({ error: 'Vocalist must be "Rikke", "Lorentz", or "Both"' }, { status: 400 });
+    }
+
+    const songs = await redis.get('songs') || [];
+    const songIndex = songs.findIndex(song => song.id === id);
+
+    if (songIndex === -1) {
       return Response.json({ error: 'Song not found' }, { status: 404 });
     }
+
+    // Update the song
+    const updatedSong = {
+      ...songs[songIndex],
+      title,
+      artist,
+      key,
+      duration,
+      bassGuitar,
+      guitar,
+      language: language.toLowerCase(),
+      vocalist,
+      youtubeLink,
+      spotifyUrl,
+      backingTrack,
+      form,
+      medley,
+      medleyPosition: medleyPosition ? parseInt(medleyPosition) : null,
+      notes,
+      tags: Array.isArray(tags) ? tags : [],
+    };
+
+    // Clean up the data
+    if (!updatedSong.medley) {
+      updatedSong.medley = null;
+      updatedSong.medleyPosition = null;
+    }
+
+    songs[songIndex] = updatedSong;
+    await redis.set('songs', songs);
+    return Response.json(updatedSong);
   } catch (error) {
     console.error('Error updating song:', error);
     return Response.json({ error: 'Failed to update song' }, { status: 500 });
@@ -111,21 +142,24 @@ export async function PUT(request) {
 
 export async function DELETE(request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-    
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id');
+
     if (!id) {
       return Response.json({ error: 'Song ID is required' }, { status: 400 });
     }
-    
+
     const songs = await redis.get('songs') || [];
-    const filteredSongs = songs.filter(song => song.id !== id);
-    
-    if (filteredSongs.length === songs.length) {
+    const songIndex = songs.findIndex(song => song.id === id);
+
+    if (songIndex === -1) {
       return Response.json({ error: 'Song not found' }, { status: 404 });
     }
+
+    // Remove the song
+    songs.splice(songIndex, 1);
+    await redis.set('songs', songs);
     
-    await redis.set('songs', filteredSongs);
     return Response.json({ message: 'Song deleted successfully' });
   } catch (error) {
     console.error('Error deleting song:', error);
