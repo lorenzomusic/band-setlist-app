@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import LoginForm from '../../components/LoginForm';
 
-export default function LoginPage() {
+function LoginPageContent() {
   const [isFirstTime, setIsFirstTime] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -51,4 +51,21 @@ export default function LoginPage() {
   }
 
   return <LoginForm isFirstTime={isFirstTime} />;
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">
+        <div className="bg-white rounded-apple shadow-apple p-8">
+          <div className="flex items-center justify-center gap-3">
+            <div className="w-6 h-6 border-2 border-blue border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-apple-body text-secondary">Loading...</span>
+          </div>
+        </div>
+      </div>
+    }>
+      <LoginPageContent />
+    </Suspense>
+  );
 } 
