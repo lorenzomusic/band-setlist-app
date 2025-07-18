@@ -69,9 +69,16 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
+    // Validate that we're not processing too many songs (rate limiting compliance)
+    if (songs.length > 100) {
+      return NextResponse.json({ 
+        error: 'Playlist is limited to 100 songs per request to comply with Spotify API limits' 
+      }, { status: 400 });
+    }
+
     const { token, userId } = await getSpotifyUserToken();
 
-    // Create the playlist
+    // Create the playlist with proper attribution
     const playlistResponse = await fetch(`https://api.spotify.com/v1/users/${userId}/playlists`, {
       method: 'POST',
       headers: {
@@ -80,7 +87,7 @@ export async function POST(request) {
       },
       body: JSON.stringify({
         name: playlistName,
-        description: description || `Setlist playlist. Created by Greatest Gig app.`,
+        description: description || `Setlist playlist created by Greatest Gig app. This application is not affiliated with Spotify AB.`,
         public: isPublic
       })
     });

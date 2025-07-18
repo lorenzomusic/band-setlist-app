@@ -32,30 +32,45 @@ export default function SpotifyIntegration({ songs, onSongUpdated }) {
     setIsCheckingStatus(false);
   };
 
-  const connectSpotify = async () => {
-    setIsConnecting(true);
+  const handleConnect = async () => {
     try {
       const response = await fetch('/api/spotify/auth');
-      const data = await response.json();
-      
-      if (data.authURL) {
-        // Store state for validation
-        localStorage.setItem('spotify_state', data.state);
-        // Redirect to Spotify auth
-        window.location.href = data.authURL;
+      if (response.ok) {
+        const { authURL } = await response.json();
+        window.location.href = authURL;
       }
     } catch (error) {
-      console.error('Error connecting to Spotify:', error);
-      alert('Failed to connect to Spotify. Please try again.');
+      console.error('Error initiating Spotify auth:', error);
     }
-    setIsConnecting(false);
   };
 
-  const disconnectSpotify = async () => {
-    // Clear server-side auth (you might want to add a disconnect endpoint)
-    setSpotifyAuth(null);
-    localStorage.removeItem('spotify_connected');
-    localStorage.removeItem('spotify_state');
+  const handleDisconnect = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to disconnect your Spotify account?\n\n' +
+      'This will:\n' +
+      '• Remove your ability to create playlists\n' +
+      '• Delete stored authentication data\n' +
+      '• Require re-authentication to use Spotify features again'
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch('/api/spotify/disconnect', {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        setSpotifyAuth(null);
+        alert('Spotify account disconnected successfully. All authentication data has been removed.');
+      } else {
+        const error = await response.json();
+        alert(`Failed to disconnect: ${error.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error disconnecting Spotify:', error);
+      alert('Failed to disconnect Spotify account. Please try again.');
+    }
   };
 
   const searchSpotifyForSong = async (song) => {
@@ -196,7 +211,7 @@ export default function SpotifyIntegration({ songs, onSongUpdated }) {
                 Link your Spotify account to automatically find song URLs and create playlists from your setlists.
               </p>
               <button
-                onClick={connectSpotify}
+                onClick={handleConnect}
                 disabled={isConnecting}
                 className={`px-6 py-3 rounded-apple-button font-medium transition-apple-fast ${
                   isConnecting
@@ -240,7 +255,7 @@ export default function SpotifyIntegration({ songs, onSongUpdated }) {
                 </div>
               </div>
               <button
-                onClick={disconnectSpotify}
+                onClick={handleDisconnect}
                 className="text-sm text-green-700 hover:text-green-900 underline"
               >
                 Disconnect
@@ -302,6 +317,24 @@ export default function SpotifyIntegration({ songs, onSongUpdated }) {
             </div>
           </div>
         )}
+
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <h4 className="font-semibold text-blue-800 mb-2">📋 Spotify Integration Terms</h4>
+          <div className="text-sm text-blue-700 space-y-2">
+            <p>By connecting your Spotify account, you acknowledge that:</p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li>This application uses the official Spotify Web API in compliance with Spotify's Developer Terms</li>
+              <li>We only access data necessary to search for songs and create playlists</li>
+              <li>No Spotify content is stored permanently or used for commercial purposes</li>
+              <li>You can disconnect your account at any time through this interface</li>
+              <li>Spotify is not responsible for this third-party application</li>
+              <li>All playlists created are your own and can be managed through Spotify</li>
+            </ul>
+            <p className="font-medium">
+              This application is not affiliated with, endorsed, or sponsored by Spotify AB.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

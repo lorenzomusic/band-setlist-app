@@ -92,6 +92,29 @@ const AppleLayout = ({ children }) => {
       <main className="flex-1 p-8 max-w-[1440px] mx-auto">
         {children}
       </main>
+      
+      {/* Footer with Privacy Policy Link */}
+      <footer className="border-t border-gray-200 bg-white mt-12">
+        <div className="max-w-[1440px] mx-auto px-8 py-6">
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <div className="flex items-center space-x-6">
+              <span>© 2024 Greatest Gig</span>
+              <Link 
+                href="/privacy" 
+                className="hover:text-gray-900 transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <span className="text-xs">
+                Not affiliated with Spotify AB
+              </span>
+            </div>
+            <div className="text-xs text-gray-500">
+              Professional setlist management for bands
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
