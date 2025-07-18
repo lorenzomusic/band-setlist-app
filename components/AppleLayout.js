@@ -3,18 +3,31 @@
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from './AuthProvider';
 
 const AppleLayout = ({ children }) => {
   const pathname = usePathname();
+  const { isAuthenticated, user, logout } = useAuth();
   
   const navigation = [
     { name: 'Songs', href: '/songs' },
     { name: 'Set Builder', href: '/sets' },
     { name: 'Gigs', href: '/gigs' },
-    { name: 'AI Assistant', href: '/ai-setlist' },
+    { name: 'AI Assistant', href: '/ai-setlist', protected: true },
     { name: 'Performance', href: '/performance' },
-    { name: 'Admin', href: '/admin' }
+    { name: 'Admin', href: '/admin', protected: true }
   ];
+
+  // Filter navigation based on authentication
+  const visibleNavigation = navigation.filter(item => 
+    !item.protected || isAuthenticated
+  );
+
+  const handleLogout = async () => {
+    if (confirm('Are you sure you want to log out?')) {
+      await logout();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
@@ -26,7 +39,7 @@ const AppleLayout = ({ children }) => {
         
         {/* Navigation Tabs */}
         <nav className="flex items-center gap-0 bg-transparent rounded-[9px] p-0.5">
-          {navigation.map((item) => (
+          {visibleNavigation.map((item) => (
             <Link
               key={item.name}
               href={item.href}
@@ -37,12 +50,41 @@ const AppleLayout = ({ children }) => {
               }`}
             >
               {item.name}
+              {item.protected && (
+                <span className="ml-1 text-xs opacity-60">🔒</span>
+              )}
             </Link>
           ))}
         </nav>
         
-        <div className="text-apple-callout text-secondary">
-          Lorenzo&apos;s Band
+        <div className="flex items-center gap-4">
+          <div className="text-apple-callout text-secondary">
+            Lorenzo&apos;s Band
+          </div>
+          
+          {isAuthenticated && (
+            <div className="flex items-center gap-2">
+              <span className="text-apple-footnote text-secondary">
+                🔐 {user?.isAdmin ? 'Admin' : 'User'}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="text-apple-footnote text-secondary hover:text-primary transition-colors px-2 py-1 rounded hover:bg-gray-100"
+                title="Logout"
+              >
+                Sign Out
+              </button>
+            </div>
+          )}
+          
+          {!isAuthenticated && pathname !== '/login' && (
+            <Link
+              href="/login"
+              className="text-apple-footnote text-secondary hover:text-primary transition-colors px-2 py-1 rounded hover:bg-gray-100"
+            >
+              Sign In
+            </Link>
+          )}
         </div>
       </header>
 

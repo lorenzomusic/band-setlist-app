@@ -1,5 +1,6 @@
 import { Redis } from '@upstash/redis'
 import { NextResponse } from 'next/server'
+import { verifySession } from '../../../lib/auth'
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
@@ -7,6 +8,13 @@ const redis = new Redis({
 });
 
 export async function POST(request) {
+  // Verify authentication
+  const { authenticated } = await verifySession(request);
+  
+  if (!authenticated) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  }
+
   try {
     const { 
       duration, 
