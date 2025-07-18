@@ -267,7 +267,7 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
               required
             >
               <option value="english">🇬🇧 English</option>
-              <option value="danish">��🇰 Danish</option>
+              <option value="danish">🇩🇰 Danish</option>
             </select>
           </div>
 
@@ -376,7 +376,7 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
           <button
             type="submit"
             disabled={saving}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+            className="bg-blue text-white px-6 py-3 rounded-lg font-medium transition-colors"
           >
             {saving ? 'Saving...' : '💾 Save Changes'}
           </button>

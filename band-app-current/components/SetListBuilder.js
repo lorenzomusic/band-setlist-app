@@ -171,7 +171,7 @@ export default function SetlistBuilder({ songs }) {
               onClick={() => setActiveSetlist(setlist)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 activeSetlist?.id === setlist.id
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-blue text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >

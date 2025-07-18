@@ -36,7 +36,7 @@ body {
 .text-blue { color: #007aff; }
 .bg-blue { background: #007aff; }
 .bg-panel { background: #ffffff; }
-.bg-secondary { background: #f6f6f6; }
+.bg-secondary:hover { background: #7c7c81; }
 .border-apple { border-color: rgba(0, 0, 0, 0.1); }
 .border-light { border-color: #f2f2f2; }
 
@@ -202,8 +202,8 @@ body {
   width: 2rem;
   height: 2rem;
   background: #007aff;
-  color: white;
-  border-radius: 50%;
+  color: #fff;
+  border-radius: 9999px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -225,4 +225,15 @@ body {
 
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out;
+}
+
+/* Subtle Blue Override */
+.bg-blue { 
+  background: rgba(0, 122, 255, 0.85); 
+}
+.bg-blue:hover { 
+  background: rgba(0, 122, 255, 0.95); 
+}
+.text-blue {
+  color: rgba(0, 122, 255, 0.9);
 }

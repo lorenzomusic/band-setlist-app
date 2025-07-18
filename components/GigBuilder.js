@@ -1,21 +1,24 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import ApplePanel from './ui/ApplePanel';
 import ApplePanelHeader from './ui/ApplePanelHeader';
 import AppleButton from './ui/AppleButton';
 import AppleSearchInput from './ui/AppleSearchInput';
-import AppleMetadataBadge from './ui/AppleMetadataBadge';
 
 export default function GigBuilder() {
+  const router = useRouter();
   const [gigData, setGigData] = useState({
     name: '',
     venue: '',
     date: '',
     time: '',
     address: '',
-    notes: ''
+    notes: '',
+    sets: []
   });
+  const [saving, setSaving] = useState(false);
 
   const handleInputChange = (field, value) => {
     setGigData(prev => ({
@@ -26,8 +29,28 @@ export default function GigBuilder() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Implement gig creation API call
-    console.log('Creating gig:', gigData);
+    setSaving(true);
+
+    try {
+      const response = await fetch('/api/gigs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(gigData),
+      });
+
+      if (response.ok) {
+        router.push('/gigs');
+      } else {
+        alert('Failed to create gig');
+      }
+    } catch (error) {
+      console.error('Error creating gig:', error);
+      alert('Error creating gig');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -46,6 +69,7 @@ export default function GigBuilder() {
                 placeholder="Enter gig name"
                 value={gigData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
+                required
               />
             </div>
             
@@ -65,6 +89,7 @@ export default function GigBuilder() {
                 className="apple-input"
                 value={gigData.date}
                 onChange={(e) => handleInputChange('date', e.target.value)}
+                required
               />
             </div>
             
@@ -100,11 +125,17 @@ export default function GigBuilder() {
           </div>
           
           <div className="flex justify-end space-x-4">
-            <AppleButton variant="secondary">
+            <AppleButton 
+              variant="secondary"
+              onClick={() => router.push('/gigs')}
+            >
               Cancel
             </AppleButton>
-            <AppleButton type="submit">
-              Create Gig
+            <AppleButton 
+              type="submit"
+              disabled={saving}
+            >
+              {saving ? 'Creating...' : 'Create Gig'}
             </AppleButton>
           </div>
         </form>

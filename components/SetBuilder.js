@@ -844,9 +844,9 @@ export default function SetBuilder({ songs: propSongs }) {
                 </div>
               </div>
               
-              <div className="max-h-80 overflow-y-auto">
+              <div className="overflow-y-auto" style={{ height: 'calc(100vh - 400px)', minHeight: '400px' }}>
                 {getFilteredAvailableSongs().length > 0 ? (
-                  getFilteredAvailableSongs().slice(0, 15).map((song, index) => (
+                  getFilteredAvailableSongs().map((song, index) => (
                     <div
                       key={`available-songs-${song.id}-${index}`}
                       className="px-6 py-3 border-b border-gray-50 last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors duration-150"

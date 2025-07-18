@@ -24,7 +24,7 @@ const AppleLayout = ({ children }) => {
         </div>
         
         {/* Navigation Tabs */}
-        <nav className="flex items-center gap-0 bg-secondary rounded-[9px] p-0.5">
+        <nav className="flex items-center gap-0 bg-transparent rounded-[9px] p-0.5">
           {navigation.map((item) => (
             <Link
               key={item.name}

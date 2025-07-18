@@ -114,7 +114,7 @@ export default function AISetlistBuilder() {
               <button
                 onClick={generateSetlist}
                 disabled={isGenerating}
-                className="w-full bg-blue text-white py-3 px-4 rounded-apple-button hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-apple-fast"
+                className="w-full bg-blue text-white py-3 px-4 rounded-apple-button hover:bg-blue focus:outline-none focus:ring-2 focus:ring-blue focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-apple-fast"
               >
                 {isGenerating ? (
                   <div className="flex items-center justify-center">

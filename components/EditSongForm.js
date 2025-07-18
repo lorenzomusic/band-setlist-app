@@ -267,7 +267,7 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
               required
             >
               <option value="english">🇬🇧 English</option>
-              <option value="danish">��🇰 Danish</option>
+              <option value="danish">🇩🇰 Danish</option>
             </select>
           </div>
 
@@ -372,27 +372,34 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
           />
         </div>
 
-        <div className="flex gap-4 pt-4">
+        <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-light">
+          {/* Primary Action - Save */}
           <button
             type="submit"
             disabled={saving}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+            className="flex-1 bg-blue text-white font-medium text-apple-body px-6 py-3 rounded-apple-button shadow-apple hover:shadow-apple-hover disabled:opacity-50 disabled:cursor-not-allowed transition-apple flex items-center justify-center gap-2"
           >
-            {saving ? 'Saving...' : '💾 Save Changes'}
+            <span>{saving ? '⏳' : '💾'}</span>
+            {saving ? 'Saving Changes...' : 'Save Changes'}
           </button>
+
+          {/* Secondary Actions */}
           <button
             type="button"
             onClick={onCancel}
-            className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+            className="flex-1 bg-panel border border-apple text-primary font-medium text-apple-body px-6 py-3 rounded-apple-button shadow-apple hover:shadow-apple-hover transition-apple flex items-center justify-center gap-2"
           >
+            <span>↩️</span>
             Cancel
           </button>
+
           <button
             type="button"
             onClick={handleDelete}
-            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors ml-auto"
+            className="flex-1 bg-panel border border-apple text-red-500 font-medium text-apple-body px-6 py-3 rounded-apple-button shadow-apple hover:shadow-apple-hover transition-apple flex items-center justify-center gap-2"
           >
-            🗑️ Delete Song
+            <span>🗑️</span>
+            Delete Song
           </button>
         </div>
       </form>

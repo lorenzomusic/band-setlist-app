@@ -898,10 +898,9 @@ export default function SetBuilder({ songs: propSongs }) {
                     </p>
                   </div>
                 )}
-              </div>
             </div>
           </div>
-        </>
+          </div>
       ) : (
         <div className="px-8 py-20 text-center bg-white rounded-apple shadow-apple">
           <div className="text-5xl opacity-30 mb-4">📋</div>

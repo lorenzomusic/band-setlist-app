@@ -358,7 +358,7 @@ const AISetlistBuilder = () => {
                 </button>
                 <button
                   onClick={() => setShowResults(false)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                  className="bg-blue text-white px-4 py-2 rounded-lg"
                 >
                   New Setlist
                 </button>
