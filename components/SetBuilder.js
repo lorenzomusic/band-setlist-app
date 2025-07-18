@@ -7,6 +7,7 @@ import SetupSummary from './SetupSummary';
 import PDFGenerator from './PDFGenerator';
 import DraggableSong from './DraggableSong';
 import { safeDuration } from '../utils/duration';
+import { getMedleysFromSongs, getMedleyStats } from '../utils/medley';
 
 export default function SetBuilder({ songs: propSongs }) {
   const [songs, setSongs] = useState([]);
@@ -14,6 +15,7 @@ export default function SetBuilder({ songs: propSongs }) {
   const [activeSet, setActiveSet] = useState(null);
   const [newSetName, setNewSetName] = useState('');
   const [showNewSetForm, setShowNewSetForm] = useState(false);
+  const [viewMode, setViewMode] = useState('songs'); // 'songs' or 'medleys'
   const [availableSongFilters, setAvailableSongFilters] = useState({
     searchText: '',
     language: 'all',
@@ -286,6 +288,58 @@ export default function SetBuilder({ songs: propSongs }) {
     return songs.filter(song => !(activeSet?.songs || []).some(setSong => setSong.id === song.id));
   };
 
+  // Get available medleys (medleys not fully in the current set)
+  const getAvailableMedleys = () => {
+    const availableSongs = getAvailableSongs();
+    const medleys = getMedleysFromSongs(availableSongs);
+    
+    return Object.entries(medleys).map(([name, songs]) => ({
+      name,
+      songs,
+      ...getMedleyStats(songs)
+    }));
+  };
+
+  // Add medley to set
+  const handleAddMedley = async (medley) => {
+    if (!activeSet) {
+      alert('Please select or create a set first');
+      return;
+    }
+    
+    // Add all songs from the medley to the current set
+    const updatedSongs = [...(activeSet.songs || [])];
+    medley.songs.forEach(song => {
+      if (!updatedSongs.find(s => s.id === song.id)) {
+        updatedSongs.push(song);
+      }
+    });
+    
+    const updatedSet = {
+      ...activeSet,
+      songs: updatedSongs
+    };
+    
+    try {
+      const response = await fetch('/api/sets', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedSet)
+      });
+      
+      if (response.ok) {
+        setActiveSet(updatedSet);
+        setSets(prev => prev.map(s => s.id === activeSet.id ? updatedSet : s));
+        console.log('Added medley:', medley.name);
+      } else {
+        alert('Failed to save set. Please try again.');
+      }
+    } catch (err) {
+      alert('Failed to save set. Please try again.');
+      console.error(err);
+    }
+  };
+
   // Comprehensive filtering function
   const getFilteredAvailableSongs = () => {
     const availableSongs = getAvailableSongs();
@@ -330,6 +384,25 @@ export default function SetBuilder({ songs: propSongs }) {
 
       return searchMatch && languageMatch && keyMatch && bassMatch && 
              guitarMatch && vocalistMatch && backingTrackMatch && tagMatch;
+    });
+  };
+
+  // Filter medleys based on search
+  const getFilteredAvailableMedleys = () => {
+    const availableMedleys = getAvailableMedleys();
+    
+    if (!availableMedleys || availableMedleys.length === 0) return [];
+    
+    return availableMedleys.filter(medley => {
+      // Text search
+      const searchMatch = !availableSongFilters.searchText || 
+        medley.name.toLowerCase().includes(availableSongFilters.searchText.toLowerCase()) ||
+        medley.songs.some(song => 
+          song.title.toLowerCase().includes(availableSongFilters.searchText.toLowerCase()) ||
+          (song.artist && song.artist.toLowerCase().includes(availableSongFilters.searchText.toLowerCase()))
+        );
+
+      return searchMatch;
     });
   };
 
@@ -818,16 +891,43 @@ export default function SetBuilder({ songs: propSongs }) {
               )}
             </div>
 
-            {/* Apple-style Available Songs */}
+            {/* Apple-style Available Songs/Medleys */}
             <div className="bg-white rounded-apple shadow-apple overflow-hidden">
               <div className="px-6 pt-6 pb-4 border-b border-light">
-                <h3 className="text-apple-title-3 text-primary">Available Songs</h3>
+                <h3 className="text-apple-title-3 text-primary">Available Content</h3>
               </div>
+              
               <div className="p-6 pb-0">
+                {/* Toggle between Songs and Medleys */}
+                <div className="flex items-center justify-center mb-4">
+                  <div className="flex bg-gray-100 rounded-lg p-1">
+                    <button
+                      onClick={() => setViewMode('songs')}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                        viewMode === 'songs'
+                          ? 'bg-white text-primary shadow-sm'
+                          : 'text-gray-600 hover:text-primary'
+                      }`}
+                    >
+                      Songs ({getFilteredAvailableSongs().length})
+                    </button>
+                    <button
+                      onClick={() => setViewMode('medleys')}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                        viewMode === 'medleys'
+                          ? 'bg-white text-primary shadow-sm'
+                          : 'text-gray-600 hover:text-primary'
+                      }`}
+                    >
+                      Medleys ({getFilteredAvailableMedleys().length})
+                    </button>
+                  </div>
+                </div>
+
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="Search songs..."
+                    placeholder={`Search ${viewMode}...`}
                     value={availableSongFilters.searchText}
                     onChange={(e) => updateAvailableFilter('searchText', e.target.value)}
                     className="w-full px-4 py-3 bg-gray-100 border-none rounded-apple-small text-apple-body text-primary placeholder-gray-500 outline-none focus:bg-gray-200 transition-colors pr-10"
@@ -845,58 +945,113 @@ export default function SetBuilder({ songs: propSongs }) {
               </div>
               
               <div className="overflow-y-auto" style={{ height: 'calc(100vh - 400px)', minHeight: '400px' }}>
-                {getFilteredAvailableSongs().length > 0 ? (
-                  getFilteredAvailableSongs().map((song, index) => (
-                    <div
-                      key={`available-songs-${song.id}-${index}`}
-                      className="px-6 py-3 border-b border-gray-50 last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors duration-150"
-                      onClick={async () => {
-                        if (!activeSet) {
-                          alert('Please select or create a set first');
-                          return;
-                        }
-                        if ((activeSet.songs || []).some(s => s.id === song.id)) {
-                          alert(`"${song.title}" is already in this set`);
-                          return;
-                        }
-                        const updatedSet = {
-                          ...activeSet,
-                          songs: [...(activeSet.songs || []), song]
-                        };
-                        try {
-                          const response = await fetch('/api/sets', {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(updatedSet)
-                          });
-                          if (response.ok) {
-                            setActiveSet(updatedSet);
-                            setSets(prev => prev.map(s => s.id === activeSet.id ? updatedSet : s));
-                            console.log('Added song:', song.title);
-                          } else {
-                            alert('Failed to save set. Please try again.');
+                {/* Songs or Medleys List */}
+                {viewMode === 'songs' ? (
+                  // Songs view
+                  getFilteredAvailableSongs().length > 0 ? (
+                    getFilteredAvailableSongs().map((song, index) => (
+                      <div
+                        key={`available-songs-${song.id}-${index}`}
+                        className="px-6 py-3 border-b border-gray-50 last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors duration-150"
+                        onClick={async () => {
+                          if (!activeSet) {
+                            alert('Please select or create a set first');
+                            return;
                           }
-                        } catch (err) {
-                          alert('Failed to save set. Please try again.');
-                          console.error(err);
-                        }
-                      }}
-                    >
-                      <div className="text-apple-body text-primary mb-0.5">
-                        {song.title}
+                          if ((activeSet.songs || []).some(s => s.id === song.id)) {
+                            alert(`"${song.title}" is already in this set`);
+                            return;
+                          }
+                          const updatedSet = {
+                            ...activeSet,
+                            songs: [...(activeSet.songs || []), song]
+                          };
+                          try {
+                            const response = await fetch('/api/sets', {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify(updatedSet)
+                            });
+                            if (response.ok) {
+                              setActiveSet(updatedSet);
+                              setSets(prev => prev.map(s => s.id === activeSet.id ? updatedSet : s));
+                              console.log('Added song:', song.title);
+                            } else {
+                              alert('Failed to save set. Please try again.');
+                            }
+                          } catch (err) {
+                            alert('Failed to save set. Please try again.');
+                            console.error(err);
+                          }
+                        }}
+                      >
+                        <div className="text-apple-body text-primary mb-0.5">
+                          {song.title}
+                        </div>
+                        <div className="text-apple-callout text-secondary">
+                          {song.artist} • {song.key} • {song.duration}
+                        </div>
                       </div>
-                      <div className="text-apple-callout text-secondary">
-                        {song.artist} • {song.key} • {song.duration}
-                      </div>
+                    ))
+                  ) : (
+                    <div className="px-6 py-8 text-center">
+                      <div className="text-2xl opacity-30 mb-2">🔍</div>
+                      <p className="text-apple-body text-secondary">
+                        {availableSongFilters.searchText ? 'No songs found matching your search' : 'No songs available'}
+                      </p>
                     </div>
-                  ))
+                  )
                 ) : (
-                  <div className="px-6 py-8 text-center">
-                    <div className="text-2xl opacity-30 mb-2">🔍</div>
-                    <p className="text-apple-body text-secondary">
-                      {availableSongFilters.searchText ? 'No songs found matching your search' : 'No songs available'}
-                    </p>
-                  </div>
+                  // Medleys view
+                  getFilteredAvailableMedleys().length > 0 ? (
+                    getFilteredAvailableMedleys().map((medley, index) => (
+                      <div
+                        key={`available-medley-${medley.name}-${index}`}
+                        className="px-6 py-4 border-b border-gray-50 last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors duration-150"
+                        onClick={() => handleAddMedley(medley)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h4 className="text-apple-body text-primary font-medium mb-1">{medley.name}</h4>
+                            <p className="text-apple-callout text-secondary mb-2">
+                              {medley.songCount} songs • {medley.totalDuration}m total
+                            </p>
+                            <div className="flex gap-2 mb-2">
+                              {medley.languages.length > 0 && (
+                                <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
+                                  {medley.languages.join(', ')}
+                                </span>
+                              )}
+                              {medley.vocalists.length > 0 && (
+                                <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
+                                  {medley.vocalists.join(', ')}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {medley.songs.map(song => song.title).join(' • ')}
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent double-click
+                              handleAddMedley(medley);
+                            }}
+                            className="ml-4 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+                          >
+                            Add Medley
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-6 py-8 text-center">
+                      <div className="text-2xl opacity-30 mb-2">🎼</div>
+                      <p className="text-apple-body text-secondary">
+                        {availableSongFilters.searchText ? 'No medleys found matching your search' : 'No medleys available'}
+                      </p>
+                    </div>
+                  )
                 )}
               </div>
             </div>
