@@ -58,11 +58,14 @@ async function getSpotifyUserToken() {
 
 export async function POST(request) {
   try {
-    const { gigName, songs, isPublic = false } = await request.json();
+    const { name, gigName, songs, description, public: isPublic = false } = await request.json();
     
-    if (!gigName || !songs || !Array.isArray(songs)) {
+    // Accept either 'name' or 'gigName' for backwards compatibility
+    const playlistName = name || gigName;
+    
+    if (!playlistName || !songs || !Array.isArray(songs)) {
       return NextResponse.json({ 
-        error: 'Gig name and songs array are required' 
+        error: 'Playlist name and songs array are required' 
       }, { status: 400 });
     }
 
@@ -76,8 +79,8 @@ export async function POST(request) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        name: `${gigName} - Setlist`,
-        description: `Setlist for ${gigName} gig. Created by Greatest Gig app.`,
+        name: playlistName,
+        description: description || `Setlist playlist. Created by Greatest Gig app.`,
         public: isPublic
       })
     });
@@ -175,6 +178,10 @@ export async function POST(request) {
         url: playlist.external_urls.spotify,
         tracks_total: trackUris.length
       },
+      playlistUrl: playlist.external_urls.spotify, // For backwards compatibility
+      found: trackUris.length,
+      notFound: songs.length - trackUris.length,
+      total: songs.length,
       searchResults,
       stats: {
         totalSongs: songs.length,
