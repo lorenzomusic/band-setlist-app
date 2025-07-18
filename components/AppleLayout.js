@@ -12,7 +12,8 @@ const AppleLayout = ({ children }) => {
     { name: 'Set Builder', href: '/sets' },
     { name: 'Gigs', href: '/gigs' },
     { name: 'AI Assistant', href: '/ai-setlist' },
-    { name: 'Performance', href: '/performance' }
+    { name: 'Performance', href: '/performance' },
+    { name: 'Admin', href: '/admin' }
   ];
 
   return (

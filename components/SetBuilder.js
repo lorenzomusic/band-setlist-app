@@ -240,7 +240,7 @@ export default function SetBuilder({ songs: propSongs }) {
     }, 0);
 
     const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
+    const minutes = Math.ceil(totalMinutes % 60);
     
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
@@ -872,7 +872,7 @@ export default function SetBuilder({ songs: propSongs }) {
                       </h1>
                       <p className="text-apple-body text-secondary">
                         {activeSet.songs ? activeSet.songs.length : 0} songs • 
-                        {activeSet.songs ? Math.round(activeSet.songs.reduce((total, song) => {
+                        {activeSet.songs ? Math.ceil(activeSet.songs.reduce((total, song) => {
                           const duration = typeof song.duration === 'string' ? 
                             song.duration.split(':').reduce((acc, time) => (60 * acc) + +time, 0) / 60 :
                             song.duration || 0;
