@@ -6,40 +6,67 @@ const redis = new Redis({
   token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-export async function GET(request) {
+// Verify session
+async function verifySession(request) {
   try {
     const sessionToken = request.cookies.get('session')?.value;
     
     if (!sessionToken) {
-      return NextResponse.json({ authenticated: false, isFirstTime: false });
+      return { authenticated: false, session: null };
     }
     
-    // Check if session exists and is valid
     const sessionData = await redis.get(`session:${sessionToken}`);
     
     if (!sessionData) {
-      return NextResponse.json({ authenticated: false, isFirstTime: false });
+      return { authenticated: false, session: null };
     }
     
     // Check if session has expired
     if (new Date() > new Date(sessionData.expiresAt)) {
-      // Clean up expired session
       await redis.del(`session:${sessionToken}`);
-      return NextResponse.json({ authenticated: false, isFirstTime: false });
+      return { authenticated: false, session: null };
     }
     
-    // Check if this is first time setup
-    const authConfig = await redis.get('auth_config');
-    const isFirstTime = !authConfig;
+    return { authenticated: true, session: sessionData };
     
-    return NextResponse.json({ 
-      authenticated: true, 
-      isAdmin: sessionData.isAdmin,
-      isFirstTime: isFirstTime
-    });
+  } catch (error) {
+    console.error('Session verification error:', error);
+    return { authenticated: false, session: null };
+  }
+}
+
+export async function GET(request) {
+  try {
+    const { authenticated, session } = await verifySession(request);
+    
+    // Check if there are any users in the system
+    const users = await redis.get('users') || [];
+    const hasUsers = users.length > 0;
+    
+    if (authenticated) {
+      return NextResponse.json({
+        authenticated: true,
+        user: {
+          id: session.userId,
+          username: session.username,
+          isAdmin: session.isAdmin
+        },
+        hasUsers
+      });
+    } else {
+      return NextResponse.json({
+        authenticated: false,
+        hasUsers,
+        isFirstTime: !hasUsers // First time if no users exist
+      });
+    }
     
   } catch (error) {
     console.error('Auth check error:', error);
-    return NextResponse.json({ authenticated: false, isFirstTime: false }, { status: 500 });
+    return NextResponse.json({ 
+      authenticated: false,
+      hasUsers: false,
+      isFirstTime: true
+    });
   }
 } 

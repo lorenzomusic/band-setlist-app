@@ -13,11 +13,8 @@ export function useAuth() {
   return context;
 }
 
-// Routes that require authentication
-const PROTECTED_ROUTES = ['/admin', '/ai-setlist'];
-
 // Routes that are always public (no auth required)
-const PUBLIC_ROUTES = ['/login', '/'];
+const PUBLIC_ROUTES = ['/login', '/register'];
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -47,8 +44,10 @@ export function AuthProvider({ children }) {
         }
       } else {
         // User is not authenticated
-        if (PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {
-          // Redirect to login with return URL
+        const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
+        
+        if (!isPublicRoute) {
+          // Redirect to login with return URL for all non-public routes
           const returnTo = encodeURIComponent(pathname);
           router.push(`/login?returnTo=${returnTo}`);
         }
@@ -59,8 +58,9 @@ export function AuthProvider({ children }) {
       setIsAuthenticated(false);
       setUser(null);
       
-      // On error, redirect protected routes to login
-      if (PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {
+      // On error, redirect non-public routes to login
+      const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
+      if (!isPublicRoute) {
         const returnTo = encodeURIComponent(pathname);
         router.push(`/login?returnTo=${returnTo}`);
       }
@@ -69,20 +69,20 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const login = async (password) => {
+  const login = async (username, password) => {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ username, password }),
     });
 
     const data = await response.json();
 
     if (response.ok) {
       setIsAuthenticated(true);
-      setUser({ isAdmin: true });
+      setUser({ isAdmin: data.isAdmin });
       return { success: true, ...data };
     } else {
       return { success: false, error: data.error };
@@ -101,8 +101,9 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Show loading spinner for protected routes while checking auth
-  if (isLoading && PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {
+  // Show loading spinner for non-public routes while checking auth
+  const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
+  if (isLoading && !isPublicRoute) {
     return (
       <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">
         <div className="bg-white rounded-apple shadow-apple p-8">

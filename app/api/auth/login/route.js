@@ -19,16 +19,17 @@ function generateSessionToken() {
 
 export async function POST(request) {
   try {
-    const { password } = await request.json();
+    const { username, password } = await request.json();
     
-    if (!password) {
-      return NextResponse.json({ error: 'Password is required' }, { status: 400 });
+    if (!username || !password) {
+      return NextResponse.json({ error: 'Username and password are required' }, { status: 400 });
     }
 
-    // Check if this is the first time setup
+    // Check if this is the first time setup (admin only)
     const existingAuth = await redis.get('auth_config');
+    const users = await redis.get('users') || [];
     
-    if (!existingAuth) {
+    if (!existingAuth && users.length === 0) {
       // First time setup - create admin account
       const salt = crypto.randomBytes(16).toString('hex');
       const hashedPassword = hashPassword(password, salt);
@@ -46,58 +47,125 @@ export async function POST(request) {
       const sessionToken = generateSessionToken();
       const sessionData = {
         token: sessionToken,
+        userId: 'admin',
+        username: 'admin',
+        isAdmin: true,
         createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-        isAdmin: true
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       };
       
-      await redis.set(`session:${sessionToken}`, sessionData, { ex: 24 * 60 * 60 }); // 24 hours TTL
+      await redis.set(`session:${sessionToken}`, sessionData, { ex: 24 * 60 * 60 });
       
       const response = NextResponse.json({ 
         success: true, 
         message: 'Admin account created and logged in',
-        isFirstTime: true
+        isFirstTime: true,
+        user: {
+          id: 'admin',
+          username: 'admin',
+          isAdmin: true
+        }
       });
       
-      // Set session cookie
       response.cookies.set('session', sessionToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 24 * 60 * 60 // 24 hours
+        maxAge: 24 * 60 * 60
       });
       
       return response;
     }
-    
-    // Existing login - verify password
-    const hashedPassword = hashPassword(password, existingAuth.salt);
-    
-    if (hashedPassword !== existingAuth.passwordHash) {
-      return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
+
+    // Check for admin login (legacy support)
+    if (username === 'admin' && existingAuth) {
+      const hashedPassword = hashPassword(password, existingAuth.salt);
+      
+      if (hashedPassword === existingAuth.passwordHash) {
+        // Update last login
+        await redis.set('auth_config', {
+          ...existingAuth,
+          lastLogin: new Date().toISOString()
+        });
+        
+        // Create session
+        const sessionToken = generateSessionToken();
+        const sessionData = {
+          token: sessionToken,
+          userId: 'admin',
+          username: 'admin',
+          isAdmin: true,
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        };
+        
+        await redis.set(`session:${sessionToken}`, sessionData, { ex: 24 * 60 * 60 });
+        
+        const response = NextResponse.json({ 
+          success: true, 
+          message: 'Admin logged in successfully',
+          isFirstTime: false,
+          user: {
+            id: 'admin',
+            username: 'admin',
+            isAdmin: true
+          }
+        });
+        
+        response.cookies.set('session', sessionToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 24 * 60 * 60
+        });
+        
+        return response;
+      }
     }
+
+    // Check for regular user login
+    const user = users.find(u => u.username === username && u.isActive);
     
+    if (!user) {
+      return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 });
+    }
+
+    // Verify password
+    const hashedPassword = hashPassword(password, user.salt);
+    
+    if (hashedPassword !== user.passwordHash) {
+      return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 });
+    }
+
     // Update last login
-    await redis.set('auth_config', {
-      ...existingAuth,
-      lastLogin: new Date().toISOString()
-    });
-    
+    const updatedUsers = users.map(u => 
+      u.id === user.id ? { ...u, lastLogin: new Date().toISOString() } : u
+    );
+    await redis.set('users', updatedUsers);
+
     // Create session
     const sessionToken = generateSessionToken();
     const sessionData = {
       token: sessionToken,
+      userId: user.id,
+      username: user.username,
+      isAdmin: user.isAdmin,
       createdAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      isAdmin: true
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
     };
     
     await redis.set(`session:${sessionToken}`, sessionData, { ex: 24 * 60 * 60 });
-    
+
     const response = NextResponse.json({ 
       success: true, 
       message: 'Logged in successfully',
-      isFirstTime: false
+      isFirstTime: false,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        isAdmin: user.isAdmin
+      }
     });
     
     response.cookies.set('session', sessionToken, {

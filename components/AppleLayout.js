@@ -15,6 +15,7 @@ const AppleLayout = ({ children }) => {
     { name: 'Gigs', href: '/gigs' },
     { name: 'AI Assistant', href: '/ai-setlist', protected: true },
     { name: 'Performance', href: '/performance' },
+    { name: 'Profile', href: '/profile', protected: true },
     { name: 'Admin', href: '/admin', protected: true }
   ];
 
@@ -29,6 +30,36 @@ const AppleLayout = ({ children }) => {
     }
   };
 
+  // If not authenticated and not on a public route, show login prompt
+  if (!isAuthenticated && !['/login', '/register'].includes(pathname)) {
+    return (
+      <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">
+        <div className="max-w-md w-full mx-4">
+          <div className="bg-white rounded-apple shadow-apple overflow-hidden">
+            <div className="px-8 pt-8 pb-6 bg-gradient-to-r from-blue-50 to-purple-50">
+              <h1 className="text-apple-title-1 text-primary mb-2">🔐 Authentication Required</h1>
+              <p className="text-apple-body text-secondary">Please sign in to access Greatest Gig</p>
+            </div>
+            <div className="px-8 py-6">
+              <div className="text-center space-y-4">
+                <p className="text-gray-600">
+                  This is a private band management app. You need to be invited to access it.
+                </p>
+                <Link
+                  href="/login"
+                  className="inline-block px-6 py-3 bg-blue-600 text-white rounded-apple-button font-medium hover:bg-blue-700 transition-apple-fast shadow-sm"
+                  style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
+                >
+                  Sign In
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
       {/* Apple-style Header */}
@@ -37,25 +68,27 @@ const AppleLayout = ({ children }) => {
           Greatest Gig
         </div>
         
-        {/* Navigation Tabs */}
-        <nav className="flex items-center gap-0 bg-transparent rounded-[9px] p-0.5">
-          {visibleNavigation.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`px-4 py-1.5 rounded-[7px] text-apple-callout font-medium transition-apple-fast whitespace-nowrap ${
-                pathname === item.href
-                  ? 'bg-white text-primary shadow-[0_1px_3px_rgba(0,0,0,0.1)]'
-                  : 'text-secondary hover:text-primary'
-              }`}
-            >
-              {item.name}
-              {item.protected && (
-                <span className="ml-1 text-xs opacity-60">🔒</span>
-              )}
-            </Link>
-          ))}
-        </nav>
+        {/* Navigation Tabs - Only show if authenticated */}
+        {isAuthenticated && (
+          <nav className="flex items-center gap-0 bg-transparent rounded-[9px] p-0.5">
+            {visibleNavigation.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`px-4 py-1.5 rounded-[7px] text-apple-callout font-medium transition-apple-fast whitespace-nowrap ${
+                  pathname === item.href
+                    ? 'bg-white text-primary shadow-[0_1px_3px_rgba(0,0,0,0.1)]'
+                    : 'text-secondary hover:text-primary'
+                }`}
+              >
+                {item.name}
+                {item.protected && (
+                  <span className="ml-1 text-xs opacity-60">🔒</span>
+                )}
+              </Link>
+            ))}
+          </nav>
+        )}
         
         <div className="flex items-center gap-4">
           <div className="text-apple-callout text-secondary">
@@ -77,7 +110,7 @@ const AppleLayout = ({ children }) => {
             </div>
           )}
           
-          {!isAuthenticated && pathname !== '/login' && (
+          {!isAuthenticated && pathname !== '/login' && pathname !== '/register' && (
             <Link
               href="/login"
               className="text-apple-footnote text-secondary hover:text-primary transition-colors px-2 py-1 rounded hover:bg-gray-100"
