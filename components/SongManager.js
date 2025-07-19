@@ -17,6 +17,7 @@ export default function SongManager() {
   const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSong, setEditingSong] = useState(null);
+  const [expandedSongs, setExpandedSongs] = useState(new Set());
   const editFormRef = useRef(null);
   const addFormRef = useRef(null);
 
@@ -74,6 +75,18 @@ export default function SongManager() {
 
   const handleSongDeleted = (songId) => {
     setSongs(prev => prev.filter(song => song.id !== songId));
+  };
+
+  const toggleSongExpansion = (songId) => {
+    setExpandedSongs(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(songId)) {
+        newSet.delete(songId);
+      } else {
+        newSet.add(songId);
+      }
+      return newSet;
+    });
   };
 
   const filteredSongs = songs.filter(song => {
@@ -192,6 +205,16 @@ export default function SongManager() {
                         <AppleMetadataBadge type="vocalist">
                           {song.vocalist}
                         </AppleMetadataBadge>
+                        
+                        {/* Expand/Collapse Button */}
+                        <button
+                          onClick={() => toggleSongExpansion(song.id)}
+                          className="text-gray-500 hover:text-gray-700 transition-colors p-1"
+                          title={expandedSongs.has(song.id) ? 'Collapse details' : 'Expand details'}
+                        >
+                          {expandedSongs.has(song.id) ? '▼' : '▶'}
+                        </button>
+                        
                         <AppleButton 
                           variant="secondary" 
                           size="sm"
@@ -201,6 +224,68 @@ export default function SongManager() {
                         </AppleButton>
                       </div>
                     </div>
+                    
+                    {/* Expanded Song Details */}
+                    {expandedSongs.has(song.id) && (
+                      <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 animate-fade-in">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {/* Basic Info */}
+                          <div>
+                            <h4 className="font-medium text-gray-800 mb-2">Basic Information</h4>
+                            <div className="space-y-2 text-sm">
+                              <div><span className="font-medium">Title:</span> {song.title}</div>
+                              <div><span className="font-medium">Artist:</span> {song.artist}</div>
+                              <div><span className="font-medium">Duration:</span> {song.duration || 'Not set'}</div>
+                              <div><span className="font-medium">Language:</span> {song.language === 'english' ? 'English 🇬🇧' : 'Danish 🇩🇰'}</div>
+                              <div><span className="font-medium">Vocalist:</span> {song.vocalist}</div>
+                            </div>
+                          </div>
+                          
+                          {/* Musical Details */}
+                          <div>
+                            <h4 className="font-medium text-gray-800 mb-2">Musical Details</h4>
+                            <div className="space-y-2 text-sm">
+                              <div><span className="font-medium">Key:</span> {song.key || 'Not set'}</div>
+                              <div><span className="font-medium">BPM:</span> {song.bpm || 'Not set'}</div>
+                              <div><span className="font-medium">Bass Guitar:</span> {song.bassGuitar || 'Not set'}</div>
+                              <div><span className="font-medium">Guitar:</span> {song.guitar || 'Not set'}</div>
+                              <div><span className="font-medium">Backing Track:</span> {song.backingTrack ? 'Yes' : 'No'}</div>
+                            </div>
+                          </div>
+                          
+                          {/* Medley Info */}
+                          <div>
+                            <h4 className="font-medium text-gray-800 mb-2">Additional Info</h4>
+                            <div className="space-y-2 text-sm">
+                              {song.medley && (
+                                <>
+                                  <div><span className="font-medium">Medley:</span> {song.medley}</div>
+                                  <div><span className="font-medium">Position:</span> {song.medleyPosition || 'Not set'}</div>
+                                </>
+                              )}
+                              {song.tags && song.tags.length > 0 && (
+                                <div>
+                                  <span className="font-medium">Tags:</span>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {song.tags.map((tag, tagIndex) => (
+                                      <span key={tagIndex} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {song.notes && (
+                                <div>
+                                  <span className="font-medium">Notes:</span>
+                                  <div className="mt-1 text-gray-600 italic">{song.notes}</div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))
               )}

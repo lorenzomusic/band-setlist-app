@@ -10,6 +10,7 @@ const AppleLayout = ({ children }) => {
   const { isAuthenticated, user, logout } = useAuth();
   
   const navigation = [
+    { name: 'Home', href: '/' },
     { name: 'Songs', href: '/songs' },
     { name: 'Set Builder', href: '/sets' },
     { name: 'Gigs', href: '/gigs' },

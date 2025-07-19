@@ -16,6 +16,8 @@ export default function GigManager() {
   const [isLoading, setIsLoading] = useState(true);
   const [showSetSelector, setShowSetSelector] = useState(null);
   const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(null);
+  const [expandedSets, setExpandedSets] = useState(new Set());
+  const [expandedSongs, setExpandedSongs] = useState(new Set());
 
   useEffect(() => {
     loadGigs();
@@ -405,6 +407,30 @@ export default function GigManager() {
     return sets.filter(set => !usedSetIds.includes(set.id));
   };
 
+  const toggleSetExpansion = (setId) => {
+    setExpandedSets(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(setId)) {
+        newSet.delete(setId);
+      } else {
+        newSet.add(setId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSongExpansion = (songId) => {
+    setExpandedSongs(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(songId)) {
+        newSet.delete(songId);
+      } else {
+        newSet.add(songId);
+      }
+      return newSet;
+    });
+  };
+
   return (
     <div className="apple-container">
       <ApplePanel>
@@ -568,65 +594,181 @@ export default function GigManager() {
                                 </div>
                               </div>
                               
-                              {/* Apple-style controls - same as SetBuilder */}
-                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex items-center space-x-2">
+                                {/* Expand/Collapse Button for Set */}
                                 <button
-                                  onClick={() => moveSetInGig(gig.id, setIndex, 'top')}
-                                  disabled={setIndex === 0}
-                                  className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
-                                    setIndex === 0 
-                                      ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                      : 'bg-white text-gray-600 hover:bg-gray-200 hover:scale-105 active:scale-95 shadow-sm'
-                                  }`}
-                                  title="Move to top"
+                                  onClick={() => toggleSetExpansion(set.id)}
+                                  className="text-gray-500 hover:text-gray-700 transition-colors p-1"
+                                  title={expandedSets.has(set.id) ? 'Collapse set' : 'Expand set'}
                                 >
-                                  ⤴
+                                  {expandedSets.has(set.id) ? '▼' : '▶'}
                                 </button>
-                                <button
-                                  onClick={() => moveSetInGig(gig.id, setIndex, 'up')}
-                                  disabled={setIndex === 0}
-                                  className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
-                                    setIndex === 0 
-                                      ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                      : 'bg-white text-gray-600 hover:bg-gray-200 hover:scale-105 active:scale-95 shadow-sm'
-                                  }`}
-                                  title="Move up"
-                                >
-                                  ↑
-                                </button>
-                                <button
-                                  onClick={() => moveSetInGig(gig.id, setIndex, 'down')}
-                                  disabled={setIndex === gig.sets.length - 1}
-                                  className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
-                                    setIndex === gig.sets.length - 1 
-                                      ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                      : 'bg-white text-gray-600 hover:bg-gray-200 hover:scale-105 active:scale-95 shadow-sm'
-                                  }`}
-                                  title="Move down"
-                                >
-                                  ↓
-                                </button>
-                                <button
-                                  onClick={() => moveSetInGig(gig.id, setIndex, 'bottom')}
-                                  disabled={setIndex === gig.sets.length - 1}
-                                  className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
-                                    setIndex === gig.sets.length - 1 
-                                      ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                      : 'bg-white text-gray-600 hover:bg-gray-200 hover:scale-105 active:scale-95 shadow-sm'
-                                  }`}
-                                  title="Move to bottom"
-                                >
-                                  ⤵
-                                </button>
-                                <button
-                                  onClick={() => removeSetFromGig(gig.id, setIndex)}
-                                  className="w-7 h-7 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 hover:scale-105 active:scale-95 flex items-center justify-center text-xs transition-all shadow-sm ml-2"
-                                  title="Remove set from gig"
-                                >
-                                  ×
-                                </button>
+                                
+                                {/* Apple-style controls - same as SetBuilder */}
+                                <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={() => moveSetInGig(gig.id, setIndex, 'top')}
+                                    disabled={setIndex === 0}
+                                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
+                                      setIndex === 0 
+                                        ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
+                                        : 'bg-white text-gray-600 hover:bg-gray-200 hover:scale-105 active:scale-95 shadow-sm'
+                                    }`}
+                                    title="Move to top"
+                                  >
+                                    ⤴
+                                  </button>
+                                  <button
+                                    onClick={() => moveSetInGig(gig.id, setIndex, 'up')}
+                                    disabled={setIndex === 0}
+                                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
+                                      setIndex === 0 
+                                        ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
+                                        : 'bg-white text-gray-600 hover:bg-gray-200 hover:scale-105 active:scale-95 shadow-sm'
+                                    }`}
+                                    title="Move up"
+                                  >
+                                    ↑
+                                  </button>
+                                  <button
+                                    onClick={() => moveSetInGig(gig.id, setIndex, 'down')}
+                                    disabled={setIndex === gig.sets.length - 1}
+                                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
+                                      setIndex === gig.sets.length - 1 
+                                        ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
+                                        : 'bg-white text-gray-600 hover:bg-gray-200 hover:scale-105 active:scale-95 shadow-sm'
+                                    }`}
+                                    title="Move down"
+                                  >
+                                    ↓
+                                  </button>
+                                  <button
+                                    onClick={() => moveSetInGig(gig.id, setIndex, 'bottom')}
+                                    disabled={setIndex === gig.sets.length - 1}
+                                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
+                                      setIndex === gig.sets.length - 1 
+                                        ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
+                                        : 'bg-white text-gray-600 hover:bg-gray-200 hover:scale-105 active:scale-95 shadow-sm'
+                                    }`}
+                                    title="Move to bottom"
+                                  >
+                                    ⤵
+                                  </button>
+                                  <button
+                                    onClick={() => removeSetFromGig(gig.id, setIndex)}
+                                    className="w-7 h-7 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 hover:scale-105 active:scale-95 flex items-center justify-center text-xs transition-all shadow-sm ml-2"
+                                    title="Remove set from gig"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
                               </div>
                             </div>
+                            
+                            {/* Expanded Set Songs */}
+                            {expandedSets.has(set.id) && set.songs && set.songs.length > 0 && (
+                              <div className="mt-4 space-y-2 animate-fade-in">
+                                <h6 className="font-medium text-gray-700 mb-2">Songs in this set:</h6>
+                                {set.songs.map((song, songIndex) => (
+                                  <div
+                                    key={song.id}
+                                    className="group bg-white p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center space-x-3 flex-1">
+                                        <span className="text-xs text-gray-600 w-6 text-center font-mono bg-gray-100 rounded px-1">#{songIndex + 1}</span>
+                                        <div className="flex-1">
+                                          <div className="text-sm font-medium text-gray-800">{song.title}</div>
+                                          <div className="text-xs text-gray-600">by {song.artist}</div>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                        <div className="flex gap-1">
+                                          <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">{song.key}</span>
+                                          <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">{song.duration}</span>
+                                          {song.language && (
+                                            <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
+                                              {song.language === 'english' ? '🇺🇸' : song.language === 'danish' ? '🇩🇰' : '🌐'}
+                                            </span>
+                                          )}
+                                        </div>
+                                        
+                                        {/* Expand/Collapse Button for Song */}
+                                        <button
+                                          onClick={() => toggleSongExpansion(song.id)}
+                                          className="text-gray-500 hover:text-gray-700 transition-colors p-1"
+                                          title={expandedSongs.has(song.id) ? 'Collapse details' : 'Expand details'}
+                                        >
+                                          {expandedSongs.has(song.id) ? '▼' : '▶'}
+                                        </button>
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Expanded Song Details - Now underneath */}
+                                    {expandedSongs.has(song.id) && (
+                                      <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200 animate-fade-in">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                          {/* Basic Info */}
+                                          <div>
+                                            <h4 className="font-medium text-blue-800 mb-2">Basic Information</h4>
+                                            <div className="space-y-2 text-sm">
+                                              <div><span className="font-medium">Title:</span> {song.title}</div>
+                                              <div><span className="font-medium">Artist:</span> {song.artist}</div>
+                                              <div><span className="font-medium">Duration:</span> {song.duration || 'Not set'}</div>
+                                              <div><span className="font-medium">Language:</span> {song.language === 'english' ? 'English 🇬🇧' : 'Danish 🇩🇰'}</div>
+                                              <div><span className="font-medium">Vocalist:</span> {song.vocalist}</div>
+                                            </div>
+                                          </div>
+                                          
+                                          {/* Musical Details */}
+                                          <div>
+                                            <h4 className="font-medium text-blue-800 mb-2">Musical Details</h4>
+                                            <div className="space-y-2 text-sm">
+                                              <div><span className="font-medium">Key:</span> {song.key || 'Not set'}</div>
+                                              <div><span className="font-medium">BPM:</span> {song.bpm || 'Not set'}</div>
+                                              <div><span className="font-medium">Bass Guitar:</span> {song.bassGuitar || 'Not set'}</div>
+                                              <div><span className="font-medium">Guitar:</span> {song.guitar || 'Not set'}</div>
+                                              <div><span className="font-medium">Backing Track:</span> {song.backingTrack ? 'Yes' : 'No'}</div>
+                                            </div>
+                                          </div>
+                                          
+                                          {/* Additional Info */}
+                                          <div>
+                                            <h4 className="font-medium text-blue-800 mb-2">Additional Info</h4>
+                                            <div className="space-y-2 text-sm">
+                                              {song.medley && (
+                                                <>
+                                                  <div><span className="font-medium">Medley:</span> {song.medley}</div>
+                                                  <div><span className="font-medium">Position:</span> {song.medleyPosition || 'Not set'}</div>
+                                                </>
+                                              )}
+                                              {song.tags && song.tags.length > 0 && (
+                                                <div>
+                                                  <span className="font-medium">Tags:</span>
+                                                  <div className="flex flex-wrap gap-1 mt-1">
+                                                    {song.tags.map((tag, tagIndex) => (
+                                                      <span key={tagIndex} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                                                        {tag}
+                                                      </span>
+                                                    ))}
+                                                  </div>
+                                                </div>
+                                              )}
+                                              {song.notes && (
+                                                <div>
+                                                  <span className="font-medium">Notes:</span>
+                                                  <div className="mt-1 text-gray-600 italic">{song.notes}</div>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
