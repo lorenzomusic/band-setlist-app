@@ -159,63 +159,96 @@ body {
   color: #1d1d1f;
 }
 
-.apple-text-sm {
-  font-size: 13px;
-  font-weight: 400;
-  color: #1d1d1f;
+/* Apple Spacing System - Standardized spacing for consistent breathing room */
+.apple-section-spacing {
+  margin-bottom: 2rem; /* 32px - Standard spacing between major sections */
 }
 
-.apple-text-xs {
-  font-size: 11px;
-  font-weight: 400;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #86868b;
+.apple-card-spacing {
+  margin-bottom: 1.5rem; /* 24px - Standard spacing between cards */
 }
 
-/* Apple Song Item */
+.apple-item-spacing {
+  margin-bottom: 1rem; /* 16px - Standard spacing between items within cards */
+}
+
+.apple-compact-spacing {
+  margin-bottom: 0.75rem; /* 12px - Compact spacing for dense layouts */
+}
+
+/* Apple Container Classes */
+.apple-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.apple-panel {
+  background: white;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+/* Apple Card Classes */
+.apple-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f2f2f2;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.apple-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-color: #e5e7eb;
+}
+
+/* Apple Song Item Classes */
 .apple-song-item {
   background: white;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 1rem;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f2f2f2;
   transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .apple-song-item:hover {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-color: #e5e7eb;
 }
 
 .apple-song-title {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 500;
   color: #1d1d1f;
+  margin-bottom: 0.25rem;
 }
 
 .apple-song-artist {
   font-size: 13px;
-  font-weight: 400;
   color: #86868b;
 }
 
-.apple-position {
-  width: 2rem;
-  height: 2rem;
-  background: #007aff;
-  color: #fff;
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.apple-text-sm {
   font-size: 13px;
-  font-weight: 500;
 }
 
-/* Animation for form appearance */
+.apple-text-xs {
+  font-size: 11px;
+}
+
+/* Animation Classes */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -223,17 +256,48 @@ body {
   }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
+/* Apple Panel Classes */
+.apple-panel-header {
+  padding: 2rem 2rem 1.5rem;
+  border-bottom: 1px solid #f2f2f2;
+  background: linear-gradient(to bottom, #f9fafb, white);
 }
 
-/* Subtle Blue Override */
-.bg-blue { 
-  background: rgba(0, 122, 255, 0.85); 
+.apple-panel-content {
+  padding: 1.5rem 2rem 2rem;
 }
-.bg-blue:hover { 
-  background: rgba(0, 122, 255, 0.95); 
+
+/* Apple Button Variants */
+.apple-button-primary {
+  background: #007aff;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
-.text-blue {
-  color: rgba(0, 122, 255, 0.9);
+
+.apple-button-primary:hover {
+  background: #0056cc;
+  transform: translateY(-1px);
+}
+
+.apple-button-secondary {
+  background: #f6f6f6;
+  color: #1d1d1f;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.apple-button-secondary:hover {
+  background: #e5e7eb;
+  transform: translateY(-1px);
 }

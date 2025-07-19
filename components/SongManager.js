@@ -99,17 +99,35 @@ export default function SongManager() {
   });
 
   return (
-    <div className="apple-container">
-      <ApplePanel>
-        <ApplePanelHeader
-          title="Song Library"
-          subtitle="Manage your song collection"
-        />
-        
-        <div className="space-y-6 px-8 pb-8">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="bg-white rounded-apple shadow-apple overflow-hidden">
+        <div className="px-8 pt-8 pb-6 bg-gradient-to-r from-blue-50 to-purple-50">
+          <h1 className="text-apple-title-1 text-primary mb-2">📚 Song Library</h1>
+          <p className="text-apple-body text-secondary">Manage your song collection</p>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="bg-white rounded-apple shadow-apple overflow-hidden">
+        <div className="px-8 py-6">
+          {/* Search and Actions */}
+          <div className="flex justify-between items-center apple-section-spacing">
+            <div className="w-64">
+              <AppleSearchInput
+                placeholder="Search songs..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <AppleButton onClick={() => setShowAddForm(!showAddForm)}>
+              {showAddForm ? 'Cancel' : 'Add New Song'}
+            </AppleButton>
+          </div>
+
           {/* Add Song Form */}
           {showAddForm && (
-            <div ref={addFormRef} className="animate-fade-in">
+            <div ref={addFormRef} className="animate-fade-in apple-section-spacing">
               <AddSongForm 
                 onSongAdded={handleSongAdded} 
                 onCancel={() => setShowAddForm(false)}
@@ -119,7 +137,7 @@ export default function SongManager() {
 
           {/* Edit Song Form */}
           {editingSong && (
-            <div ref={editFormRef} className="animate-fade-in">
+            <div ref={editFormRef} className="animate-fade-in apple-section-spacing">
               <EditSongForm 
                 song={editingSong} 
                 onSongUpdated={handleSongUpdated}
@@ -129,16 +147,7 @@ export default function SongManager() {
           )}
 
           {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="apple-label">Search</label>
-              <AppleSearchInput
-                placeholder="Search songs..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 apple-section-spacing">
             <div>
               <label className="apple-label">Language</label>
               <select
@@ -165,12 +174,6 @@ export default function SongManager() {
                 <option value="Both">Both</option>
               </select>
             </div>
-            
-            <div className="flex items-end">
-              <AppleButton onClick={() => setShowAddForm(!showAddForm)}>
-                {showAddForm ? 'Cancel' : 'Add New Song'}
-              </AppleButton>
-            </div>
           </div>
           
           {/* Songs List */}
@@ -186,7 +189,7 @@ export default function SongManager() {
                 </div>
               ) : (
                 filteredSongs.map((song, index) => (
-                  <div key={`song-manager-${song.id}-${index}`} className="apple-song-item">
+                  <div key={`song-manager-${song.id}-${index}`} className="apple-song-item apple-item-spacing">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
                         <div>
@@ -292,7 +295,7 @@ export default function SongManager() {
             </div>
           )}
         </div>
-      </ApplePanel>
+      </div>
     </div>
   );
 } 

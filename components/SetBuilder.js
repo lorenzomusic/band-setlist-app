@@ -6,8 +6,11 @@ import InstrumentChangeIndicator from './InstrumentChangeIndicator';
 import SetupSummary from './SetupSummary';
 import PDFGenerator from './PDFGenerator';
 import DraggableSong from './DraggableSong';
+import AppleButton from './ui/AppleButton';
+import AppleMetadataBadge from './ui/AppleMetadataBadge';
 import { safeDuration } from '../utils/duration';
 import { getMedleysFromSongs, getMedleyStats, organizeSetByMedleys, flattenOrganizedSet } from '../utils/medley';
+import AppleSearchInput from './ui/AppleSearchInput';
 
 export default function SetBuilder({ songs: propSongs }) {
   const [songs, setSongs] = useState([]);
@@ -30,6 +33,8 @@ export default function SetBuilder({ songs: propSongs }) {
     backingTrack: 'all',
     selectedTags: []
   });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [durationFilter, setDurationFilter] = useState('all');
 
   // Load sets and songs on component mount
   useEffect(() => {
@@ -247,6 +252,16 @@ export default function SetBuilder({ songs: propSongs }) {
       return `${hours}h ${minutes}m`;
     }
     return `${minutes}m`;
+  };
+
+  // Calculate total duration in minutes for filtering
+  const calculateTotalDurationMinutes = (setSongs) => {
+    return setSongs.reduce((total, song) => {
+      if (song.duration) {
+        return total + safeDuration(song.duration);
+      }
+      return total;
+    }, 0);
   };
 
   // Check for instrument changes
@@ -560,13 +575,19 @@ export default function SetBuilder({ songs: propSongs }) {
         (availableSongFilters.backingTrack === 'yes' && song.backingTrack) ||
         (availableSongFilters.backingTrack === 'no' && !song.backingTrack);
 
+      // Duration filter
+      const durationMatch = availableSongFilters.durationFilter === 'all' || 
+        (availableSongFilters.durationFilter === 'short' && safeDuration(song.duration) < 3) ||
+        (availableSongFilters.durationFilter === 'medium' && safeDuration(song.duration) >= 3 && safeDuration(song.duration) < 6) ||
+        (availableSongFilters.durationFilter === 'long' && safeDuration(song.duration) >= 6);
+
       // Tag filter
       const tagMatch = !availableSongFilters.selectedTags || 
         availableSongFilters.selectedTags.length === 0 ||
         availableSongFilters.selectedTags.some(tag => song.tags && song.tags.includes(tag));
 
       return searchMatch && languageMatch && keyMatch && bassMatch && 
-             guitarMatch && vocalistMatch && backingTrackMatch && tagMatch;
+             guitarMatch && vocalistMatch && backingTrackMatch && durationMatch && tagMatch;
     });
   };
 
@@ -785,7 +806,7 @@ export default function SetBuilder({ songs: propSongs }) {
   };
 
   return (
-    <>
+    <div className="space-y-8">
       {/* Header */}
       <div className="bg-white rounded-apple shadow-apple overflow-hidden">
         <div className="px-8 pt-8 pb-6 bg-gradient-to-r from-blue-50 to-purple-50">
@@ -794,80 +815,167 @@ export default function SetBuilder({ songs: propSongs }) {
         </div>
       </div>
 
-      {/* Set Selection */}
+      {/* Main Content */}
       <div className="bg-white rounded-apple shadow-apple overflow-hidden">
-        <div className="px-6 pt-6 pb-4 border-b border-light">
-          <h3 className="text-apple-title-3 text-primary">Your Sets</h3>
-        </div>
-        <div className="p-6">
-          <div className="flex flex-wrap gap-2 mb-4">
-            {sets.map((set, index) => (
-              <div key={`set-${set.id || index}`} className="flex items-center gap-1">
-                <button
-                  onClick={() => setActiveSet(set)}
-                  className={`px-4 py-2 rounded-apple-button font-medium transition-apple-fast ${
-                    activeSet?.id === set.id
-                      ? 'bg-blue text-white'
-                      : 'bg-gray-100 text-primary hover:bg-gray-200'
-                  }`}
-                >
-                  {set.name} ({(set.songs || []).length} songs, {calculateTotalDuration(set.songs || [])})
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteSet(set);
-                  }}
-                  className="bg-red-600 hover:bg-red-700 text-white px-2 py-2 rounded-apple-button text-sm font-medium transition-apple-fast"
-                  title={`Delete ${set.name}`}
-                >
-                  🗑️
-                </button>
+        <div className="px-8 py-6">
+          {/* Search and Actions */}
+          <div className="flex justify-between items-center apple-section-spacing">
+            <div className="flex items-center space-x-4">
+              <div className="w-64">
+                <AppleSearchInput
+                  placeholder="Search sets..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-            ))}
-            
-            <button
-              onClick={() => setShowNewSetForm(true)}
-              className="px-4 py-2 bg-green-600 text-white rounded-apple-button font-medium hover:bg-green-700 transition-apple-fast"
-            >
-              ➕ New Set
-            </button>
+              <div className="w-32">
+                <select
+                  className="apple-input"
+                  value={durationFilter}
+                  onChange={(e) => setDurationFilter(e.target.value)}
+                >
+                  <option value="all">All Durations</option>
+                  <option value="short">Under 30 min</option>
+                  <option value="medium">30-60 min</option>
+                  <option value="long">Over 60 min</option>
+                </select>
+              </div>
+            </div>
+            <AppleButton onClick={() => setShowNewSetForm(true)}>
+              ➕ Create New Set
+            </AppleButton>
           </div>
 
+          {/* Create New Set Form */}
           {showNewSetForm && (
-            <div className="flex gap-2 mb-4">
-              <input
-                type="text"
-                value={newSetName}
-                onChange={(e) => setNewSetName(e.target.value)}
-                placeholder="Set name (e.g., 'High Energy Openers', 'Wedding Dance Hits')"
-                className="flex-1 apple-input"
-                onKeyPress={(e) => e.key === 'Enter' && createSet()}
-              />
-              <button
-                onClick={createSet}
-                className="px-4 py-2 bg-green-600 text-white rounded-apple-button hover:bg-green-700 transition-apple-fast"
-              >
-                Create
-              </button>
-              <button
-                onClick={() => {
-                  setShowNewSetForm(false);
-                  setNewSetName('');
-                }}
-                className="px-4 py-2 bg-gray-500 text-white rounded-apple-button hover:bg-gray-600 transition-apple-fast"
-              >
-                Cancel
-              </button>
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h4 className="font-medium text-blue-800 mb-3">Create New Set</h4>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newSetName}
+                  onChange={(e) => setNewSetName(e.target.value)}
+                  placeholder="Set name (e.g., 'High Energy Openers', 'Wedding Dance Hits')"
+                  className="flex-1 apple-input"
+                  onKeyPress={(e) => e.key === 'Enter' && createSet()}
+                />
+                <AppleButton 
+                  variant="secondary" 
+                  size="sm"
+                  onClick={createSet}
+                >
+                  Create
+                </AppleButton>
+                <AppleButton 
+                  variant="secondary" 
+                  size="sm"
+                  onClick={() => {
+                    setShowNewSetForm(false);
+                    setNewSetName('');
+                  }}
+                >
+                  Cancel
+                </AppleButton>
+              </div>
             </div>
           )}
+
+          {/* Sets List */}
+          {/* The original code had a 'isLoading' state and a loading message here,
+              but 'isLoading' was not defined in the original file.
+              Assuming 'isLoading' was intended to be 'sets.length === 0' or similar,
+              but for now, I'll remove it as it's not part of the original file's state.
+              If 'isLoading' was meant to be a separate state, it would need to be added.
+              For now, I'll just render the sets directly. */}
+          
+          {/* Filter sets based on search term and duration */}
+          {(() => {
+            const filteredSets = sets.filter(set => {
+              const searchMatch = set.name.toLowerCase().includes(searchTerm.toLowerCase());
+              
+              // Duration filter - calculate total duration in minutes
+              const setDuration = calculateTotalDurationMinutes(set.songs || []);
+              const durationMatch = durationFilter === 'all' || 
+                (durationFilter === 'short' && setDuration < 30) ||
+                (durationFilter === 'medium' && setDuration >= 30 && setDuration < 60) ||
+                (durationFilter === 'long' && setDuration >= 60);
+              
+              return searchMatch && durationMatch;
+            });
+            
+            return filteredSets.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-3xl opacity-30 mb-2">🔍</div>
+                <p className="text-apple-body text-secondary">
+                  {(searchTerm || durationFilter !== 'all') ? 'No sets found matching your filters' : 'No sets yet'}
+                </p>
+                {!searchTerm && durationFilter === 'all' && (
+                  <p className="text-apple-callout text-secondary mt-1">Create your first set to get started</p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredSets.map((set, index) => (
+                  <div key={`set-${set.id || index}`} className="apple-card apple-card-spacing">
+                    {/* Set Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-4">
+                          <div>
+                            <h3 className="apple-subheading">{set.name}</h3>
+                            <p className="apple-text-sm text-gray-500">
+                              Created {new Date(set.createdAt || Date.now()).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-4">
+                        <div className="text-right">
+                          <div className="flex items-center space-x-2">
+                            <AppleMetadataBadge type="songs">
+                              {(set.songs || []).length} songs
+                            </AppleMetadataBadge>
+                            <AppleMetadataBadge type="duration">
+                              {calculateTotalDuration(set.songs || [])}
+                            </AppleMetadataBadge>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <AppleButton 
+                            variant="secondary" 
+                            size="sm"
+                            onClick={() => setActiveSet(set)}
+                          >
+                            {activeSet?.id === set.id ? 'Active' : 'Select'}
+                          </AppleButton>
+                          
+                          <AppleButton 
+                            variant="secondary" 
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteSet(set);
+                            }}
+                          >
+                            Delete
+                          </AppleButton>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       </div>
 
       {activeSet ? (
         <>
           {/* Analytics Section */}
-          <div className="mb-6">
+          <div className="apple-section-spacing">
             <SetAnalytics songs={activeSet?.songs || []} />
           </div>
 
@@ -927,7 +1035,7 @@ export default function SetBuilder({ songs: propSongs }) {
                   {organizedSet && organizedSet.length > 0 ? (
                     <div className="space-y-4">
                       {organizedSet.map((item, index) => (
-                        <div key={item.id}>
+                        <div key={item.id} className="apple-item-spacing">
                           {item.type === 'medley' ? (
                             // Medley Group
                             <div className="bg-purple-50 border border-purple-200 rounded-lg overflow-hidden">
@@ -953,26 +1061,14 @@ export default function SetBuilder({ songs: propSongs }) {
                                 {/* Medley Reorder Controls */}
                                 <div className="flex items-center space-x-1">
                                   <button
-                                    onClick={() => handleMoveMedley(index, 'top')}
-                                    disabled={index === 0}
-                                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
-                                      index === 0 
-                                        ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                        : 'bg-white text-purple-600 hover:bg-purple-200 hover:scale-105 active:scale-95 shadow-sm'
-                                    }`}
-                                    title="Move to top"
-                                  >
-                                    ⤴
-                                  </button>
-                                  <button
                                     onClick={() => handleMoveMedley(index, 'up')}
                                     disabled={index === 0}
                                     className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
                                       index === 0 
                                         ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                        : 'bg-white text-purple-600 hover:bg-purple-200 hover:scale-105 active:scale-95 shadow-sm'
+                                        : 'bg-white text-purple-600 hover:bg-purple-100 hover:scale-105 active:scale-95 shadow-sm'
                                     }`}
-                                    title="Move up"
+                                    title="Move medley up"
                                   >
                                     ↑
                                   </button>
@@ -982,35 +1078,23 @@ export default function SetBuilder({ songs: propSongs }) {
                                     className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
                                       index === organizedSet.length - 1 
                                         ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                        : 'bg-white text-purple-600 hover:bg-purple-200 hover:scale-105 active:scale-95 shadow-sm'
+                                        : 'bg-white text-purple-600 hover:bg-purple-100 hover:scale-105 active:scale-95 shadow-sm'
                                     }`}
-                                    title="Move down"
+                                    title="Move medley down"
                                   >
                                     ↓
                                   </button>
                                   <button
-                                    onClick={() => handleMoveMedley(index, 'bottom')}
-                                    disabled={index === organizedSet.length - 1}
-                                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
-                                      index === organizedSet.length - 1 
-                                        ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                        : 'bg-white text-purple-600 hover:bg-purple-200 hover:scale-105 active:scale-95 shadow-sm'
-                                    }`}
-                                    title="Move to bottom"
-                                  >
-                                    ⤵
-                                  </button>
-                                  <button
                                     onClick={() => handleRemoveMedley(index)}
-                                    className="w-7 h-7 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 hover:scale-105 active:scale-95 flex items-center justify-center text-xs transition-all shadow-sm ml-2"
-                                    title="Remove entire medley"
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-xs bg-white text-red-600 hover:bg-red-100 hover:scale-105 active:scale-95 shadow-sm transition-all"
+                                    title="Remove medley"
                                   >
                                     ×
                                   </button>
                                 </div>
                               </div>
                               
-                              {/* Medley Songs - Only show if not collapsed */}
+                              {/* Medley Songs */}
                               {!collapsedMedleys.has(item.id) && (
                                 <div className="space-y-1 p-4">
                                   {item.songs.map((song, songIndex) => (
@@ -1026,18 +1110,8 @@ export default function SetBuilder({ songs: propSongs }) {
                                             <div className="text-apple-callout text-secondary">by {song.artist}</div>
                                           </div>
                                         </div>
-                                        <div className="flex items-center space-x-3">
-                                          <div className="flex gap-2">
-                                            <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">{song.key}</span>
-                                            <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">{song.duration}</span>
-                                            {song.language && (
-                                              <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
-                                                {song.language === 'english' ? '🇺🇸' : song.language === 'danish' ? '🇩🇰' : '🌐'}
-                                              </span>
-                                            )}
-                                          </div>
-                                          
-                                          {/* Expand/Collapse Button for Medley Songs */}
+                                        
+                                        <div className="flex items-center space-x-2">
                                           <button
                                             onClick={() => toggleSongExpansion(song.id)}
                                             className="text-gray-500 hover:text-gray-700 transition-colors p-1"
@@ -1046,73 +1120,55 @@ export default function SetBuilder({ songs: propSongs }) {
                                             {expandedSongs.has(song.id) ? '▼' : '▶'}
                                           </button>
                                           
-                                          <button
-                                            onClick={() => removeSongFromSet(song.id)}
-                                            className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center text-xs transition-all"
-                                            title="Remove this song"
-                                          >
-                                            ×
-                                          </button>
+                                          <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                              onClick={() => handleMoveItem(index, songIndex, 'up')}
+                                              disabled={songIndex === 0}
+                                              className={`w-6 h-6 rounded flex items-center justify-center text-xs transition-all ${
+                                                songIndex === 0 
+                                                  ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
+                                                  : 'bg-white text-purple-600 hover:bg-purple-100 hover:scale-105 active:scale-95 shadow-sm'
+                                              }`}
+                                              title="Move song up in medley"
+                                            >
+                                              ↑
+                                            </button>
+                                            <button
+                                              onClick={() => handleMoveItem(index, songIndex, 'down')}
+                                              disabled={songIndex === item.songs.length - 1}
+                                              className={`w-6 h-6 rounded flex items-center justify-center text-xs transition-all ${
+                                                songIndex === item.songs.length - 1 
+                                                  ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
+                                                  : 'bg-white text-purple-600 hover:bg-purple-100 hover:scale-105 active:scale-95 shadow-sm'
+                                              }`}
+                                              title="Move song down in medley"
+                                            >
+                                              ↓
+                                            </button>
+                                            <button
+                                              onClick={() => removeSongFromSet(song.id)}
+                                              className="w-6 h-6 rounded flex items-center justify-center text-xs bg-white text-red-600 hover:bg-red-100 hover:scale-105 active:scale-95 shadow-sm transition-all"
+                                              title="Remove song from set"
+                                            >
+                                              ×
+                                            </button>
+                                          </div>
                                         </div>
                                       </div>
                                       
-                                      {/* Expanded Song Details for Medley Songs - Now underneath */}
+                                      {/* Expanded Song Details */}
                                       {expandedSongs.has(song.id) && (
-                                        <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200 animate-fade-in">
-                                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {/* Basic Info */}
+                                        <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200 animate-fade-in">
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                             <div>
-                                              <h4 className="font-medium text-purple-800 mb-2">Basic Information</h4>
-                                              <div className="space-y-2 text-sm">
-                                                <div><span className="font-medium">Title:</span> {song.title}</div>
-                                                <div><span className="font-medium">Artist:</span> {song.artist}</div>
-                                                <div><span className="font-medium">Duration:</span> {song.duration || 'Not set'}</div>
-                                                <div><span className="font-medium">Language:</span> {song.language === 'english' ? 'English 🇬🇧' : 'Danish 🇩🇰'}</div>
-                                                <div><span className="font-medium">Vocalist:</span> {song.vocalist}</div>
-                                              </div>
+                                              <div><span className="font-medium">Key:</span> {song.key || 'Not set'}</div>
+                                              <div><span className="font-medium">BPM:</span> {song.bpm || 'Not set'}</div>
+                                              <div><span className="font-medium">Duration:</span> {song.duration || 'Not set'}</div>
                                             </div>
-                                            
-                                            {/* Musical Details */}
                                             <div>
-                                              <h4 className="font-medium text-purple-800 mb-2">Musical Details</h4>
-                                              <div className="space-y-2 text-sm">
-                                                <div><span className="font-medium">Key:</span> {song.key || 'Not set'}</div>
-                                                <div><span className="font-medium">BPM:</span> {song.bpm || 'Not set'}</div>
-                                                <div><span className="font-medium">Bass Guitar:</span> {song.bassGuitar || 'Not set'}</div>
-                                                <div><span className="font-medium">Guitar:</span> {song.guitar || 'Not set'}</div>
-                                                <div><span className="font-medium">Backing Track:</span> {song.backingTrack ? 'Yes' : 'No'}</div>
-                                              </div>
-                                            </div>
-                                            
-                                            {/* Additional Info */}
-                                            <div>
-                                              <h4 className="font-medium text-purple-800 mb-2">Additional Info</h4>
-                                              <div className="space-y-2 text-sm">
-                                                {song.medley && (
-                                                  <>
-                                                    <div><span className="font-medium">Medley:</span> {song.medley}</div>
-                                                    <div><span className="font-medium">Position:</span> {song.medleyPosition || 'Not set'}</div>
-                                                  </>
-                                                )}
-                                                {song.tags && song.tags.length > 0 && (
-                                                  <div>
-                                                    <span className="font-medium">Tags:</span>
-                                                    <div className="flex flex-wrap gap-1 mt-1">
-                                                      {song.tags.map((tag, tagIndex) => (
-                                                        <span key={tagIndex} className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
-                                                          {tag}
-                                                        </span>
-                                                      ))}
-                                                    </div>
-                                                  </div>
-                                                )}
-                                                {song.notes && (
-                                                  <div>
-                                                    <span className="font-medium">Notes:</span>
-                                                    <div className="mt-1 text-gray-600 italic">{song.notes}</div>
-                                                  </div>
-                                                )}
-                                              </div>
+                                              <div><span className="font-medium">Bass:</span> {song.bassGuitar || 'Not set'}</div>
+                                              <div><span className="font-medium">Guitar:</span> {song.guitar || 'Not set'}</div>
+                                              <div><span className="font-medium">Backing Track:</span> {song.backingTrack ? 'Yes' : 'No'}</div>
                                             </div>
                                           </div>
                                         </div>
@@ -1124,91 +1180,54 @@ export default function SetBuilder({ songs: propSongs }) {
                             </div>
                           ) : (
                             // Individual Song
-                            <div className="group bg-gray-50 p-4 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                            <div className="group bg-white p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
                               <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-4 flex-1">
-                                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-semibold">
-                                    {index + 1}
-                                  </div>
+                                <div className="flex items-center space-x-3 flex-1">
+                                  <span className="text-xs text-gray-600 w-8 text-center font-mono bg-gray-100 rounded px-1">#{index + 1}</span>
                                   <div className="flex-1">
-                                    <div className="text-apple-body text-primary font-medium">{item.song.title}</div>
-                                    <div className="text-apple-callout text-secondary">by {item.song.artist}</div>
+                                    <div className="text-apple-body text-primary font-medium">{item.title}</div>
+                                    <div className="text-apple-callout text-secondary">by {item.artist}</div>
                                   </div>
                                 </div>
-                                <div className="flex items-center space-x-3">
-                                  <div className="flex gap-2">
-                                    <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">{item.song.key}</span>
-                                    <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">{item.song.duration}</span>
-                                    {item.song.language && (
-                                      <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
-                                        {item.song.language === 'english' ? '🇺🇸' : item.song.language === 'danish' ? '🇩🇰' : '🌐'}
-                                      </span>
-                                    )}
-                                  </div>
-                                  
-                                  {/* Expand/Collapse Button */}
+                                
+                                <div className="flex items-center space-x-2">
                                   <button
-                                    onClick={() => toggleSongExpansion(item.song.id)}
+                                    onClick={() => toggleSongExpansion(item.id)}
                                     className="text-gray-500 hover:text-gray-700 transition-colors p-1"
-                                    title={expandedSongs.has(item.song.id) ? 'Collapse details' : 'Expand details'}
+                                    title={expandedSongs.has(item.id) ? 'Collapse details' : 'Expand details'}
                                   >
-                                    {expandedSongs.has(item.song.id) ? '▼' : '▶'}
+                                    {expandedSongs.has(item.id) ? '▼' : '▶'}
                                   </button>
                                   
-                                  {/* Individual Song Reorder Controls */}
                                   <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
-                                      onClick={() => handleMoveItem(index, 'top')}
+                                      onClick={() => handleMoveItem(index, 0, 'up')}
                                       disabled={index === 0}
-                                      className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
+                                      className={`w-6 h-6 rounded flex items-center justify-center text-xs transition-all ${
                                         index === 0 
                                           ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
                                           : 'bg-white text-gray-600 hover:bg-gray-200 hover:scale-105 active:scale-95 shadow-sm'
                                       }`}
-                                      title="Move to top"
-                                    >
-                                      ⤴
-                                    </button>
-                                    <button
-                                      onClick={() => handleMoveItem(index, 'up')}
-                                      disabled={index === 0}
-                                      className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
-                                        index === 0 
-                                          ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                          : 'bg-white text-gray-600 hover:bg-gray-200 hover:scale-105 active:scale-95 shadow-sm'
-                                      }`}
-                                      title="Move up"
+                                      title="Move song up"
                                     >
                                       ↑
                                     </button>
                                     <button
-                                      onClick={() => handleMoveItem(index, 'down')}
+                                      onClick={() => handleMoveItem(index, 0, 'down')}
                                       disabled={index === organizedSet.length - 1}
-                                      className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
+                                      className={`w-6 h-6 rounded flex items-center justify-center text-xs transition-all ${
                                         index === organizedSet.length - 1 
                                           ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
                                           : 'bg-white text-gray-600 hover:bg-gray-200 hover:scale-105 active:scale-95 shadow-sm'
                                       }`}
-                                      title="Move down"
+                                      title="Move song down"
                                     >
                                       ↓
                                     </button>
                                     <button
-                                      onClick={() => handleMoveItem(index, 'bottom')}
-                                      disabled={index === organizedSet.length - 1}
-                                      className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
-                                        index === organizedSet.length - 1 
-                                          ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                          : 'bg-white text-gray-600 hover:bg-gray-200 hover:scale-105 active:scale-95 shadow-sm'
-                                      }`}
-                                      title="Move to bottom"
-                                    >
-                                      ⤵
-                                    </button>
-                                    <button
-                                      onClick={() => removeSongFromSet(item.song.id)}
-                                      className="w-7 h-7 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 hover:scale-105 active:scale-95 flex items-center justify-center text-xs transition-all shadow-sm ml-2"
-                                      title="Remove song"
+                                      onClick={() => removeSongFromSet(item.id)}
+                                      className="w-6 h-6 rounded flex items-center justify-center text-xs bg-white text-red-600 hover:bg-red-100 hover:scale-105 active:scale-95 shadow-sm transition-all"
+                                      title="Remove song from set"
                                     >
                                       ×
                                     </button>
@@ -1216,63 +1235,19 @@ export default function SetBuilder({ songs: propSongs }) {
                                 </div>
                               </div>
                               
-                              {/* Expanded Song Details - Now underneath */}
-                              {expandedSongs.has(item.song.id) && (
-                                <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200 animate-fade-in">
-                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {/* Basic Info */}
+                              {/* Expanded Song Details */}
+                              {expandedSongs.has(item.id) && (
+                                <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200 animate-fade-in">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                     <div>
-                                      <h4 className="font-medium text-gray-800 mb-2">Basic Information</h4>
-                                      <div className="space-y-2 text-sm">
-                                        <div><span className="font-medium">Title:</span> {item.song.title}</div>
-                                        <div><span className="font-medium">Artist:</span> {item.song.artist}</div>
-                                        <div><span className="font-medium">Duration:</span> {item.song.duration || 'Not set'}</div>
-                                        <div><span className="font-medium">Language:</span> {item.song.language === 'english' ? 'English 🇬🇧' : 'Danish 🇩🇰'}</div>
-                                        <div><span className="font-medium">Vocalist:</span> {item.song.vocalist}</div>
-                                      </div>
+                                      <div><span className="font-medium">Key:</span> {item.key || 'Not set'}</div>
+                                      <div><span className="font-medium">BPM:</span> {item.bpm || 'Not set'}</div>
+                                      <div><span className="font-medium">Duration:</span> {item.duration || 'Not set'}</div>
                                     </div>
-                                    
-                                    {/* Musical Details */}
                                     <div>
-                                      <h4 className="font-medium text-gray-800 mb-2">Musical Details</h4>
-                                      <div className="space-y-2 text-sm">
-                                        <div><span className="font-medium">Key:</span> {item.song.key || 'Not set'}</div>
-                                        <div><span className="font-medium">BPM:</span> {item.song.bpm || 'Not set'}</div>
-                                        <div><span className="font-medium">Bass Guitar:</span> {item.song.bassGuitar || 'Not set'}</div>
-                                        <div><span className="font-medium">Guitar:</span> {item.song.guitar || 'Not set'}</div>
-                                        <div><span className="font-medium">Backing Track:</span> {item.song.backingTrack ? 'Yes' : 'No'}</div>
-                                      </div>
-                                    </div>
-                                    
-                                    {/* Additional Info */}
-                                    <div>
-                                      <h4 className="font-medium text-gray-800 mb-2">Additional Info</h4>
-                                      <div className="space-y-2 text-sm">
-                                        {item.song.medley && (
-                                          <>
-                                            <div><span className="font-medium">Medley:</span> {item.song.medley}</div>
-                                            <div><span className="font-medium">Position:</span> {item.song.medleyPosition || 'Not set'}</div>
-                                          </>
-                                        )}
-                                        {item.song.tags && item.song.tags.length > 0 && (
-                                          <div>
-                                            <span className="font-medium">Tags:</span>
-                                            <div className="flex flex-wrap gap-1 mt-1">
-                                              {item.song.tags.map((tag, tagIndex) => (
-                                                <span key={tagIndex} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                                                  {tag}
-                                                </span>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        )}
-                                        {item.song.notes && (
-                                          <div>
-                                            <span className="font-medium">Notes:</span>
-                                            <div className="mt-1 text-gray-600 italic">{item.song.notes}</div>
-                                          </div>
-                                        )}
-                                      </div>
+                                      <div><span className="font-medium">Bass:</span> {item.bassGuitar || 'Not set'}</div>
+                                      <div><span className="font-medium">Guitar:</span> {item.guitar || 'Not set'}</div>
+                                      <div><span className="font-medium">Backing Track:</span> {item.backingTrack ? 'Yes' : 'No'}</div>
                                     </div>
                                   </div>
                                 </div>
@@ -1283,22 +1258,14 @@ export default function SetBuilder({ songs: propSongs }) {
                       ))}
                     </div>
                   ) : (
-                    <div className="px-8 py-12 text-center">
-                      <div className="text-3xl opacity-30 mb-4">🎵</div>
-                      <h3 className="text-apple-headline text-primary mb-2">No Songs in Set</h3>
-                      <p className="text-apple-body text-secondary">Add songs from the available content list</p>
+                    <div className="text-center py-12">
+                      <div className="text-3xl opacity-30 mb-2">🎵</div>
+                      <p className="text-apple-body text-secondary">No songs in this set yet</p>
+                      <p className="text-apple-callout text-secondary mt-1">Drag songs from the right panel to add them</p>
                     </div>
                   )}
                 </div>
               </div>
-
-              {/* Set Analytics - Move to Bottom */}
-              {activeSet.songs && activeSet.songs.length > 0 && (
-                <div className="mt-6 p-4 bg-gray-50 rounded-apple">
-                  <h4 className="font-semibold text-gray-800 mb-3">📊 Set Analytics</h4>
-                  <SetAnalytics songs={activeSet?.songs || []} />
-                </div>
-              )}
             </div>
 
             {/* Apple-style Available Songs/Medleys - Now Sticky */}
@@ -1476,6 +1443,6 @@ export default function SetBuilder({ songs: propSongs }) {
           <p className="text-apple-body text-secondary">Please select a set from the list above or create a new one</p>
         </div>
       )}
-    </>
+    </div>
   );
 }
