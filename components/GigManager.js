@@ -255,8 +255,189 @@ export default function GigManager() {
 
   const generatePDF = (gig, layout) => {
     console.log('Generating PDF for:', gig.name, 'Layout:', layout);
-    // PDF generation logic would go here
-    alert(`PDF generation for "${gig.name}" (${layout}) - Feature coming soon!`);
+    
+    // Validate gig data
+    if (!gig || !gig.sets || gig.sets.length === 0) {
+      alert('Cannot generate PDF: This gig has no sets or songs');
+      return;
+    }
+
+    try {
+      // Create a new window for printing
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Please allow popups to generate PDF');
+        return;
+      }
+
+      const printDocument = printWindow.document;
+
+      // Determine layout-specific styling
+      let layoutStyles = '';
+      let titleSuffix = '';
+      
+      switch (layout) {
+        case 'stage-simple':
+          titleSuffix = ' - Stage (Simple)';
+          layoutStyles = `
+            .song-details { display: none; }
+            .song-title { font-size: 16px; }
+            .set-title { font-size: 20px; }
+          `;
+          break;
+        case 'stage-detailed':
+          titleSuffix = ' - Stage (Detailed)';
+          layoutStyles = `
+            .instrument-info { font-weight: bold; color: #333; }
+            .vocal-info { color: #666; }
+          `;
+          break;
+        case 'sound-engineer':
+          titleSuffix = ' - Sound Engineer';
+          layoutStyles = `
+            .technical-info { font-weight: bold; color: #000; }
+            .song { border: 1px solid #ccc; margin: 5px 0; }
+          `;
+          break;
+      }
+
+      // PDF content with layout-specific styling
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>${gig.name}${titleSuffix}</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                margin: 20px;
+                line-height: 1.4;
+              }
+              .header {
+                text-align: center;
+                border-bottom: 2px solid #333;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+              }
+              .gig-info {
+                text-align: center;
+                margin-bottom: 30px;
+                background-color: #f9f9f9;
+                padding: 15px;
+                border-radius: 5px;
+              }
+              .set {
+                margin-bottom: 30px;
+                page-break-inside: avoid;
+              }
+              .set-title {
+                font-size: 18px;
+                font-weight: bold;
+                background-color: #f0f0f0;
+                padding: 8px;
+                margin-bottom: 10px;
+                border-left: 4px solid #333;
+              }
+              .song {
+                margin: 8px 0;
+                padding: 8px;
+                border-left: 3px solid #666;
+                padding-left: 15px;
+              }
+              .song-title {
+                font-weight: bold;
+                font-size: 14px;
+              }
+              .song-details {
+                font-size: 12px;
+                color: #666;
+                margin-top: 3px;
+              }
+              .break-indicator {
+                text-align: center;
+                margin: 20px 0;
+                font-style: italic;
+                color: #666;
+                font-size: 14px;
+                border-top: 1px dashed #ccc;
+                border-bottom: 1px dashed #ccc;
+                padding: 10px;
+              }
+              .notes {
+                font-style: italic;
+                color: #888;
+                font-size: 11px;
+                margin-top: 3px;
+              }
+              ${layoutStyles}
+              @media print {
+                body { margin: 10px; }
+                .no-print { display: none; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>${gig.name}${titleSuffix}</h1>
+              <p>Generated on ${new Date().toLocaleDateString()}</p>
+            </div>
+            
+            <div class="gig-info">
+              ${gig.venue ? `<p><strong>Venue:</strong> ${gig.venue}</p>` : ''}
+              ${gig.date ? `<p><strong>Date:</strong> ${new Date(gig.date).toLocaleDateString()}</p>` : ''}
+              ${gig.time ? `<p><strong>Time:</strong> ${gig.time}</p>` : ''}
+              ${gig.notes ? `<p><strong>Notes:</strong> ${gig.notes}</p>` : ''}
+            </div>
+      `;
+
+      let bodyContent = '';
+
+      // Generate sets content
+      bodyContent += gig.sets.map((set, setIndex) => `
+        <div class="set">
+          <div class="set-title">Set ${setIndex + 1}: ${set.name || 'Untitled Set'}</div>
+          ${set.songs && Array.isArray(set.songs) ? set.songs.map((song, songIndex) => `
+            <div class="song">
+              <div class="song-title">${songIndex + 1}. ${song.title || 'Untitled'}</div>
+              <div class="song-details">
+                <span class="artist-info"><strong>Artist:</strong> ${song.artist || 'Unknown Artist'}</span>
+                ${song.key ? `<span class="technical-info"> • <strong>Key:</strong> ${song.key}</span>` : ''}
+                ${song.duration ? `<span class="technical-info"> • <strong>Duration:</strong> ${song.duration}</span>` : ''}
+                ${song.language ? `<span class="vocal-info"> • <strong>Language:</strong> ${song.language === 'danish' ? '🇩🇰 Danish' : '🇬🇧 English'}</span>` : ''}
+                ${song.vocalist ? `<span class="vocal-info"> • <strong>Vocalist:</strong> 🎤 ${song.vocalist}</span>` : ''}
+                ${layout === 'sound-engineer' || layout === 'stage-detailed' ? 
+                  `${song.bassGuitar ? `<br><span class="instrument-info"><strong>Bass:</strong> 🎸 ${song.bassGuitar}</span>` : ''}
+                   ${song.guitar ? `<span class="instrument-info"> • <strong>Guitar:</strong> 🎸 ${song.guitar}</span>` : ''}
+                   ${song.backingTrack ? `<span class="technical-info"> • <strong>Backing Track:</strong> 🎵 Yes</span>` : ''}` 
+                  : ''
+                }
+              </div>
+              ${song.notes ? `<div class="notes"><strong>Notes:</strong> ${song.notes}</div>` : ''}
+              ${song.tags && song.tags.length > 0 ? `<div class="notes"><strong>Tags:</strong> ${song.tags.join(', ')}</div>` : ''}
+            </div>
+          `).join('') : '<p>No songs in this set</p>'}
+          ${setIndex < gig.sets.length - 1 ? '<div class="break-indicator">☕ Break (15-20 minutes)</div>' : ''}
+        </div>
+      `).join('');
+
+      const footerContent = `
+          </body>
+        </html>
+      `;
+
+      // Write content and print
+      printDocument.write(htmlContent + bodyContent + footerContent);
+      printDocument.close();
+      
+      // Auto-print after a short delay
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Error generating PDF. Please try again.');
+    }
   };
 
   const getAvailableSets = (gigId) => {
