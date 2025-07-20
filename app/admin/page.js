@@ -195,6 +195,16 @@ export default function AdminPage() {
               >
                 👥 User Management
               </button>
+              <button
+                onClick={() => setActiveTab('band-members')}
+                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'band-members'
+                    ? 'border-blue text-blue bg-blue-50'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                🎸 Band Members
+              </button>
             </nav>
           </div>
 
@@ -352,6 +362,49 @@ export default function AdminPage() {
 
             {activeTab === 'users' && (
               <UserManagementTab />
+            )}
+
+            {activeTab === 'band-members' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-apple-title-3 text-primary">Band Member Management</h3>
+                  <button
+                    onClick={() => window.location.href = '/admin/band-members'}
+                    className="px-4 py-2 bg-blue text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    Manage Band Members →
+                  </button>
+                </div>
+                
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                  <h4 className="font-semibold text-blue-800 mb-3">🎸 Band Member System</h4>
+                  <p className="text-sm text-blue-700 mb-4">
+                    Manage your band's core members and replacements. Track who plays what instrument 
+                    and link members to user accounts for enhanced collaboration.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <h5 className="font-medium text-blue-800 mb-2">Core Members:</h5>
+                      <ul className="text-blue-700 space-y-1">
+                        <li>• Kim (Drummer)</li>
+                        <li>• Flemming (Bass player)</li>
+                        <li>• Rikke (Lead vocal)</li>
+                        <li>• Kenneth (Keys)</li>
+                        <li>• Lorentz (Lead vocal and guitar)</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h5 className="font-medium text-blue-800 mb-2">Features:</h5>
+                      <ul className="text-blue-700 space-y-1">
+                        <li>• Mark members as core vs replacement</li>
+                        <li>• Link to existing user accounts</li>
+                        <li>• Track instruments and contact info</li>
+                        <li>• Full CRUD operations</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
