@@ -7,6 +7,7 @@ import ApplePanelHeader from './ui/ApplePanelHeader';
 import AppleButton from './ui/AppleButton';
 import AppleSearchInput from './ui/AppleSearchInput';
 import AppleMetadataBadge from './ui/AppleMetadataBadge';
+import EditGigForm from './EditGigForm';
 
 export default function GigManager() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function GigManager() {
   const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(null);
   const [expandedSets, setExpandedSets] = useState(new Set());
   const [expandedSongs, setExpandedSongs] = useState(new Set());
+  const [editingGigId, setEditingGigId] = useState(null);
 
   useEffect(() => {
     loadGigs();
@@ -220,6 +222,21 @@ export default function GigManager() {
     } catch (error) {
       console.error('Error deleting gig:', error);
     }
+  };
+
+  const handleGigUpdated = (updatedGig) => {
+    setGigs(prevGigs => 
+      prevGigs.map(g => g.id === updatedGig.id ? updatedGig : g)
+    );
+    setEditingGigId(null);
+  };
+
+  const startEditingGig = (gigId) => {
+    setEditingGigId(gigId);
+  };
+
+  const cancelEditingGig = () => {
+    setEditingGigId(null);
   };
 
   const filteredGigs = gigs.filter(gig =>
@@ -507,6 +524,15 @@ export default function GigManager() {
                             Add Set
                           </AppleButton>
                           
+                          {/* Edit Button */}
+                          <AppleButton 
+                            variant="secondary" 
+                            size="sm"
+                            onClick={() => startEditingGig(gig.id)}
+                          >
+                            Edit
+                          </AppleButton>
+                          
                           {/* Spotify Playlist Button */}
                           <AppleButton 
                             variant="secondary" 
@@ -551,6 +577,15 @@ export default function GigManager() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Edit Gig Form */}
+                    {editingGigId === gig.id && (
+                      <EditGigForm
+                        gig={gig}
+                        onGigUpdated={handleGigUpdated}
+                        onCancel={cancelEditingGig}
+                      />
+                    )}
 
                     {/* Set Selector */}
                     {showSetSelector === gig.id && (
