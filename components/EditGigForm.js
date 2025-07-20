@@ -85,9 +85,11 @@ export default function EditGigForm({ gig, onGigUpdated, onCancel }) {
           
           <div>
             <label className="apple-label">Venue</label>
-            <AppleSearchInput
-              placeholder="Venue name"
+            <input
+              type="text"
               name="venue"
+              className="apple-input"
+              placeholder="Venue name"
               value={formData.venue}
               onChange={handleChange}
             />
@@ -119,9 +121,11 @@ export default function EditGigForm({ gig, onGigUpdated, onCancel }) {
         
         <div>
           <label className="apple-label">Address</label>
-          <AppleSearchInput
-            placeholder="Full venue address"
+          <input
+            type="text"
             name="address"
+            className="apple-input"
+            placeholder="Full venue address"
             value={formData.address}
             onChange={handleChange}
           />

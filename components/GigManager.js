@@ -19,6 +19,7 @@ export default function GigManager() {
   const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(null);
   const [expandedSets, setExpandedSets] = useState(new Set());
   const [expandedSongs, setExpandedSongs] = useState(new Set());
+  const [expandedGigs, setExpandedGigs] = useState(new Set());
   const [editingGigId, setEditingGigId] = useState(null);
 
   useEffect(() => {
@@ -448,6 +449,18 @@ export default function GigManager() {
     });
   };
 
+  const toggleGigExpansion = (gigId) => {
+    setExpandedGigs(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(gigId)) {
+        newSet.delete(gigId);
+      } else {
+        newSet.add(gigId);
+      }
+      return newSet;
+    });
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -500,6 +513,15 @@ export default function GigManager() {
                               {formatDate(gig.date)} {gig.time && `at ${gig.time}`}
                             </p>
                           </div>
+                          
+                          {/* Expand/Collapse Button for Gig */}
+                          <button
+                            onClick={() => toggleGigExpansion(gig.id)}
+                            className="text-gray-500 hover:text-gray-700 transition-colors p-1"
+                            title={expandedGigs.has(gig.id) ? 'Collapse gig details' : 'Expand gig details'}
+                          >
+                            {expandedGigs.has(gig.id) ? '▼' : '▶'}
+                          </button>
                         </div>
                       </div>
                       
@@ -577,6 +599,26 @@ export default function GigManager() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Expanded Gig Details */}
+                    {expandedGigs.has(gig.id) && (
+                      <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200 animate-fade-in">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <div><span className="font-medium">Gig Name:</span> {gig.name}</div>
+                            <div><span className="font-medium">Venue:</span> {gig.venue || 'Not specified'}</div>
+                            <div><span className="font-medium">Date:</span> {formatDate(gig.date)}</div>
+                            <div><span className="font-medium">Time:</span> {gig.time || 'Not specified'}</div>
+                          </div>
+                          <div>
+                            <div><span className="font-medium">Address:</span> {gig.address || 'Not specified'}</div>
+                            <div><span className="font-medium">Sets:</span> {gig.sets?.length || 0} sets</div>
+                            <div><span className="font-medium">Duration:</span> {calculateGigDuration(gig.sets)}</div>
+                            <div><span className="font-medium">Notes:</span> {gig.notes || 'No notes'}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Edit Gig Form */}
                     {editingGigId === gig.id && (

@@ -49,7 +49,7 @@ export default function SetBuilder({ songs: propSongs }) {
     } else {
       setOrganizedSet([]);
     }
-  }, [activeSet?.songs]);
+  }, [activeSet]);
 
   const loadSets = async () => {
     try {
