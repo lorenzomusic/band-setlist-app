@@ -3,8 +3,128 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+// User Dropdown Component
+function UserDropdown({ value, onChange, users, placeholder = "Select a user..." }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredUsers, setFilteredUsers] = useState([]);
+
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredUsers(users);
+    } else {
+      const filtered = users.filter(user => 
+        user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredUsers(filtered);
+    }
+  }, [searchTerm, users]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isOpen && !event.target.closest('.user-dropdown')) {
+        setIsOpen(false);
+        setSearchTerm('');
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const selectedUser = users.find(user => user.id === value);
+
+  const handleSelect = (userId) => {
+    onChange(userId);
+    setIsOpen(false);
+    setSearchTerm('');
+  };
+
+  const handleClear = () => {
+    onChange('');
+    setSearchTerm('');
+  };
+
+  return (
+    <div className="relative user-dropdown">
+      <div className="relative">
+        <input
+          type="text"
+          value={selectedUser ? `${selectedUser.username} (${selectedUser.email})` : ''}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            if (!isOpen) setIsOpen(true);
+          }}
+          onFocus={() => setIsOpen(true)}
+          placeholder={placeholder}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue focus:border-transparent"
+        />
+        <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+          {value && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="text-gray-400 hover:text-gray-600 mr-1"
+            >
+              ✕
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setIsOpen(!isOpen)}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            ▼
+          </button>
+        </div>
+      </div>
+      
+      {isOpen && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          {searchTerm && (
+            <div className="p-2 border-b border-gray-200">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search users..."
+                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue focus:border-transparent"
+                autoFocus
+              />
+            </div>
+          )}
+          <div className="py-1">
+            {filteredUsers.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-gray-500">
+                No users found
+              </div>
+            ) : (
+              filteredUsers.map(user => (
+                <button
+                  key={user.id}
+                  type="button"
+                  onClick={() => handleSelect(user.id)}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                >
+                  <div className="font-medium text-gray-900">{user.username}</div>
+                  <div className="text-xs text-gray-500">{user.email}</div>
+                  <div className="text-xs text-gray-400">ID: {user.id}</div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function BandMembersPage() {
   const [members, setMembers] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingMember, setEditingMember] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -19,6 +139,7 @@ export default function BandMembersPage() {
 
   useEffect(() => {
     loadMembers();
+    loadUsers();
   }, []);
 
   const loadMembers = async () => {
@@ -35,6 +156,18 @@ export default function BandMembersPage() {
       console.error('Error loading band members:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      const response = await fetch('/api/admin/users');
+      if (response.ok) {
+        const usersData = await response.json();
+        setUsers(usersData);
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
     }
   };
 
@@ -276,14 +409,13 @@ export default function BandMembersPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      User ID (optional)
+                      Link to User Account (optional)
                     </label>
-                    <input
-                      type="text"
+                    <UserDropdown
                       value={formData.userId}
-                      onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue focus:border-transparent"
-                      placeholder="Link to existing user"
+                      onChange={(userId) => setFormData({ ...formData, userId: userId })}
+                      users={users}
+                      placeholder="Search and select a user..."
                     />
                   </div>
                 </div>
@@ -365,7 +497,9 @@ export default function BandMembersPage() {
                           <p className="text-xs text-gray-500">{member.email}</p>
                         )}
                         {member.userId && (
-                          <p className="text-xs text-blue-600">Linked to user: {member.userId}</p>
+                          <p className="text-xs text-blue-600">
+                            Linked to user: {users.find(u => u.id === member.userId)?.username || member.userId}
+                          </p>
                         )}
                       </div>
                     </div>

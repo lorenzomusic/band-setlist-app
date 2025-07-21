@@ -14,6 +14,7 @@ const AppleLayout = ({ children }) => {
     { name: 'Songs', href: '/songs' },
     { name: 'Set Builder', href: '/sets' },
     { name: 'Gigs', href: '/gigs' },
+    { name: 'Availability', href: '/availability', protected: true },
     { name: 'AI Assistant', href: '/ai-setlist', protected: true },
     { name: 'Performance', href: '/performance' },
     { name: 'Profile', href: '/profile', protected: true },

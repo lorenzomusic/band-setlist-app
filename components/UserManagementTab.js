@@ -246,6 +246,7 @@ export default function UserManagementTab() {
                   <div>
                     <div className="font-medium text-gray-800">{user.username}</div>
                     <div className="text-sm text-gray-600">{user.email}</div>
+                    <div className="text-xs text-gray-500 font-mono">ID: {user.id}</div>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -289,6 +290,16 @@ export default function UserManagementTab() {
                       Reset Password
                     </button>
                   )}
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(user.id);
+                      alert(`User ID copied: ${user.id}`);
+                    }}
+                    className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                    title="Copy User ID for band member linking"
+                  >
+                    Copy ID
+                  </button>
                 </div>
               </div>
             ))}
@@ -340,6 +351,7 @@ export default function UserManagementTab() {
           <li>• Users can only register with a valid invitation code</li>
           <li>• Invitations expire automatically for security</li>
           <li>• Admins can manage user permissions and status</li>
+          <li>• <strong>Band Member Linking:</strong> Use the "Copy ID" button to get user IDs for linking to band members</li>
         </ul>
       </div>
     </div>
