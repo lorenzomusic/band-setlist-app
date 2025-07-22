@@ -58,7 +58,9 @@ export default function AvailabilityPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [members, setMembers] = useState([]);
   const [availability, setAvailability] = useState([]);
+  const [gigs, setGigs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showGigs, setShowGigs] = useState(true);
   const [commentModal, setCommentModal] = useState({
     isOpen: false,
     memberId: null,
@@ -71,6 +73,7 @@ export default function AvailabilityPage() {
 
   useEffect(() => {
     loadMembers();
+    loadGigs();
   }, []);
 
   useEffect(() => {
@@ -90,6 +93,18 @@ export default function AvailabilityPage() {
       console.error('Error loading members:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadGigs = async () => {
+    try {
+      const response = await fetch('/api/gigs');
+      if (response.ok) {
+        const gigsData = await response.json();
+        setGigs(gigsData);
+      }
+    } catch (error) {
+      console.error('Error loading gigs:', error);
     }
   };
 
@@ -158,6 +173,15 @@ export default function AvailabilityPage() {
     return availability.find(entry => 
       entry.dateString === dateString && entry.memberId === memberId
     );
+  };
+
+  const getGigsForDate = (date) => {
+    if (!date) return [];
+    const dateStr = `${String(date).padStart(2, '0')}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${currentDate.getFullYear()}`;
+    // Convert DD-MM-YYYY to YYYY-MM-DD for gig comparison
+    const [day, month, year] = dateStr.split('-');
+    const gigDateStr = `${year}-${month}-${day}`;
+    return gigs.filter(gig => gig.date === gigDateStr);
   };
 
   const cycleAvailability = async (date, memberId) => {
@@ -311,12 +335,20 @@ export default function AvailabilityPage() {
                 <h1 className="text-apple-title-1 text-primary mb-2">📅 Availability</h1>
                 <p className="text-apple-body text-secondary">Track band member availability for gigs and rehearsals</p>
               </div>
-              <button
-                onClick={() => router.push('/')}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                ← Back to Home
-              </button>
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => router.push('/availability/dashboard')}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  📊 Dashboard
+                </button>
+                <button
+                  onClick={() => router.push('/')}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  ← Back to Home
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -324,19 +356,32 @@ export default function AvailabilityPage() {
         {/* Month Navigation */}
         <div className="bg-white rounded-apple shadow-apple p-6">
           <div className="flex items-center justify-between mb-6">
-            <button
-              onClick={() => navigateMonth('prev')}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-            >
-              ← Previous
-            </button>
-            <h2 className="text-apple-title-2 text-primary">{monthName}</h2>
-            <button
-              onClick={() => navigateMonth('next')}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-            >
-              Next →
-            </button>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => navigateMonth('prev')}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                ← Previous
+              </button>
+              <h2 className="text-apple-title-2 text-primary">{monthName}</h2>
+              <button
+                onClick={() => navigateMonth('next')}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                Next →
+              </button>
+            </div>
+            <div className="flex items-center space-x-4">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={showGigs}
+                  onChange={(e) => setShowGigs(e.target.checked)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Show Gigs</span>
+              </label>
+            </div>
           </div>
 
           {/* Calendar Grid */}
@@ -358,16 +403,30 @@ export default function AvailabilityPage() {
                   <div key={weekIndex} className="grid grid-cols-8 gap-0 border-b border-gray-100 last:border-b-0">
                     {/* Date Column */}
                     <div className="bg-gray-50 p-2">
-                      {days.slice(weekIndex * 7, (weekIndex + 1) * 7).map((day, dayIndex) => (
-                        <div key={dayIndex} className={`h-12 flex flex-col items-center justify-center ${
-                          day && isWeekend(currentDate, day) ? 'bg-blue-200' : ''
-                        }`}>
-                          <div className="text-xs text-gray-500 font-medium">
-                            {getDayOfWeek(currentDate, day)}
+                      {days.slice(weekIndex * 7, (weekIndex + 1) * 7).map((day, dayIndex) => {
+                        const gigsForDay = showGigs ? getGigsForDate(day) : [];
+                        const isWeekendDay = day && isWeekend(currentDate, day);
+                        
+                        return (
+                          <div key={dayIndex} className={`h-12 flex flex-col items-center justify-center relative ${
+                            day && isWeekendDay ? 'bg-blue-200' : ''
+                          }`}>
+                            <div className="text-xs text-gray-500 font-medium">
+                              {getDayOfWeek(currentDate, day)}
+                            </div>
+                            <div className="text-sm font-medium text-gray-900">{day}</div>
+                            
+                            {/* Gig indicators */}
+                            {showGigs && gigsForDay.length > 0 && (
+                              <div className="absolute -top-1 -right-1">
+                                <div className="bg-blue-600 text-white text-xs px-1 py-0.5 rounded-full min-w-[16px] h-4 flex items-center justify-center">
+                                  {gigsForDay.length}
+                                </div>
+                              </div>
+                            )}
                           </div>
-                          <div className="text-sm font-medium text-gray-900">{day}</div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     
                     {/* Member Columns */}
@@ -377,19 +436,30 @@ export default function AvailabilityPage() {
                           const entry = getAvailabilityForDate(day, member.id);
                           const hasComment = entry?.comment;
                           const isWeekendDay = day && isWeekend(currentDate, day);
+                          const gigsForDay = showGigs ? getGigsForDate(day) : [];
+                          const hasGig = gigsForDay.length > 0;
                           
                           return (
-                            <div key={dayIndex} className={`h-12 flex items-center justify-center border-b border-gray-100 last:border-b-0 hover:bg-gray-50 ${
+                            <div key={dayIndex} className={`h-12 flex items-center justify-center border-b border-gray-100 last:border-b-0 hover:bg-gray-50 relative ${
                               isWeekendDay ? 'bg-blue-200' : ''
-                            }`}>
+                            } ${hasGig ? 'ring-1 ring-blue-400' : ''}`}>
                               <button
                                 onClick={() => cycleAvailability(day, member.id)}
                                 onDoubleClick={() => openCommentModal(day, member.id, member.name)}
                                 className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-all duration-200 hover:scale-110 ${getStatusColor(entry?.status)} ${hasComment ? 'ring-2 ring-blue-300' : ''}`}
-                                title={`${entry?.status || 'No status'}${hasComment ? ' - Has comment' : ''}${isWeekendDay ? ' - Weekend gig day' : ''}`}
+                                title={`${entry?.status || 'No status'}${hasComment ? ' - Has comment' : ''}${isWeekendDay ? ' - Weekend gig day' : ''}${hasGig ? ` - ${gigsForDay.length} gig(s) scheduled` : ''}`}
                               >
                                 {getStatusIcon(entry?.status)}
                               </button>
+                              
+                              {/* Gig indicator for this member */}
+                              {showGigs && hasGig && (
+                                <div className="absolute -top-1 -right-1">
+                                  <div className="bg-blue-600 text-white text-xs px-1 py-0.5 rounded-full min-w-[12px] h-3 flex items-center justify-center text-[10px]">
+                                    {gigsForDay.length}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -404,7 +474,7 @@ export default function AvailabilityPage() {
           {/* Legend */}
           <div className="mt-6 p-6 bg-gray-50 rounded-lg border border-gray-200">
             <h3 className="text-sm font-semibold text-gray-700 mb-4">Legend</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div className="flex items-center space-x-3">
                 <div className="w-6 h-6 bg-green-100 text-green-800 border-2 border-green-200 rounded-full flex items-center justify-center text-xs font-bold">✓</div>
                 <span className="text-gray-700">Available</span>
@@ -429,10 +499,18 @@ export default function AvailabilityPage() {
                 <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-xs font-bold">Fr</div>
                 <span className="text-gray-700">Weekend (Gig Days)</span>
               </div>
+              <div className="flex items-center space-x-3">
+                <div className="w-6 h-6 bg-blue-600 text-white border-2 border-blue-600 rounded-full flex items-center justify-center text-xs font-bold">1</div>
+                <span className="text-gray-700">Gig Scheduled</span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="w-6 h-6 bg-white border-2 border-blue-400 rounded-full flex items-center justify-center text-xs font-bold ring-1 ring-blue-400">✓</div>
+                <span className="text-gray-700">Gig Day</span>
+              </div>
             </div>
             <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-xs text-blue-800 font-medium">
-                💡 Click once to cycle status • Double-click to add/edit comment • Weekend days (Fri/Sat) are highlighted for gig planning
+                💡 Click once to cycle status • Double-click to add/edit comment • Weekend days (Fri/Sat) are highlighted for gig planning • Blue indicators show scheduled gigs
               </p>
             </div>
           </div>

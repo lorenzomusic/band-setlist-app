@@ -14,7 +14,9 @@ const AppleLayout = ({ children }) => {
     { name: 'Songs', href: '/songs' },
     { name: 'Set Builder', href: '/sets' },
     { name: 'Gigs', href: '/gigs' },
+    { name: 'Calendar Feeds', href: '/calendar-feeds' },
     { name: 'Availability', href: '/availability', protected: true },
+    { name: 'Availability Dashboard', href: '/availability/dashboard', protected: true },
     { name: 'AI Assistant', href: '/ai-setlist', protected: true },
     { name: 'Performance', href: '/performance' },
     { name: 'Profile', href: '/profile', protected: true },
@@ -33,7 +35,8 @@ const AppleLayout = ({ children }) => {
   };
 
   // If not authenticated and not on a public route, show login prompt
-  if (!isAuthenticated && !['/login', '/register'].includes(pathname)) {
+  const publicRoutes = ['/login', '/register', '/', '/songs', '/sets', '/gigs', '/calendar-feeds', '/performance'];
+  if (!isAuthenticated && !publicRoutes.includes(pathname)) {
     return (
       <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">
         <div className="max-w-md w-full mx-4">
@@ -94,62 +97,29 @@ const AppleLayout = ({ children }) => {
         
         <div className="flex items-center gap-4">
           <div className="text-apple-callout text-secondary">
-            Lorenzo&apos;s Band
+            Greatest Hit
           </div>
           
-          {isAuthenticated && (
-            <div className="flex items-center gap-2">
-              <span className="text-apple-footnote text-secondary">
-                🔐 {user?.isAdmin ? 'Admin' : 'User'}
-              </span>
+          {isAuthenticated && user && (
+            <div className="flex items-center gap-3">
+              <div className="text-apple-callout text-secondary">
+                {user.name || user.email}
+              </div>
               <button
                 onClick={handleLogout}
-                className="text-apple-footnote text-secondary hover:text-primary transition-colors px-2 py-1 rounded hover:bg-gray-100"
-                title="Logout"
+                className="px-3 py-1 text-apple-callout text-secondary hover:text-primary transition-apple-fast"
               >
                 Sign Out
               </button>
             </div>
           )}
-          
-          {!isAuthenticated && pathname !== '/login' && pathname !== '/register' && (
-            <Link
-              href="/login"
-              className="text-apple-footnote text-secondary hover:text-primary transition-colors px-2 py-1 rounded hover:bg-gray-100"
-            >
-              Sign In
-            </Link>
-          )}
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 p-8 max-w-[1440px] mx-auto">
+      <main className="flex-1">
         {children}
       </main>
-      
-      {/* Footer with Privacy Policy Link */}
-      <footer className="border-t border-gray-200 bg-white mt-12">
-        <div className="max-w-[1440px] mx-auto px-8 py-6">
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <div className="flex items-center space-x-6">
-              <span>© 2024 Greatest Gig</span>
-              <Link 
-                href="/privacy" 
-                className="hover:text-gray-900 transition-colors"
-              >
-                Privacy Policy
-              </Link>
-              <span className="text-xs">
-                Not affiliated with Spotify AB
-              </span>
-            </div>
-            <div className="text-xs text-gray-500">
-              Professional setlist management for bands
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

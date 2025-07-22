@@ -22,11 +22,20 @@ export async function GET(request) {
 
     console.log('Fetching availability for date range:', { startDate, endDate });
 
-    // Get all availability entries
-    const allAvailability = await redis.get('availability') || [];
+    // Get all availability entries with error handling
+    let allAvailability;
+    try {
+      allAvailability = await redis.get('availability');
+    } catch (error) {
+      console.log('Redis data type conflict in GET, clearing corrupted data...');
+      await redis.del('availability');
+      allAvailability = null;
+    }
+    
+    const availabilityArray = Array.isArray(allAvailability) ? allAvailability : [];
     
     // Filter by date range
-    const filteredAvailability = allAvailability.filter(entry => {
+    const filteredAvailability = availabilityArray.filter(entry => {
       const entryDate = entry.dateString;
       return entryDate >= startDate && entryDate <= endDate;
     });
@@ -87,27 +96,36 @@ export async function POST(request) {
       createdAt: new Date().toISOString()
     };
 
-    // Get existing availability entries
-    const existingAvailability = await redis.get('availability') || [];
+    // Get existing availability entries with error handling
+    let existingAvailability;
+    try {
+      existingAvailability = await redis.get('availability');
+    } catch (error) {
+      console.log('Redis data type conflict in POST, clearing corrupted data...');
+      await redis.del('availability');
+      existingAvailability = null;
+    }
+    
+    const availabilityArray = Array.isArray(existingAvailability) ? existingAvailability : [];
     
     // Check if an entry already exists for this date and member
-    const existingIndex = existingAvailability.findIndex(
+    const existingIndex = availabilityArray.findIndex(
       entry => entry.dateString === dateString && entry.memberId === memberId
     );
 
     let updatedAvailability;
     if (existingIndex !== -1) {
       // Update existing entry
-      existingAvailability[existingIndex] = {
-        ...existingAvailability[existingIndex],
+      availabilityArray[existingIndex] = {
+        ...availabilityArray[existingIndex],
         status,
         comment,
         updatedAt: new Date().toISOString()
       };
-      updatedAvailability = existingAvailability;
+      updatedAvailability = availabilityArray;
     } else {
       // Add new entry
-      updatedAvailability = [...existingAvailability, availabilityEntry];
+      updatedAvailability = [...availabilityArray, availabilityEntry];
     }
 
     // Store in Redis
@@ -137,11 +155,20 @@ export async function DELETE(request) {
       );
     }
 
-    // Get existing availability entries
-    const existingAvailability = await redis.get('availability') || [];
-    const updatedAvailability = existingAvailability.filter(entry => entry.id !== id);
+    // Get existing availability entries with error handling
+    let existingAvailability;
+    try {
+      existingAvailability = await redis.get('availability');
+    } catch (error) {
+      console.log('Redis data type conflict in DELETE, clearing corrupted data...');
+      await redis.del('availability');
+      existingAvailability = null;
+    }
+    
+    const availabilityArray = Array.isArray(existingAvailability) ? existingAvailability : [];
+    const updatedAvailability = availabilityArray.filter(entry => entry.id !== id);
 
-    if (updatedAvailability.length === existingAvailability.length) {
+    if (updatedAvailability.length === availabilityArray.length) {
       return NextResponse.json(
         { error: 'Availability entry not found' },
         { status: 404 }

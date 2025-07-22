@@ -13,7 +13,9 @@ export default function GigManager() {
   const router = useRouter();
   const [gigs, setGigs] = useState([]);
   const [sets, setSets] = useState([]);
+  const [members, setMembers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
   const [showSetSelector, setShowSetSelector] = useState(null);
   const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(null);
@@ -25,6 +27,7 @@ export default function GigManager() {
   useEffect(() => {
     loadGigs();
     loadSets();
+    loadMembers();
   }, []);
 
   const loadGigs = async () => {
@@ -50,6 +53,18 @@ export default function GigManager() {
       }
     } catch (error) {
       console.error('Error loading sets:', error);
+    }
+  };
+
+  const loadMembers = async () => {
+    try {
+      const response = await fetch('/api/band-members');
+      if (response.ok) {
+        const data = await response.json();
+        setMembers(data);
+      }
+    } catch (error) {
+      console.error('Error loading members:', error);
     }
   };
 
@@ -240,10 +255,37 @@ export default function GigManager() {
     setEditingGigId(null);
   };
 
-  const filteredGigs = gigs.filter(gig =>
-    gig.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    gig.venue?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredGigs = gigs.filter(gig => {
+    const matchesSearch = gig.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         gig.venue?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || (gig.status || 'pending') === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const getStatusBadge = (status) => {
+    // Handle undefined/null status
+    if (!status) {
+      status = 'pending'; // Default to pending if no status
+    }
+    
+    const statusConfig = {
+      pending: { color: 'bg-yellow-100 text-yellow-800 border-yellow-200', icon: '⏳' },
+      confirmed: { color: 'bg-green-100 text-green-800 border-green-200', icon: '✅' },
+      completed: { color: 'bg-blue-100 text-blue-800 border-blue-200', icon: '🎉' },
+      cancelled: { color: 'bg-red-100 text-red-800 border-red-200', icon: '❌' }
+    };
+    
+    const config = statusConfig[status] || statusConfig.pending;
+    return (
+      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${config.color}`}>
+        {config.icon} {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    );
+  };
+
+  const getCommentCount = (comments) => {
+    return comments?.length || 0;
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'No date';
@@ -425,6 +467,13 @@ export default function GigManager() {
     return sets.filter(set => !usedSetIds.includes(set.id));
   };
 
+  const getMemberName = (memberId) => {
+    if (!memberId) return 'TBD';
+    
+    const member = members.find(m => m.id === memberId);
+    return member ? member.name : `Member (${memberId.slice(-8)})`;
+  };
+
   const toggleSetExpansion = (setId) => {
     setExpandedSets(prev => {
       const newSet = new Set(prev);
@@ -476,12 +525,68 @@ export default function GigManager() {
         <div className="px-8 py-6">
           {/* Search and Actions */}
           <div className="flex justify-between items-center apple-section-spacing">
-            <div className="w-64">
-              <AppleSearchInput
-                placeholder="Search gigs..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div className="flex items-center space-x-4">
+              <div className="w-64">
+                <AppleSearchInput
+                  placeholder="Search gigs..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              
+              {/* Status Filters */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    statusFilter === 'all' 
+                      ? 'bg-blue-100 text-blue-800 border border-blue-200' 
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setStatusFilter('pending')}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    statusFilter === 'pending' 
+                      ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' 
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  ⏳ Pending
+                </button>
+                <button
+                  onClick={() => setStatusFilter('confirmed')}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    statusFilter === 'confirmed' 
+                      ? 'bg-green-100 text-green-800 border border-green-200' 
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  ✅ Confirmed
+                </button>
+                <button
+                  onClick={() => setStatusFilter('completed')}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    statusFilter === 'completed' 
+                      ? 'bg-blue-100 text-blue-800 border border-blue-200' 
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  🎉 Completed
+                </button>
+                <button
+                  onClick={() => setStatusFilter('cancelled')}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    statusFilter === 'cancelled' 
+                      ? 'bg-red-100 text-red-800 border border-red-200' 
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  ❌ Cancelled
+                </button>
+              </div>
             </div>
             <AppleButton onClick={() => router.push('/gig-builder')}>
               Create New Gig
@@ -534,6 +639,12 @@ export default function GigManager() {
                             <AppleMetadataBadge type="duration">
                               {calculateGigDuration(gig.sets)}
                             </AppleMetadataBadge>
+                            <AppleMetadataBadge type="status">
+                              {getStatusBadge(gig.status)}
+                            </AppleMetadataBadge>
+                            <AppleMetadataBadge type="comments">
+                              {getCommentCount(gig.comments)} comments
+                            </AppleMetadataBadge>
                           </div>
                         </div>
                         
@@ -544,6 +655,15 @@ export default function GigManager() {
                             onClick={() => setShowSetSelector(showSetSelector === gig.id ? null : gig.id)}
                           >
                             Add Set
+                          </AppleButton>
+                          
+                          {/* View Details Button */}
+                          <AppleButton 
+                            variant="secondary" 
+                            size="sm"
+                            onClick={() => router.push(`/gigs/${gig.id}`)}
+                          >
+                            View Details
                           </AppleButton>
                           
                           {/* Edit Button */}
@@ -609,14 +729,35 @@ export default function GigManager() {
                             <div><span className="font-medium">Venue:</span> {gig.venue || 'Not specified'}</div>
                             <div><span className="font-medium">Date:</span> {formatDate(gig.date)}</div>
                             <div><span className="font-medium">Time:</span> {gig.time || 'Not specified'}</div>
+                            <div><span className="font-medium">Status:</span> {getStatusBadge(gig.status)}</div>
+                            <div><span className="font-medium">Contract:</span> {gig.contractUploaded ? '✅ Uploaded' : '❌ Not uploaded'}</div>
                           </div>
                           <div>
                             <div><span className="font-medium">Address:</span> {gig.address || 'Not specified'}</div>
                             <div><span className="font-medium">Sets:</span> {gig.sets?.length || 0} sets</div>
                             <div><span className="font-medium">Duration:</span> {calculateGigDuration(gig.sets)}</div>
+                            <div><span className="font-medium">Comments:</span> {getCommentCount(gig.comments)}</div>
                             <div><span className="font-medium">Notes:</span> {gig.notes || 'No notes'}</div>
                           </div>
                         </div>
+                        
+                        {/* Lineup Display */}
+                        {gig.lineup && gig.lineup.length > 0 && (
+                          <div className="mt-4">
+                            <div className="font-medium text-gray-700 mb-2">Band Lineup:</div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                              {gig.lineup.map((item, index) => (
+                                <div key={index} className="flex items-center space-x-2 p-2 bg-white rounded border">
+                                  <span className="text-xs text-gray-500">{item.instrument}</span>
+                                  <span className="text-sm font-medium">{getMemberName(item.memberId)}</span>
+                                  {item.isReplacement && (
+                                    <span className="text-xs bg-orange-100 text-orange-800 px-1 rounded">Replacement</span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 

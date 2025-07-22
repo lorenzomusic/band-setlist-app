@@ -7,9 +7,19 @@ const redis = new Redis({
 
 export async function GET() {
   try {
-    const songs = await redis.get('songs') || [];
+    let songs;
+    try {
+      songs = await redis.get('songs');
+    } catch (error) {
+      console.log('Redis data type conflict in GET, clearing corrupted data...');
+      await redis.del('songs');
+      songs = null;
+    }
+    
+    const songsArray = Array.isArray(songs) ? songs : [];
+    
     // Add default language for existing songs
-    const songsWithLanguage = songs.map(song => ({
+    const songsWithLanguage = songsArray.map(song => ({
       ...song,
       language: song.language || 'english',
       vocalist: song.vocalist || 'Rikke',
@@ -42,7 +52,18 @@ export async function POST(request) {
       songData.tags = [];
     }
 
-    const songs = await redis.get('songs') || [];
+    // Get existing songs with error handling
+    let songs;
+    try {
+      songs = await redis.get('songs');
+    } catch (error) {
+      console.log('Redis data type conflict in POST, clearing corrupted data...');
+      await redis.del('songs');
+      songs = null;
+    }
+    
+    const songsArray = Array.isArray(songs) ? songs : [];
+    
     // Generate unique ID
     const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
     const songWithId = {
@@ -69,8 +90,8 @@ export async function POST(request) {
       songWithId.medley = null;
       songWithId.medleyPosition = null;
     }
-    songs.push(songWithId);
-    await redis.set('songs', songs);
+    songsArray.push(songWithId);
+    await redis.set('songs', songsArray);
     return Response.json(songWithId, { status: 201 });
   } catch (error) {
     console.error('Error creating song:', error);
@@ -97,8 +118,18 @@ export async function PUT(request) {
       return Response.json({ error: 'Vocalist must be "Rikke", "Lorentz", or "Both"' }, { status: 400 });
     }
 
-    const songs = await redis.get('songs') || [];
-    const songIndex = songs.findIndex(song => song.id === id);
+    // Get existing songs with error handling
+    let songs;
+    try {
+      songs = await redis.get('songs');
+    } catch (error) {
+      console.log('Redis data type conflict in PUT, clearing corrupted data...');
+      await redis.del('songs');
+      songs = null;
+    }
+    
+    const songsArray = Array.isArray(songs) ? songs : [];
+    const songIndex = songsArray.findIndex(song => song.id === id);
 
     if (songIndex === -1) {
       return Response.json({ error: 'Song not found' }, { status: 404 });
@@ -106,7 +137,7 @@ export async function PUT(request) {
 
     // Update the song
     const updatedSong = {
-      ...songs[songIndex],
+      ...songsArray[songIndex],
       title,
       artist,
       key,
@@ -131,8 +162,8 @@ export async function PUT(request) {
       updatedSong.medleyPosition = null;
     }
 
-    songs[songIndex] = updatedSong;
-    await redis.set('songs', songs);
+    songsArray[songIndex] = updatedSong;
+    await redis.set('songs', songsArray);
     return Response.json(updatedSong);
   } catch (error) {
     console.error('Error updating song:', error);
@@ -149,16 +180,26 @@ export async function DELETE(request) {
       return Response.json({ error: 'Song ID is required' }, { status: 400 });
     }
 
-    const songs = await redis.get('songs') || [];
-    const songIndex = songs.findIndex(song => song.id === id);
+    // Get existing songs with error handling
+    let songs;
+    try {
+      songs = await redis.get('songs');
+    } catch (error) {
+      console.log('Redis data type conflict in DELETE, clearing corrupted data...');
+      await redis.del('songs');
+      songs = null;
+    }
+    
+    const songsArray = Array.isArray(songs) ? songs : [];
+    const songIndex = songsArray.findIndex(song => song.id === id);
 
     if (songIndex === -1) {
       return Response.json({ error: 'Song not found' }, { status: 404 });
     }
 
     // Remove the song
-    songs.splice(songIndex, 1);
-    await redis.set('songs', songs);
+    songsArray.splice(songIndex, 1);
+    await redis.set('songs', songsArray);
     
     return Response.json({ message: 'Song deleted successfully' });
   } catch (error) {

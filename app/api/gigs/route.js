@@ -21,9 +21,16 @@ export async function POST(request) {
     const gigs = await redis.get('gigs') || [];
     
     const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    
+    // Set default values for new fields if not provided
     const gigWithId = {
       ...newGig,
-      id
+      id,
+      status: newGig.status || 'pending',
+      comments: newGig.comments || [],
+      lineup: newGig.lineup || [],
+      contractUploaded: newGig.contractUploaded || false,
+      createdAt: new Date().toISOString()
     };
     
     gigs.push(gigWithId);
@@ -43,9 +50,17 @@ export async function PUT(request) {
     
     const index = gigs.findIndex(gig => String(gig.id) === String(updatedGig.id));
     if (index !== -1) {
-      gigs[index] = updatedGig;
+      // Preserve existing fields and update with new data
+      const existingGig = gigs[index];
+      const mergedGig = {
+        ...existingGig,
+        ...updatedGig,
+        updatedAt: new Date().toISOString()
+      };
+      
+      gigs[index] = mergedGig;
       await redis.set('gigs', gigs);
-      return Response.json(updatedGig);
+      return Response.json(mergedGig);
     } else {
       return Response.json({ error: 'Gig not found' }, { status: 404 });
     }

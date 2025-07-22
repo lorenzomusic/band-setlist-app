@@ -10,22 +10,28 @@ const redis = new Redis({
 export async function GET() {
   try {
     console.log('Attempting to fetch band members from Redis...');
-    
-    const members = await redis.get('band_members');
-    console.log('Redis response:', members);
-    
-    // If no members exist yet, return empty array
-    if (!members || members.length === 0) {
-      console.log('No band members found, returning empty array');
-      return NextResponse.json([]);
+    let members;
+    try {
+      members = await redis.get('band_members');
+    } catch (error) {
+      console.log('Redis data type conflict in GET, clearing corrupted data...');
+      await redis.del('band_members');
+      members = null;
     }
     
-    console.log('Returning band members:', members);
-    return NextResponse.json(members);
+    console.log('Redis response:', members);
+    
+    // Ensure we return an array
+    const membersArray = Array.isArray(members) ? members : [];
+    console.log('Returning band members:', membersArray);
+    
+    return NextResponse.json(membersArray);
   } catch (error) {
     console.error('Error fetching band members:', error);
-    // Return empty array instead of error to prevent frontend crashes
-    return NextResponse.json([]);
+    return NextResponse.json(
+      { error: 'Failed to fetch band members' },
+      { status: 500 }
+    );
   }
 }
 
@@ -71,7 +77,15 @@ export async function POST(request) {
 
     // Get existing members
     console.log('Getting existing members from Redis...');
-    const existingMembers = await redis.get('band_members') || [];
+    let existingMembers;
+    try {
+      const members = await redis.get('band_members');
+      existingMembers = Array.isArray(members) ? members : [];
+    } catch (error) {
+      console.log('Redis data type conflict in POST, clearing corrupted data...');
+      await redis.del('band_members');
+      existingMembers = [];
+    }
     console.log('Existing members:', existingMembers);
     
     // Add new member to array
@@ -112,7 +126,16 @@ export async function PUT(request) {
     }
 
     // Check if member exists
-    const existingMembers = await redis.get('band_members') || [];
+    let existingMembers;
+    try {
+      const members = await redis.get('band_members');
+      existingMembers = Array.isArray(members) ? members : [];
+    } catch (error) {
+      console.log('Redis data type conflict in PUT, clearing corrupted data...');
+      await redis.del('band_members');
+      existingMembers = [];
+    }
+    
     const memberIndex = existingMembers.findIndex(member => member.id === id);
 
     if (memberIndex === -1) {
@@ -161,11 +184,19 @@ export async function DELETE(request) {
     }
 
     // Check if member exists
-    const existingMembers = await redis.get('band_members') || [];
-    const initialLength = existingMembers.length;
-    const updatedMembers = existingMembers.filter(member => member.id !== id);
+    let existingMembers;
+    try {
+      const members = await redis.get('band_members');
+      existingMembers = Array.isArray(members) ? members : [];
+    } catch (error) {
+      console.log('Redis data type conflict in DELETE, clearing corrupted data...');
+      await redis.del('band_members');
+      existingMembers = [];
+    }
+    
+    const memberIndex = existingMembers.findIndex(member => member.id === id);
 
-    if (updatedMembers.length === initialLength) {
+    if (memberIndex === -1) {
       return NextResponse.json(
         { error: 'Band member not found' },
         { status: 404 }
@@ -173,6 +204,7 @@ export async function DELETE(request) {
     }
 
     // Delete from Redis
+    const updatedMembers = existingMembers.filter(member => member.id !== id);
     await redis.set('band_members', updatedMembers);
 
     return NextResponse.json({ message: 'Band member deleted successfully' });
