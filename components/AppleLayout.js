@@ -35,7 +35,7 @@ const AppleLayout = ({ children }) => {
   };
 
   // If not authenticated and not on a public route, show login prompt
-  const publicRoutes = ['/login', '/register', '/', '/songs', '/sets', '/gigs', '/calendar-feeds', '/performance'];
+  const publicRoutes = ['/login', '/register'];
   if (!isAuthenticated && !publicRoutes.includes(pathname)) {
     return (
       <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">

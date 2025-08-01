@@ -14,7 +14,7 @@ export function useAuth() {
 }
 
 // Routes that are always public (no auth required)
-const PUBLIC_ROUTES = ['/login', '/register', '/', '/songs', '/sets', '/gigs', '/calendar-feeds', '/performance'];
+const PUBLIC_ROUTES = ['/login', '/register'];
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
