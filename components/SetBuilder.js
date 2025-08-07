@@ -312,9 +312,12 @@ export default function SetBuilder({ songs: propSongs }) {
 
   // Get available songs (songs not in the current set)
   const getAvailableSongs = () => {
+    console.log('getAvailableSongs called:', { songsLength: songs?.length, activeSet: !!activeSet });
     if (!songs || songs.length === 0) return [];
     if (!activeSet) return songs;
-    return songs.filter(song => !(activeSet?.songs || []).some(setSong => setSong.id === song.id));
+    const filtered = songs.filter(song => !(activeSet?.songs || []).some(setSong => setSong.id === song.id));
+    console.log('getAvailableSongs result:', { total: songs.length, filtered: filtered.length });
+    return filtered;
   };
 
   // Get available medleys (medleys not fully in the current set)
@@ -541,6 +544,7 @@ export default function SetBuilder({ songs: propSongs }) {
   // Comprehensive filtering function
   const getFilteredAvailableSongs = () => {
     const availableSongs = getAvailableSongs();
+    console.log('getFilteredAvailableSongs:', { availableSongsLength: availableSongs?.length, filters: availableSongFilters, durationFilter });
     
     if (!availableSongs || availableSongs.length === 0) return [];
     
@@ -576,18 +580,24 @@ export default function SetBuilder({ songs: propSongs }) {
         (availableSongFilters.backingTrack === 'no' && !song.backingTrack);
 
       // Duration filter
-      const durationMatch = availableSongFilters.durationFilter === 'all' || 
-        (availableSongFilters.durationFilter === 'short' && safeDuration(song.duration) < 3) ||
-        (availableSongFilters.durationFilter === 'medium' && safeDuration(song.duration) >= 3 && safeDuration(song.duration) < 6) ||
-        (availableSongFilters.durationFilter === 'long' && safeDuration(song.duration) >= 6);
+      const durationMatch = durationFilter === 'all' || 
+        (durationFilter === 'short' && safeDuration(song.duration) < 3) ||
+        (durationFilter === 'medium' && safeDuration(song.duration) >= 3 && safeDuration(song.duration) < 6) ||
+        (durationFilter === 'long' && safeDuration(song.duration) >= 6);
 
       // Tag filter
       const tagMatch = !availableSongFilters.selectedTags || 
         availableSongFilters.selectedTags.length === 0 ||
         availableSongFilters.selectedTags.some(tag => song.tags && song.tags.includes(tag));
 
-      return searchMatch && languageMatch && keyMatch && bassMatch && 
+      const matches = searchMatch && languageMatch && keyMatch && bassMatch && 
              guitarMatch && vocalistMatch && backingTrackMatch && durationMatch && tagMatch;
+      
+      if (!matches) {
+        console.log('Song filtered out:', song.title, { searchMatch, languageMatch, keyMatch, bassMatch, guitarMatch, vocalistMatch, backingTrackMatch, durationMatch, tagMatch });
+      }
+      
+      return matches;
     });
   };
 
