@@ -10,7 +10,7 @@
     "lint": "next lint",
     "import-songs": "node scripts/import-songs.js",
     "cleanup-vocalist": "node scripts/cleanup-vocalist.js",
-    "update-durations": "node scripts/update-song-durations.js"
+    "setup-dev": "node scripts/setup-dev-db.js"
   },
   "dependencies": {
     "@upstash/redis": "^1.25.1",

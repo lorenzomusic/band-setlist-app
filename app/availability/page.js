@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '../../components/LanguageProvider';
 
 // Comment Modal Component
 function CommentModal({ isOpen, onClose, onSave, currentComment, memberName, date }) {
@@ -22,7 +23,7 @@ function CommentModal({ isOpen, onClose, onSave, currentComment, memberName, dat
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-apple shadow-apple p-6 w-full max-w-md mx-4">
         <h3 className="text-apple-title-3 text-primary mb-4">
-          Add Comment
+          {t('availability.addComment')}
         </h3>
         <p className="text-sm text-gray-600 mb-4">
           Comment for {memberName} on {new Date(date).toLocaleDateString()}
@@ -55,6 +56,7 @@ function CommentModal({ isOpen, onClose, onSave, currentComment, memberName, dat
 }
 
 export default function AvailabilityPage() {
+  const { t } = useLanguage();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [members, setMembers] = useState([]);
   const [availability, setAvailability] = useState([]);

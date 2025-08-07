@@ -11,8 +11,10 @@ import AppleMetadataBadge from './ui/AppleMetadataBadge';
 import { safeDuration } from '../utils/duration';
 import { getMedleysFromSongs, getMedleyStats, organizeSetByMedleys, flattenOrganizedSet } from '../utils/medley';
 import AppleSearchInput from './ui/AppleSearchInput';
+import { useLanguage } from './LanguageProvider';
 
 export default function SetBuilder({ songs: propSongs }) {
+  const { t } = useLanguage();
   const [songs, setSongs] = useState([]);
   const [sets, setSets] = useState([]);
   const [activeSet, setActiveSet] = useState(null);
@@ -820,8 +822,8 @@ export default function SetBuilder({ songs: propSongs }) {
       {/* Header */}
       <div className="bg-white rounded-apple shadow-apple overflow-hidden">
         <div className="px-8 pt-8 pb-6 bg-gradient-to-r from-blue-50 to-purple-50">
-          <h1 className="text-apple-title-1 text-primary mb-2">🎼 Set Builder</h1>
-          <p className="text-apple-body text-secondary">Create reusable sets that you can use in multiple gigs</p>
+          <h1 className="text-apple-title-1 text-primary mb-2">🎼 {t('sets.title')}</h1>
+          <p className="text-apple-body text-secondary">{t('sets.subtitle')}</p>
         </div>
       </div>
 
@@ -833,7 +835,7 @@ export default function SetBuilder({ songs: propSongs }) {
             <div className="flex items-center space-x-4">
               <div className="w-64">
                 <AppleSearchInput
-                  placeholder="Search sets..."
+                  placeholder={t('sets.searchSets')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -844,28 +846,28 @@ export default function SetBuilder({ songs: propSongs }) {
                   value={durationFilter}
                   onChange={(e) => setDurationFilter(e.target.value)}
                 >
-                  <option value="all">All Durations</option>
-                  <option value="short">Under 30 min</option>
-                  <option value="medium">30-60 min</option>
-                  <option value="long">Over 60 min</option>
+                  <option value="all">{t('sets.allDurations')}</option>
+                  <option value="short">{t('sets.under30min')}</option>
+                  <option value="medium">{t('sets.30to60min')}</option>
+                  <option value="long">{t('sets.over60min')}</option>
                 </select>
               </div>
             </div>
             <AppleButton onClick={() => setShowNewSetForm(true)}>
-              ➕ Create New Set
+              ➕ {t('sets.createNewSet')}
             </AppleButton>
           </div>
 
           {/* Create New Set Form */}
           {showNewSetForm && (
             <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <h4 className="font-medium text-blue-800 mb-3">Create New Set</h4>
+              <h4 className="font-medium text-blue-800 mb-3">{t('sets.createNewSet')}</h4>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={newSetName}
                   onChange={(e) => setNewSetName(e.target.value)}
-                  placeholder="Set name (e.g., 'High Energy Openers', 'Wedding Dance Hits')"
+                  placeholder={t('sets.setNamePlaceholder')}
                   className="flex-1 apple-input"
                   onKeyPress={(e) => e.key === 'Enter' && createSet()}
                 />
@@ -917,7 +919,7 @@ export default function SetBuilder({ songs: propSongs }) {
               <div className="text-center py-12">
                 <div className="text-3xl opacity-30 mb-2">🔍</div>
                 <p className="text-apple-body text-secondary">
-                  {(searchTerm || durationFilter !== 'all') ? 'No sets found matching your filters' : 'No sets yet'}
+                  {(searchTerm || durationFilter !== 'all') ? t('sets.noSetsMatchingFilters') : t('sets.noSets')}
                 </p>
                 {!searchTerm && durationFilter === 'all' && (
                   <p className="text-apple-callout text-secondary mt-1">Create your first set to get started</p>

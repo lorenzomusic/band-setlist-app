@@ -8,8 +8,10 @@ import AppleSearchInput from './ui/AppleSearchInput';
 import AppleMetadataBadge from './ui/AppleMetadataBadge';
 import AddSongForm from './AddSongForm';
 import EditSongForm from './EditSongForm';
+import { useLanguage } from './LanguageProvider';
 
 export default function SongManager() {
+  const { t } = useLanguage();
   const [songs, setSongs] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLanguage, setFilterLanguage] = useState('all');
@@ -103,7 +105,7 @@ export default function SongManager() {
       {/* Header */}
       <div className="bg-white rounded-apple shadow-apple overflow-hidden">
         <div className="px-8 pt-8 pb-6 bg-gradient-to-r from-blue-50 to-purple-50">
-          <h1 className="text-apple-title-1 text-primary mb-2">📚 Song Library</h1>
+          <h1 className="text-apple-title-1 text-primary mb-2">📚 {t('songs.title')}</h1>
           <p className="text-apple-body text-secondary">Manage your song collection</p>
         </div>
       </div>
@@ -115,13 +117,13 @@ export default function SongManager() {
           <div className="flex justify-between items-center apple-section-spacing">
             <div className="w-64">
               <AppleSearchInput
-                placeholder="Search songs..."
+                placeholder={t('songs.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <AppleButton onClick={() => setShowAddForm(!showAddForm)}>
-              {showAddForm ? 'Cancel' : 'Add New Song'}
+              {showAddForm ? t('common.cancel') : t('songs.addNewSong')}
             </AppleButton>
           </div>
 
@@ -149,26 +151,26 @@ export default function SongManager() {
           {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 apple-section-spacing">
             <div>
-              <label className="apple-label">Language</label>
+              <label className="apple-label">{t('songs.language')}</label>
               <select
                 className="apple-input"
                 value={filterLanguage}
                 onChange={(e) => setFilterLanguage(e.target.value)}
               >
-                <option value="all">All Languages</option>
+                <option value="all">{t('songs.all')} {t('songs.language')}</option>
                 <option value="english">English</option>
                 <option value="danish">Danish</option>
               </select>
             </div>
             
             <div>
-              <label className="apple-label">Vocalist</label>
+              <label className="apple-label">{t('songs.vocalist')}</label>
               <select
                 className="apple-input"
                 value={filterVocalist}
                 onChange={(e) => setFilterVocalist(e.target.value)}
               >
-                <option value="all">All Vocalists</option>
+                <option value="all">{t('songs.all')} {t('songs.vocalist')}</option>
                 <option value="Rikke">Rikke</option>
                 <option value="Lorentz">Lorentz</option>
                 <option value="Both">Both</option>
@@ -179,13 +181,13 @@ export default function SongManager() {
           {/* Songs List */}
           {isLoading ? (
             <div className="text-center py-12">
-              <div className="apple-loading">Loading songs...</div>
+              <div className="apple-loading">{t('common.loading')}</div>
             </div>
           ) : (
             <div className="space-y-3">
               {filteredSongs.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-gray-500">No songs found</p>
+                  <p className="text-gray-500">{t('songs.noSongsFound')}</p>
                 </div>
               ) : (
                 filteredSongs.map((song, index) => (
@@ -223,7 +225,7 @@ export default function SongManager() {
                           size="sm"
                           onClick={() => setEditingSong(song)}
                         >
-                          Edit
+                          {t('songs.edit')}
                         </AppleButton>
                       </div>
                     </div>
@@ -234,25 +236,25 @@ export default function SongManager() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {/* Basic Info */}
                           <div>
-                            <h4 className="font-medium text-gray-800 mb-2">Basic Information</h4>
+                            <h4 className="font-medium text-gray-800 mb-2">{t('songs.basicInfo')}</h4>
                             <div className="space-y-2 text-sm">
-                              <div><span className="font-medium">Title:</span> {song.title}</div>
-                              <div><span className="font-medium">Artist:</span> {song.artist}</div>
-                              <div><span className="font-medium">Duration:</span> {song.duration || 'Not set'}</div>
-                              <div><span className="font-medium">Language:</span> {song.language === 'english' ? 'English 🇬🇧' : 'Danish 🇩🇰'}</div>
-                              <div><span className="font-medium">Vocalist:</span> {song.vocalist}</div>
+                              <div><span className="font-medium">{t('songs.title')}:</span> {song.title}</div>
+                              <div><span className="font-medium">{t('songs.artist')}:</span> {song.artist}</div>
+                              <div><span className="font-medium">{t('songs.duration')}:</span> {song.duration || t('songs.notSet')}</div>
+                              <div><span className="font-medium">{t('songs.language')}:</span> {song.language === 'english' ? 'English 🇬🇧' : 'Danish 🇩🇰'}</div>
+                              <div><span className="font-medium">{t('songs.vocalist')}:</span> {song.vocalist}</div>
                             </div>
                           </div>
                           
                           {/* Musical Details */}
                           <div>
-                            <h4 className="font-medium text-gray-800 mb-2">Musical Details</h4>
+                            <h4 className="font-medium text-gray-800 mb-2">{t('songs.musicalDetails')}</h4>
                             <div className="space-y-2 text-sm">
-                              <div><span className="font-medium">Key:</span> {song.key || 'Not set'}</div>
-                              <div><span className="font-medium">BPM:</span> {song.bpm || 'Not set'}</div>
-                              <div><span className="font-medium">Bass Guitar:</span> {song.bassGuitar || 'Not set'}</div>
-                              <div><span className="font-medium">Guitar:</span> {song.guitar || 'Not set'}</div>
-                              <div><span className="font-medium">Backing Track:</span> {song.backingTrack ? 'Yes' : 'No'}</div>
+                              <div><span className="font-medium">{t('songs.key')}:</span> {song.key || t('songs.notSet')}</div>
+                              <div><span className="font-medium">{t('songs.bpm')}:</span> {song.bpm || t('songs.notSet')}</div>
+                              <div><span className="font-medium">{t('songs.bassGuitar')}:</span> {song.bassGuitar || t('songs.notSet')}</div>
+                              <div><span className="font-medium">{t('songs.guitar')}:</span> {song.guitar || t('songs.notSet')}</div>
+                              <div><span className="font-medium">{t('songs.backingTrack')}:</span> {song.backingTrack ? t('songs.yes') : t('songs.no')}</div>
                             </div>
                           </div>
                           

@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import DurationUpdateTool from '../../components/DurationUpdateTool';
 import SpotifyIntegration from '../../components/SpotifyIntegration';
 import UserManagementTab from '../../components/UserManagementTab';
+import { useLanguage } from '../../components/LanguageProvider';
 
 export default function AdminPage() {
+  const { t } = useLanguage();
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('durations');
+  const [activeTab, setActiveTab] = useState('spotify');
 
   // Load songs
   useEffect(() => {
@@ -73,7 +74,7 @@ export default function AdminPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-blue border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading admin panel...</p>
+          <p className="text-gray-600">{t('admin.loadingAdminPanel')}</p>
         </div>
       </div>
     );
@@ -85,8 +86,8 @@ export default function AdminPage() {
         {/* Header */}
         <div className="bg-white rounded-apple shadow-apple overflow-hidden">
           <div className="px-8 pt-8 pb-6 bg-gradient-to-r from-purple-50 to-blue-50">
-            <h1 className="text-apple-title-1 text-primary mb-2">⚙️ Admin Panel</h1>
-            <p className="text-apple-body text-secondary">Manage your song database and app settings</p>
+            <h1 className="text-apple-title-1 text-primary mb-2">⚙️ {t('admin.title')}</h1>
+            <p className="text-apple-body text-secondary">{t('admin.subtitle')}</p>
           </div>
         </div>
 
@@ -98,7 +99,7 @@ export default function AdminPage() {
                 <span className="text-2xl">🎵</span>
               </div>
               <div className="ml-4">
-                <p className="text-gray-600 text-sm">Total Songs</p>
+                <p className="text-gray-600 text-sm">{t('admin.totalSongs')}</p>
                 <p className="text-2xl font-bold text-primary">{songs.length}</p>
               </div>
             </div>
@@ -110,7 +111,7 @@ export default function AdminPage() {
                 <span className="text-2xl">⏱️</span>
               </div>
               <div className="ml-4">
-                <p className="text-gray-600 text-sm">With Durations</p>
+                <p className="text-gray-600 text-sm">{t('admin.withDurations')}</p>
                 <p className="text-2xl font-bold text-green-600">{songsWithDurations}</p>
               </div>
             </div>
@@ -122,7 +123,7 @@ export default function AdminPage() {
                 <span className="text-2xl">🎧</span>
               </div>
               <div className="ml-4">
-                <p className="text-gray-600 text-sm">Spotify URLs</p>
+                <p className="text-gray-600 text-sm">{t('admin.spotifyUrls')}</p>
                 <p className="text-2xl font-bold text-green-600">{songsWithSpotifyUrl}</p>
               </div>
             </div>
@@ -134,7 +135,7 @@ export default function AdminPage() {
                 <span className="text-2xl">❌</span>
               </div>
               <div className="ml-4">
-                <p className="text-gray-600 text-sm">Missing Data</p>
+                <p className="text-gray-600 text-sm">{t('admin.missingData')}</p>
                 <p className="text-2xl font-bold text-red-600">{songsWithoutDurations + songsWithoutSpotifyUrl}</p>
               </div>
             </div>
@@ -145,16 +146,6 @@ export default function AdminPage() {
         <div className="bg-white rounded-apple shadow-apple overflow-hidden">
           <div className="border-b border-gray-200">
             <nav className="flex">
-              <button
-                onClick={() => setActiveTab('durations')}
-                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'durations'
-                    ? 'border-blue text-blue bg-blue-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                ⏱️ Duration Updates
-              </button>
               <button
                 onClick={() => setActiveTab('spotify')}
                 className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
@@ -209,13 +200,6 @@ export default function AdminPage() {
           </div>
 
           <div className="p-6">
-            {activeTab === 'durations' && (
-              <DurationUpdateTool 
-                songs={songs} 
-                onSongsUpdated={handleSongsUpdated} 
-              />
-            )}
-
             {activeTab === 'spotify' && (
               <SpotifyIntegration 
                 songs={songs} 

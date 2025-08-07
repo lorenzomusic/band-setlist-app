@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../components/AuthProvider';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '../../components/LanguageProvider';
 
 export default function ProfilePage() {
   const { user, isAuthenticated, logout } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -100,10 +102,10 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-apple-title-1 text-primary">Profile</h1>
+        <h1 className="text-apple-title-1 text-primary">{t('profile.title')}</h1>
         <div className="text-center py-8">
           <div className="animate-spin w-8 h-8 border-4 border-blue border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
+          <p className="text-gray-600">{t('profile.loadingProfile')}</p>
         </div>
       </div>
     );
@@ -115,7 +117,7 @@ export default function ProfilePage() {
       
       {/* User Information */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h2 className="text-apple-title-2 text-primary mb-4">Account Information</h2>
+        <h2 className="text-apple-title-2 text-primary mb-4">{t('profile.accountInfo')}</h2>
         {userInfo && (
           <div className="space-y-3">
             <div className="flex items-center space-x-3">
@@ -171,7 +173,7 @@ export default function ProfilePage() {
 
       {/* Change Password */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h2 className="text-apple-title-2 text-primary mb-4">Change Password</h2>
+        <h2 className="text-apple-title-2 text-primary mb-4">{t('profile.changePassword')}</h2>
         
         {message.text && (
           <div className={`mb-4 p-3 rounded-lg text-sm ${

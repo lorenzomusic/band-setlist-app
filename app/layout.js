@@ -1,6 +1,7 @@
 import './globals.css'
 import AppleLayout from '../components/AppleLayout'
 import { AuthProvider } from '../components/AuthProvider'
+import { LanguageProvider } from '../components/LanguageProvider'
 
 export const metadata = {
   title: 'Greatest Gig - Band Management',
@@ -11,11 +12,13 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <AuthProvider>
-          <AppleLayout>
-            {children}
-          </AppleLayout>
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <AppleLayout>
+              {children}
+            </AppleLayout>
+          </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   )
