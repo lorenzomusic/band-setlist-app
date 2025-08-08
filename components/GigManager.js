@@ -891,7 +891,7 @@ export default function GigManager() {
                                         <div>
                                           <div className="text-sm font-medium">{song.title}</div>
                                           <div className="text-xs text-gray-500">
-                                            {song.artist ? `by ${song.artist}` : 'Artist not specified'}
+                                            {song.artist && song.artist.toString().trim() !== '' ? `by ${song.artist}` : 'Artist not specified'}
                                           </div>
                                         </div>
                                       </div>

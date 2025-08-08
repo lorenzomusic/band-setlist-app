@@ -1290,7 +1290,7 @@ export default function SetBuilder({ songs: propSongs }) {
                                           <div className="flex-1">
                                             <div className="text-apple-body text-primary font-medium">{song.title}</div>
                                             <div className="text-apple-callout text-secondary">
-                                              {song.artist ? `by ${song.artist}` : 'Artist not specified'}
+                                              {song.artist && song.artist.toString().trim() !== '' ? `by ${song.artist}` : 'Artist not specified'}
                                             </div>
                                           </div>
                                         </div>
@@ -1371,7 +1371,7 @@ export default function SetBuilder({ songs: propSongs }) {
                                   <div className="flex-1">
                                     <div className="text-apple-body text-primary font-medium">{item.title}</div>
                                     <div className="text-apple-callout text-secondary">
-                                      {item.artist ? `by ${item.artist}` : 'Artist not specified'}
+                                      {item.artist && item.artist.toString().trim() !== '' ? `by ${item.artist}` : 'Artist not specified'}
                                     </div>
                                   </div>
                                 </div>
