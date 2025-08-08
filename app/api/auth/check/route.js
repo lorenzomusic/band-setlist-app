@@ -40,9 +40,10 @@ export async function GET(request) {
   try {
     const { authenticated, session } = await verifySession(request);
     
-    // Check if there are any users in the system
+    // Check if there are any users in the system (including admin)
     const users = await redis.get(createKey('users')) || [];
-    const hasUsers = users.length > 0;
+    const authConfig = await redis.get(createKey('auth_config'));
+    const hasUsers = users.length > 0 || authConfig !== null;
     
     if (authenticated) {
       return NextResponse.json({
