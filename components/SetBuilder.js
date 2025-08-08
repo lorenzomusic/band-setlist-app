@@ -96,8 +96,6 @@ export default function SetBuilder({ songs: propSongs }) {
       metadata: {}
     };
     
-    console.log('Creating new set:', newSet);
-    
     try {
       const response = await fetch('/api/sets', {
         method: 'POST',
@@ -107,7 +105,6 @@ export default function SetBuilder({ songs: propSongs }) {
 
       if (response.ok) {
         const apiResponse = await response.json();
-        console.log('API Response:', apiResponse);
         
         // FIXED: Extract the actual set from the API response
         const createdSet = apiResponse.set || apiResponse; // Handle both response formats
@@ -116,9 +113,6 @@ export default function SetBuilder({ songs: propSongs }) {
         if (!createdSet.songs) {
           createdSet.songs = [];
         }
-        
-        console.log('Actual set data:', createdSet);
-        console.log('New set created and activated');
         
         // Add to sets array
         setSets(prev => [...prev, createdSet]);
@@ -313,12 +307,9 @@ export default function SetBuilder({ songs: propSongs }) {
 
   // Get available songs (songs not in the current set)
   const getAvailableSongs = () => {
-    console.log('getAvailableSongs called:', { songsLength: songs?.length, activeSet: !!activeSet });
     if (!songs || songs.length === 0) return [];
     if (!activeSet) return songs;
-    const filtered = songs.filter(song => !(activeSet?.songs || []).some(setSong => setSong.id === song.id));
-    console.log('getAvailableSongs result:', { total: songs.length, filtered: filtered.length });
-    return filtered;
+    return songs.filter(song => !(activeSet?.songs || []).some(setSong => setSong.id === song.id));
   };
 
   // Get available medleys (medleys not fully in the current set)
@@ -545,7 +536,6 @@ export default function SetBuilder({ songs: propSongs }) {
   // Comprehensive filtering function
   const getFilteredAvailableSongs = () => {
     const availableSongs = getAvailableSongs();
-    console.log('getFilteredAvailableSongs:', { availableSongsLength: availableSongs?.length, filters: availableSongFilters, durationFilter });
     
     if (!availableSongs || availableSongs.length === 0) return [];
     
@@ -591,14 +581,8 @@ export default function SetBuilder({ songs: propSongs }) {
         availableSongFilters.selectedTags.length === 0 ||
         availableSongFilters.selectedTags.some(tag => song.tags && song.tags.includes(tag));
 
-      const matches = searchMatch && languageMatch && keyMatch && bassMatch && 
+      return searchMatch && languageMatch && keyMatch && bassMatch && 
              guitarMatch && vocalistMatch && backingTrackMatch && durationMatch && tagMatch;
-      
-      if (!matches) {
-        console.log('Song filtered out:', song.title, { searchMatch, languageMatch, keyMatch, bassMatch, guitarMatch, vocalistMatch, backingTrackMatch, durationMatch, tagMatch });
-      }
-      
-      return matches;
     });
   };
 
@@ -1078,7 +1062,6 @@ export default function SetBuilder({ songs: propSongs }) {
                               if (response.ok) {
                                 setActiveSet(updatedSet);
                                 setSets(prev => prev.map(s => s.id === activeSet.id ? updatedSet : s));
-                                console.log('Added song:', song.title);
                               } else {
                                 alert('Failed to save set. Please try again.');
                               }
@@ -1092,7 +1075,7 @@ export default function SetBuilder({ songs: propSongs }) {
                             {song.title}
                           </div>
                           <div className="text-apple-callout text-secondary">
-                            {song.artist} • {song.key} • {song.duration}
+                            {song.artist || 'No artist'} • {song.key} • {song.duration}
                           </div>
                         </div>
                       ))
@@ -1290,7 +1273,7 @@ export default function SetBuilder({ songs: propSongs }) {
                                           <div className="flex-1">
                                             <div className="text-apple-body text-primary font-medium">{song.title}</div>
                                             <div className="text-apple-callout text-secondary">
-                                              {song.artist && song.artist.toString().trim() !== '' ? `by ${song.artist}` : 'Artist not specified'}
+                                              {song.artist ? `by ${song.artist}` : `Artist not specified (${JSON.stringify(song.artist)})`}
                                             </div>
                                           </div>
                                         </div>
@@ -1369,20 +1352,20 @@ export default function SetBuilder({ songs: propSongs }) {
                                 <div className="flex items-center space-x-3 flex-1">
                                   <span className="text-xs text-gray-600 w-8 text-center font-mono bg-gray-100 rounded px-1">#{index + 1}</span>
                                   <div className="flex-1">
-                                    <div className="text-apple-body text-primary font-medium">{item.title}</div>
+                                    <div className="text-apple-body text-primary font-medium">{item.song?.title || item.title}</div>
                                     <div className="text-apple-callout text-secondary">
-                                      {item.artist && item.artist.toString().trim() !== '' ? `by ${item.artist}` : 'Artist not specified'}
+                                      {(item.song?.artist || item.artist) ? `by ${item.song?.artist || item.artist}` : 'Artist not specified'}
                                     </div>
                                   </div>
                                 </div>
                                 
                                 <div className="flex items-center space-x-2">
                                   <button
-                                    onClick={() => toggleSongExpansion(item.id)}
+                                    onClick={() => toggleSongExpansion(item.song?.id || item.id)}
                                     className="text-gray-500 hover:text-gray-700 transition-colors p-1"
-                                    title={expandedSongs.has(item.id) ? 'Collapse details' : 'Expand details'}
+                                    title={expandedSongs.has(item.song?.id || item.id) ? 'Collapse details' : 'Expand details'}
                                   >
-                                    {expandedSongs.has(item.id) ? '▼' : '▶'}
+                                    {expandedSongs.has(item.song?.id || item.id) ? '▼' : '▶'}
                                   </button>
                                   
                                   <div className="flex items-center space-x-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
@@ -1411,7 +1394,7 @@ export default function SetBuilder({ songs: propSongs }) {
                                       ↓
                                     </button>
                                     <button
-                                      onClick={() => removeSongFromSet(item.id)}
+                                      onClick={() => removeSongFromSet(item.song?.id || item.id)}
                                       className="w-9 h-9 md:w-8 md:h-8 lg:w-6 lg:h-6 rounded flex items-center justify-center text-sm md:text-xs bg-white text-red-600 hover:bg-red-100 active:bg-red-200 shadow-sm transition-all"
                                       title="Remove song from set"
                                     >
@@ -1422,18 +1405,18 @@ export default function SetBuilder({ songs: propSongs }) {
                               </div>
                               
                               {/* Expanded Song Details */}
-                              {expandedSongs.has(item.id) && (
+                              {expandedSongs.has(item.song?.id || item.id) && (
                                 <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200 animate-fade-in">
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                     <div>
-                                      <div><span className="font-medium">Key:</span> {item.key || 'Not set'}</div>
-                                      <div><span className="font-medium">BPM:</span> {item.bpm || 'Not set'}</div>
-                                      <div><span className="font-medium">Duration:</span> {item.duration || 'Not set'}</div>
+                                      <div><span className="font-medium">Key:</span> {(item.song?.key || item.key) || 'Not set'}</div>
+                                      <div><span className="font-medium">BPM:</span> {(item.song?.bpm || item.bpm) || 'Not set'}</div>
+                                      <div><span className="font-medium">Duration:</span> {(item.song?.duration || item.duration) || 'Not set'}</div>
                                     </div>
                                     <div>
-                                      <div><span className="font-medium">Bass:</span> {item.bassGuitar || 'Not set'}</div>
-                                      <div><span className="font-medium">Guitar:</span> {item.guitar || 'Not set'}</div>
-                                      <div><span className="font-medium">Backing Track:</span> {item.backingTrack ? 'Yes' : 'No'}</div>
+                                      <div><span className="font-medium">Bass:</span> {(item.song?.bassGuitar || item.bassGuitar) || 'Not set'}</div>
+                                      <div><span className="font-medium">Guitar:</span> {(item.song?.guitar || item.guitar) || 'Not set'}</div>
+                                      <div><span className="font-medium">Backing Track:</span> {(item.song?.backingTrack || item.backingTrack) ? 'Yes' : 'No'}</div>
                                     </div>
                                   </div>
                                 </div>
