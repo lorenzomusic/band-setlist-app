@@ -35,6 +35,8 @@ body {
 .text-secondary { color: #86868b; }
 .text-blue { color: #007aff; }
 .bg-blue { background: #007aff; }
+.bg-blue-600 { background: #007aff; }
+.hover\:bg-blue-700:hover { background: #0056b3; }
 .bg-panel { background: #ffffff; }
 .bg-secondary:hover { background: #7c7c81; }
 .border-apple { border-color: rgba(0, 0, 0, 0.1); }

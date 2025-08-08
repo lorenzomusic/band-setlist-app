@@ -426,7 +426,8 @@ export default function AddSongForm({ onSongAdded, onCancel }) {
           <button
             type="submit"
             disabled={saving}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            className="px-6 py-2 bg-blue text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            style={{ backgroundColor: '#007aff' }}
           >
             {saving ? (
               <>
