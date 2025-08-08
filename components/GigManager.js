@@ -890,7 +890,9 @@ export default function GigManager() {
                                         <span className="text-xs text-gray-600 w-6 text-center font-mono bg-gray-100 rounded px-1">#{songIndex + 1}</span>
                                         <div>
                                           <div className="text-sm font-medium">{song.title}</div>
-                                          <div className="text-xs text-gray-500">by {song.artist}</div>
+                                          <div className="text-xs text-gray-500">
+                                            {song.artist ? `by ${song.artist}` : 'Artist not specified'}
+                                          </div>
                                         </div>
                                       </div>
                                       

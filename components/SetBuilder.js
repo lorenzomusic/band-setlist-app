@@ -1289,7 +1289,9 @@ export default function SetBuilder({ songs: propSongs }) {
                                           <span className="text-xs text-purple-600 w-8 text-center font-mono bg-purple-100 rounded px-1">#{song.medleyPosition || songIndex + 1}</span>
                                           <div className="flex-1">
                                             <div className="text-apple-body text-primary font-medium">{song.title}</div>
-                                            <div className="text-apple-callout text-secondary">by {song.artist}</div>
+                                            <div className="text-apple-callout text-secondary">
+                                              {song.artist ? `by ${song.artist}` : 'Artist not specified'}
+                                            </div>
                                           </div>
                                         </div>
                                         
@@ -1368,7 +1370,9 @@ export default function SetBuilder({ songs: propSongs }) {
                                   <span className="text-xs text-gray-600 w-8 text-center font-mono bg-gray-100 rounded px-1">#{index + 1}</span>
                                   <div className="flex-1">
                                     <div className="text-apple-body text-primary font-medium">{item.title}</div>
-                                    <div className="text-apple-callout text-secondary">by {item.artist}</div>
+                                    <div className="text-apple-callout text-secondary">
+                                      {item.artist ? `by ${item.artist}` : 'Artist not specified'}
+                                    </div>
                                   </div>
                                 </div>
                                 

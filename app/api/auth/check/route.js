@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
+import { config, createKey } from '../../../../lib/config';
 
 const redis = new Redis({
-  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
+  url: config.redis.url,
+  token: config.redis.token,
 });
 
 // Verify session
@@ -15,7 +16,7 @@ async function verifySession(request) {
       return { authenticated: false, session: null };
     }
     
-    const sessionData = await redis.get(`session:${sessionToken}`);
+    const sessionData = await redis.get(createKey(`session:${sessionToken}`));
     
     if (!sessionData) {
       return { authenticated: false, session: null };
@@ -23,7 +24,7 @@ async function verifySession(request) {
     
     // Check if session has expired
     if (new Date() > new Date(sessionData.expiresAt)) {
-      await redis.del(`session:${sessionToken}`);
+      await redis.del(createKey(`session:${sessionToken}`));
       return { authenticated: false, session: null };
     }
     
@@ -40,7 +41,7 @@ export async function GET(request) {
     const { authenticated, session } = await verifySession(request);
     
     // Check if there are any users in the system
-    const users = await redis.get('users') || [];
+    const users = await redis.get(createKey('users')) || [];
     const hasUsers = users.length > 0;
     
     if (authenticated) {

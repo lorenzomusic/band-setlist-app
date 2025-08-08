@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import crypto from 'crypto';
+import { config, createKey } from '../../../../lib/config';
 
 const redis = new Redis({
-  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
+  url: config.redis.url,
+  token: config.redis.token,
 });
 
 // Hash password with salt
@@ -26,8 +27,8 @@ export async function POST(request) {
     }
 
     // Check if this is the first time setup (admin only)
-    const existingAuth = await redis.get('auth_config');
-    const users = await redis.get('users') || [];
+    const existingAuth = await redis.get(createKey('auth_config'));
+    const users = await redis.get(createKey('users')) || [];
     
     if (!existingAuth && users.length === 0) {
       // First time setup - create admin account
@@ -41,7 +42,7 @@ export async function POST(request) {
         lastLogin: null
       };
       
-      await redis.set('auth_config', authConfig);
+      await redis.set(createKey('auth_config'), authConfig);
       
       // Create session
       const sessionToken = generateSessionToken();
@@ -54,7 +55,7 @@ export async function POST(request) {
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       };
       
-      await redis.set(`session:${sessionToken}`, sessionData, { ex: 24 * 60 * 60 });
+      await redis.set(createKey(`session:${sessionToken}`), sessionData, { ex: 24 * 60 * 60 });
       
       const response = NextResponse.json({ 
         success: true, 
@@ -83,7 +84,7 @@ export async function POST(request) {
       
       if (hashedPassword === existingAuth.passwordHash) {
         // Update last login
-        await redis.set('auth_config', {
+        await redis.set(createKey('auth_config'), {
           ...existingAuth,
           lastLogin: new Date().toISOString()
         });
@@ -99,7 +100,7 @@ export async function POST(request) {
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
         };
         
-        await redis.set(`session:${sessionToken}`, sessionData, { ex: 24 * 60 * 60 });
+        await redis.set(createKey(`session:${sessionToken}`), sessionData, { ex: 24 * 60 * 60 });
         
         const response = NextResponse.json({ 
           success: true, 
@@ -141,7 +142,7 @@ export async function POST(request) {
     const updatedUsers = users.map(u => 
       u.id === user.id ? { ...u, lastLogin: new Date().toISOString() } : u
     );
-    await redis.set('users', updatedUsers);
+    await redis.set(createKey('users'), updatedUsers);
 
     // Create session
     const sessionToken = generateSessionToken();
