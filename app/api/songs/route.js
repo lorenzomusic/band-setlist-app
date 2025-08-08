@@ -1,18 +1,19 @@
-import { Redis } from '@upstash/redis'
+import { Redis } from '@upstash/redis';
+import { config, createKey } from '../../../lib/config';
 
 const redis = new Redis({
-  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
+  url: config.redis.url,
+  token: config.redis.token,
 });
 
 export async function GET() {
   try {
     let songs;
     try {
-      songs = await redis.get('songs');
+      songs = await redis.get(createKey('songs'));
     } catch (error) {
       console.log('Redis data type conflict in GET, clearing corrupted data...');
-      await redis.del('songs');
+      await redis.del(createKey('songs'));
       songs = null;
     }
     
@@ -55,10 +56,10 @@ export async function POST(request) {
     // Get existing songs with error handling
     let songs;
     try {
-      songs = await redis.get('songs');
+      songs = await redis.get(createKey('songs'));
     } catch (error) {
       console.log('Redis data type conflict in POST, clearing corrupted data...');
-      await redis.del('songs');
+      await redis.del(createKey('songs'));
       songs = null;
     }
     
@@ -91,7 +92,7 @@ export async function POST(request) {
       songWithId.medleyPosition = null;
     }
     songsArray.push(songWithId);
-    await redis.set('songs', songsArray);
+    await redis.set(createKey('songs'), songsArray);
     return Response.json(songWithId, { status: 201 });
   } catch (error) {
     console.error('Error creating song:', error);
@@ -121,10 +122,10 @@ export async function PUT(request) {
     // Get existing songs with error handling
     let songs;
     try {
-      songs = await redis.get('songs');
+      songs = await redis.get(createKey('songs'));
     } catch (error) {
       console.log('Redis data type conflict in PUT, clearing corrupted data...');
-      await redis.del('songs');
+      await redis.del(createKey('songs'));
       songs = null;
     }
     
@@ -163,7 +164,7 @@ export async function PUT(request) {
     }
 
     songsArray[songIndex] = updatedSong;
-    await redis.set('songs', songsArray);
+    await redis.set(createKey('songs'), songsArray);
     return Response.json(updatedSong);
   } catch (error) {
     console.error('Error updating song:', error);
@@ -183,10 +184,10 @@ export async function DELETE(request) {
     // Get existing songs with error handling
     let songs;
     try {
-      songs = await redis.get('songs');
+      songs = await redis.get(createKey('songs'));
     } catch (error) {
       console.log('Redis data type conflict in DELETE, clearing corrupted data...');
-      await redis.del('songs');
+      await redis.del(createKey('songs'));
       songs = null;
     }
     
@@ -199,7 +200,7 @@ export async function DELETE(request) {
 
     // Remove the song
     songsArray.splice(songIndex, 1);
-    await redis.set('songs', songsArray);
+    await redis.set(createKey('songs'), songsArray);
     
     return Response.json({ message: 'Song deleted successfully' });
   } catch (error) {

@@ -1,13 +1,14 @@
-import { Redis } from '@upstash/redis'
+import { Redis } from '@upstash/redis';
+import { config, createKey } from '../../../lib/config';
 
 const redis = new Redis({
-  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
+  url: config.redis.url,
+  token: config.redis.token,
 });
 
 export async function GET() {
   try {
-    const sets = await redis.get('sets') || [];
+    const sets = await redis.get(createKey('sets')) || [];
     return Response.json(sets);
   } catch (error) {
     console.error('Error fetching sets:', error);
@@ -20,13 +21,13 @@ export async function POST(request) {
     const { name, songs, createdBy, metadata } = await request.json();
 
     // Get existing sets
-    const existingSets = await redis.get('sets') || [];
+    const existingSets = await redis.get(createKey('sets')) || [];
     
     // Generate unique ID
     const id = 'set_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     
     // Get all songs from database to resolve IDs if needed
-    const allSongs = await redis.get('songs') || [];
+    const allSongs = await redis.get(createKey('songs')) || [];
     const songMap = new Map(allSongs.map(song => [song.id, song]));
     
     // Handle both song ID arrays and full song objects
@@ -55,7 +56,7 @@ export async function POST(request) {
     };
 
     const updatedSets = [...existingSets, newSet];
-    await redis.set('sets', updatedSets);
+    await redis.set(createKey('sets'), updatedSets);
 
     return Response.json({ 
       success: true, 
@@ -74,12 +75,12 @@ export async function POST(request) {
 export async function PUT(request) {
   try {
     const updatedSet = await request.json();
-    const sets = await redis.get('sets') || [];
+    const sets = await redis.get(createKey('sets')) || [];
     
     const index = sets.findIndex(set => String(set.id) === String(updatedSet.id));
     if (index !== -1) {
       sets[index] = updatedSet;
-      await redis.set('sets', sets);
+      await redis.set(createKey('sets'), sets);
       return Response.json(updatedSet);
     } else {
       return Response.json({ error: 'Set not found' }, { status: 404 });
@@ -99,7 +100,7 @@ export async function DELETE(request) {
       return Response.json({ error: 'Set ID is required' }, { status: 400 });
     }
     
-    const sets = await redis.get('sets') || [];
+    const sets = await redis.get(createKey('sets')) || [];
     
     const filteredSets = sets.filter(set => String(set.id) !== String(id));
     
@@ -107,7 +108,7 @@ export async function DELETE(request) {
       return Response.json({ error: 'Set not found' }, { status: 404 });
     }
     
-    await redis.set('sets', filteredSets);
+    await redis.set(createKey('sets'), filteredSets);
     return Response.json({ message: 'Set deleted successfully' });
   } catch (error) {
     console.error('Error deleting set:', error);
