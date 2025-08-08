@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import TagInput from './TagInput';
 import InstrumentChangeIndicator from './InstrumentChangeIndicator';
 import SetupSummary from './SetupSummary';
@@ -36,21 +36,31 @@ export default function SetBuilder({ songs: propSongs }) {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [durationFilter, setDurationFilter] = useState('all');
+  const skipNextReorganize = useRef(false);
 
   // Load sets and songs on component mount
   useEffect(() => {
     loadSets();
   }, []);
 
-  // Add this effect to reorganize the set when songs change
-  useEffect(() => {
+  // Reorganize set helper function
+  const reorganizeActiveSet = useCallback(() => {
     if (activeSet && activeSet.songs) {
       const organized = organizeSetByMedleys(activeSet.songs);
       setOrganizedSet(organized);
     } else {
       setOrganizedSet([]);
     }
-  }, [activeSet?.songs]);
+  }, [activeSet]);
+
+  // Add this effect to reorganize the set when activeSet changes (switching sets or loading)
+  useEffect(() => {
+    if (skipNextReorganize.current) {
+      skipNextReorganize.current = false;
+      return;
+    }
+    reorganizeActiveSet();
+  }, [activeSet?.id, reorganizeActiveSet]);
 
   const loadSets = async () => {
     try {
@@ -454,6 +464,70 @@ export default function SetBuilder({ songs: propSongs }) {
       }
     } catch (error) {
       console.error('Error moving item:', error);
+    }
+  };
+
+  const handleMoveSongInMedley = async (medleyIndex, songIndex, direction) => {
+    const newOrganized = [...organizedSet];
+    const medley = newOrganized[medleyIndex];
+    
+    if (medley.type !== 'medley' || !medley.songs) return;
+    
+    const medleySongs = [...medley.songs];
+    let newSongIndex;
+    
+    switch (direction) {
+      case 'up':
+        newSongIndex = Math.max(0, songIndex - 1);
+        break;
+      case 'down':
+        newSongIndex = Math.min(medleySongs.length - 1, songIndex + 1);
+        break;
+      default:
+        return;
+    }
+    
+    // Don't move if already at boundary
+    if (newSongIndex === songIndex) return;
+    
+    // Move the song within the medley
+    const songToMove = medleySongs[songIndex];
+    medleySongs.splice(songIndex, 1);
+    medleySongs.splice(newSongIndex, 0, songToMove);
+    
+    // Update the medley in the organized set
+    newOrganized[medleyIndex] = {
+      ...medley,
+      songs: medleySongs
+    };
+    
+    // Update UI immediately
+    setOrganizedSet(newOrganized);
+    
+    // Convert back to flat song list and update server
+    const flatSongs = flattenOrganizedSet(newOrganized);
+    const updatedSet = { ...activeSet, songs: flatSongs };
+    
+    try {
+      const response = await fetch('/api/sets', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedSet)
+      });
+      
+      if (response.ok) {
+        // Skip the next reorganize since we already have the correct organized view
+        skipNextReorganize.current = true;
+        setActiveSet(updatedSet);
+        setSets(prev => prev.map(s => s.id === activeSet.id ? updatedSet : s));
+      } else {
+        // Revert UI change if save failed
+        reorganizeActiveSet();
+      }
+    } catch (error) {
+      console.error('Error moving song in medley:', error);
+      // Revert UI change if save failed
+      reorganizeActiveSet();
     }
   };
 
@@ -1062,6 +1136,9 @@ export default function SetBuilder({ songs: propSongs }) {
                               if (response.ok) {
                                 setActiveSet(updatedSet);
                                 setSets(prev => prev.map(s => s.id === activeSet.id ? updatedSet : s));
+                                // Manually reorganize after adding song
+                                const organized = organizeSetByMedleys(updatedSet.songs);
+                                setOrganizedSet(organized);
                               } else {
                                 alert('Failed to save set. Please try again.');
                               }
@@ -1096,37 +1173,26 @@ export default function SetBuilder({ songs: propSongs }) {
                           className="px-4 md:px-6 py-4 border-b border-gray-50 last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors duration-150 active:bg-gray-100"
                           onClick={() => handleAddMedley(medley)}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <h4 className="text-apple-body text-primary font-medium mb-1">{medley.name}</h4>
-                              <p className="text-apple-callout text-secondary mb-2">
-                                {medley.songCount} songs • {medley.totalDuration}m total
-                              </p>
-                              <div className="flex gap-2 mb-2 flex-wrap">
-                                {medley.languages.length > 0 && (
-                                  <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
-                                    {medley.languages.join(', ')}
-                                  </span>
-                                )}
-                                {medley.vocalists.length > 0 && (
-                                  <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
-                                    {medley.vocalists.join(', ')}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-xs text-gray-500 line-clamp-2">
-                                {medley.songs.map(song => song.title).join(' • ')}
-                              </div>
+                          <div className="flex-1">
+                            <h4 className="text-apple-body text-primary font-medium mb-1">{medley.name}</h4>
+                            <p className="text-apple-callout text-secondary mb-2">
+                              {medley.songCount} songs • {medley.totalDuration}m total
+                            </p>
+                            <div className="flex gap-2 mb-2 flex-wrap">
+                              {medley.languages.length > 0 && (
+                                <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
+                                  {medley.languages.join(', ')}
+                                </span>
+                              )}
+                              {medley.vocalists.length > 0 && (
+                                <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
+                                  {medley.vocalists.join(', ')}
+                                </span>
+                              )}
                             </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAddMedley(medley);
-                              }}
-                              className="ml-4 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex-shrink-0"
-                            >
-                              Add Medley
-                            </button>
+                            <div className="text-xs text-gray-500 line-clamp-2">
+                              {medley.songs.map(song => song.title).join(' • ')}
+                            </div>
                           </div>
                         </div>
                       ))
@@ -1289,7 +1355,7 @@ export default function SetBuilder({ songs: propSongs }) {
                                           
                                           <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
-                                              onClick={() => handleMoveItem(index, songIndex, 'up')}
+                                              onClick={() => handleMoveSongInMedley(index, songIndex, 'up')}
                                               disabled={songIndex === 0}
                                               className={`w-9 h-9 md:w-8 md:h-8 lg:w-6 lg:h-6 rounded flex items-center justify-center text-sm md:text-xs transition-all ${
                                                 songIndex === 0 
@@ -1301,7 +1367,7 @@ export default function SetBuilder({ songs: propSongs }) {
                                               ↑
                                             </button>
                                             <button
-                                              onClick={() => handleMoveItem(index, songIndex, 'down')}
+                                              onClick={() => handleMoveSongInMedley(index, songIndex, 'down')}
                                               disabled={songIndex === item.songs.length - 1}
                                               className={`w-9 h-9 md:w-8 md:h-8 lg:w-6 lg:h-6 rounded flex items-center justify-center text-sm md:text-xs transition-all ${
                                                 songIndex === item.songs.length - 1 
@@ -1370,7 +1436,7 @@ export default function SetBuilder({ songs: propSongs }) {
                                   
                                   <div className="flex items-center space-x-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                     <button
-                                      onClick={() => handleMoveItem(index, 0, 'up')}
+                                      onClick={() => handleMoveItem(index, 'up')}
                                       disabled={index === 0}
                                       className={`w-9 h-9 md:w-8 md:h-8 lg:w-6 lg:h-6 rounded flex items-center justify-center text-sm md:text-xs transition-all ${
                                         index === 0 
@@ -1382,7 +1448,7 @@ export default function SetBuilder({ songs: propSongs }) {
                                       ↑
                                     </button>
                                     <button
-                                      onClick={() => handleMoveItem(index, 0, 'down')}
+                                      onClick={() => handleMoveItem(index, 'down')}
                                       disabled={index === organizedSet.length - 1}
                                       className={`w-9 h-9 md:w-8 md:h-8 lg:w-6 lg:h-6 rounded flex items-center justify-center text-sm md:text-xs transition-all ${
                                         index === organizedSet.length - 1 
