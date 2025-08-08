@@ -514,83 +514,86 @@ export default function GigManager() {
     <div className="space-y-8">
       {/* Header */}
       <div className="bg-white rounded-apple shadow-apple overflow-hidden">
-        <div className="px-8 pt-8 pb-6 bg-gradient-to-r from-blue-50 to-purple-50">
-          <h1 className="text-apple-title-1 text-primary mb-2">🎤 Gig Manager</h1>
-          <p className="text-apple-body text-secondary">View and manage your upcoming gigs</p>
+        <div className="px-4 md:px-8 pt-6 md:pt-8 pb-4 md:pb-6 bg-gradient-to-r from-blue-50 to-purple-50">
+          <h1 className="text-lg md:text-apple-title-1 text-primary mb-2">🎤 Gig Manager</h1>
+          <p className="text-apple-callout md:text-apple-body text-secondary">View and manage your upcoming gigs</p>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="bg-white rounded-apple shadow-apple overflow-hidden">
-        <div className="px-8 py-6">
-          {/* Search and Actions */}
-          <div className="flex justify-between items-center apple-section-spacing">
-            <div className="flex items-center space-x-4">
-              <div className="w-64">
+        <div className="px-4 md:px-8 py-4 md:py-6">
+          {/* Mobile-First Search and Actions */}
+          <div className="space-y-4 apple-section-spacing">
+            {/* Search and Create Button Row */}
+            <div className="flex flex-col sm:flex-row gap-4 sm:justify-between sm:items-center">
+              <div className="flex-1 sm:max-w-xs">
                 <AppleSearchInput
                   placeholder="Search gigs..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              
-              {/* Status Filters */}
-              <div className="flex items-center space-x-2">
+              <AppleButton onClick={() => router.push('/gig-builder')}>
+                Create New Gig
+              </AppleButton>
+            </div>
+            
+            {/* Status Filters - Scrollable on mobile */}
+            <div className="overflow-x-auto">
+              <div className="flex items-center space-x-2 min-w-max pb-2">
                 <button
                   onClick={() => setStatusFilter('all')}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  className={`px-3 py-2 rounded-full text-xs font-medium transition-colors whitespace-nowrap touch-target ${
                     statusFilter === 'all' 
                       ? 'bg-blue-100 text-blue-800 border border-blue-200' 
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-300'
                   }`}
                 >
                   All
                 </button>
                 <button
                   onClick={() => setStatusFilter('pending')}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  className={`px-3 py-2 rounded-full text-xs font-medium transition-colors whitespace-nowrap touch-target ${
                     statusFilter === 'pending' 
                       ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' 
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-300'
                   }`}
                 >
                   ⏳ Pending
                 </button>
                 <button
                   onClick={() => setStatusFilter('confirmed')}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  className={`px-3 py-2 rounded-full text-xs font-medium transition-colors whitespace-nowrap touch-target ${
                     statusFilter === 'confirmed' 
                       ? 'bg-green-100 text-green-800 border border-green-200' 
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-300'
                   }`}
                 >
                   ✅ Confirmed
                 </button>
                 <button
                   onClick={() => setStatusFilter('completed')}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  className={`px-3 py-2 rounded-full text-xs font-medium transition-colors whitespace-nowrap touch-target ${
                     statusFilter === 'completed' 
                       ? 'bg-blue-100 text-blue-800 border border-blue-200' 
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-300'
                   }`}
                 >
                   🎉 Completed
                 </button>
                 <button
                   onClick={() => setStatusFilter('cancelled')}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  className={`px-3 py-2 rounded-full text-xs font-medium transition-colors whitespace-nowrap touch-target ${
                     statusFilter === 'cancelled' 
                       ? 'bg-red-100 text-red-800 border border-red-200' 
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-300'
                   }`}
                 >
                   ❌ Cancelled
                 </button>
               </div>
             </div>
-            <AppleButton onClick={() => router.push('/gig-builder')}>
-              Create New Gig
-            </AppleButton>
           </div>
           
           {/* Gigs List */}
@@ -607,88 +610,97 @@ export default function GigManager() {
               ) : (
                 filteredGigs.map((gig) => (
                   <div key={gig.id} className="apple-card apple-card-spacing">
-                    {/* Gig Header */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-4">
-                          <div>
-                            <h3 className="apple-subheading">{gig.name}</h3>
-                            <p className="apple-text">{gig.venue || 'No venue'}</p>
-                            <p className="apple-text-sm text-gray-500">
-                              {formatDate(gig.date)} {gig.time && `at ${gig.time}`}
-                            </p>
-                          </div>
-                          
-                          {/* Expand/Collapse Button for Gig */}
+                    {/* Mobile-First Gig Header */}
+                    <div className="space-y-4">
+                      {/* Title and Status */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="apple-subheading truncate">{gig.name}</h3>
+                          <p className="apple-text text-gray-600 truncate">{gig.venue || 'No venue'}</p>
+                          <p className="apple-text-sm text-gray-500">
+                            {formatDate(gig.date)} {gig.time && `at ${gig.time}`}
+                          </p>
+                        </div>
+                        {getStatusBadge(gig.status)}
+                      </div>
+
+                      {/* Quick Stats - Mobile friendly */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-sm font-semibold text-gray-700">{gig.sets?.length || 0}</div>
+                          <div className="text-xs text-gray-500">Sets</div>
+                        </div>
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-sm font-semibold text-gray-700">{calculateGigDuration(gig.sets)}</div>
+                          <div className="text-xs text-gray-500">Duration</div>
+                        </div>
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-sm font-semibold text-gray-700">{getCommentCount(gig.comments)}</div>
+                          <div className="text-xs text-gray-500">Comments</div>
+                        </div>
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
                           <button
                             onClick={() => toggleGigExpansion(gig.id)}
-                            className="text-gray-500 hover:text-gray-700 transition-colors p-1"
-                            title={expandedGigs.has(gig.id) ? 'Collapse gig details' : 'Expand gig details'}
+                            className="text-blue-600 hover:text-blue-800 transition-colors touch-target w-full"
+                            title={expandedGigs.has(gig.id) ? 'Collapse details' : 'View details'}
                           >
-                            {expandedGigs.has(gig.id) ? '▼' : '▶'}
+                            <div className="text-sm font-semibold">{expandedGigs.has(gig.id) ? '▼' : '▶'}</div>
+                            <div className="text-xs">Details</div>
                           </button>
                         </div>
                       </div>
-                      
-                      <div className="flex items-center space-x-4">
-                        <div className="text-right">
-                          <div className="flex items-center space-x-2">
-                            <AppleMetadataBadge type="sets">
-                              {gig.sets?.length || 0} sets
-                            </AppleMetadataBadge>
-                            <AppleMetadataBadge type="duration">
-                              {calculateGigDuration(gig.sets)}
-                            </AppleMetadataBadge>
-                            <AppleMetadataBadge type="status">
-                              {getStatusBadge(gig.status)}
-                            </AppleMetadataBadge>
-                            <AppleMetadataBadge type="comments">
-                              {getCommentCount(gig.comments)} comments
-                            </AppleMetadataBadge>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <AppleButton 
-                            variant="secondary" 
-                            size="sm"
-                            onClick={() => setShowSetSelector(showSetSelector === gig.id ? null : gig.id)}
-                          >
-                            Add Set
-                          </AppleButton>
-                          
-                          {/* View Details Button */}
+
+                      {/* Mobile-First Action Buttons */}
+                      <div className="space-y-3">
+                        {/* Primary Actions Row */}
+                        <div className="grid grid-cols-2 gap-3">
                           <AppleButton 
                             variant="secondary" 
                             size="sm"
                             onClick={() => router.push(`/gigs/${gig.id}`)}
+                            className="w-full"
                           >
                             View Details
                           </AppleButton>
-                          
-                          {/* Edit Button */}
                           <AppleButton 
                             variant="secondary" 
                             size="sm"
                             onClick={() => startEditingGig(gig.id)}
+                            className="w-full"
                           >
                             Edit
                           </AppleButton>
+                        </div>
+                        
+                        {/* Secondary Actions Row */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <AppleButton 
+                            variant="secondary" 
+                            size="sm"
+                            onClick={() => setShowSetSelector(showSetSelector === gig.id ? null : gig.id)}
+                            className="w-full"
+                          >
+                            Add Set
+                          </AppleButton>
                           
-                          {/* Spotify Playlist Button */}
                           <AppleButton 
                             variant="secondary" 
                             size="sm"
                             onClick={() => createSpotifyPlaylist(gig)}
                             disabled={isCreatingPlaylist === gig.id || !gig.sets?.length}
+                            className="w-full"
                           >
                             {isCreatingPlaylist === gig.id ? (
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center justify-center gap-1">
                                 <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
-                                Creating...
+                                <span className="hidden sm:inline">Creating...</span>
+                                <span className="sm:hidden">...</span>
                               </div>
                             ) : (
-                              '🎵 Spotify Playlist'
+                              <>
+                                <span className="hidden sm:inline">🎵 Spotify Playlist</span>
+                                <span className="sm:hidden">🎵 Spotify</span>
+                              </>
                             )}
                           </AppleButton>
                           
@@ -697,10 +709,10 @@ export default function GigManager() {
                               onChange={(e) => {
                                 if (e.target.value) {
                                   generatePDF(gig, e.target.value);
-                                  e.target.value = ''; // Reset dropdown
+                                  e.target.value = '';
                                 }
                               }}
-                              className="appearance-none bg-panel border border-apple text-primary font-medium text-sm px-3 py-2 rounded-apple-button shadow-apple hover:shadow-apple-hover transition-apple cursor-pointer"
+                              className="appearance-none bg-panel border border-apple text-primary font-medium text-sm px-3 py-2 rounded-apple-button shadow-apple hover:shadow-apple-hover transition-apple cursor-pointer w-full touch-target"
                               defaultValue=""
                             >
                               <option value="" disabled>📄 Print PDF</option>
@@ -709,12 +721,17 @@ export default function GigManager() {
                               <option value="sound-engineer">🔊 Sound Engineer</option>
                             </select>
                           </div>
+                        </div>
+
+                        {/* Danger Zone */}
+                        <div className="pt-2 border-t border-gray-100">
                           <AppleButton 
                             variant="secondary" 
                             size="sm"
                             onClick={() => deleteGig(gig.id)}
+                            className="w-full text-red-600 hover:bg-red-50 hover:text-red-700"
                           >
-                            Delete
+                            Delete Gig
                           </AppleButton>
                         </div>
                       </div>
@@ -826,27 +843,15 @@ export default function GigManager() {
                                   {expandedSets.has(set.id) ? '▼' : '▶'}
                                 </button>
                                 
-                                {/* Apple-style controls - same as SetBuilder */}
-                                <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button
-                                    onClick={() => moveSetInGig(gig.id, setIndex, 'top')}
-                                    disabled={setIndex === 0}
-                                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
-                                      setIndex === 0 
-                                        ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                        : 'bg-white text-gray-600 hover:bg-gray-200 hover:scale-105 active:scale-95 shadow-sm'
-                                    }`}
-                                    title="Move to top"
-                                  >
-                                    ⤴
-                                  </button>
+                                {/* Mobile-friendly controls */}
+                                <div className="flex items-center space-x-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                   <button
                                     onClick={() => moveSetInGig(gig.id, setIndex, 'up')}
                                     disabled={setIndex === 0}
-                                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
+                                    className={`w-9 h-9 md:w-8 md:h-8 lg:w-7 lg:h-7 rounded-lg flex items-center justify-center text-sm md:text-xs transition-all ${
                                       setIndex === 0 
                                         ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                        : 'bg-white text-gray-600 hover:bg-gray-200 hover:scale-105 active:scale-95 shadow-sm'
+                                        : 'bg-white text-gray-600 hover:bg-gray-200 active:bg-gray-300 shadow-sm'
                                     }`}
                                     title="Move up"
                                   >
@@ -855,30 +860,18 @@ export default function GigManager() {
                                   <button
                                     onClick={() => moveSetInGig(gig.id, setIndex, 'down')}
                                     disabled={setIndex === gig.sets.length - 1}
-                                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
+                                    className={`w-9 h-9 md:w-8 md:h-8 lg:w-7 lg:h-7 rounded-lg flex items-center justify-center text-sm md:text-xs transition-all ${
                                       setIndex === gig.sets.length - 1 
                                         ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                        : 'bg-white text-gray-600 hover:bg-gray-200 hover:scale-105 active:scale-95 shadow-sm'
+                                        : 'bg-white text-gray-600 hover:bg-gray-200 active:bg-gray-300 shadow-sm'
                                     }`}
                                     title="Move down"
                                   >
                                     ↓
                                   </button>
                                   <button
-                                    onClick={() => moveSetInGig(gig.id, setIndex, 'bottom')}
-                                    disabled={setIndex === gig.sets.length - 1}
-                                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
-                                      setIndex === gig.sets.length - 1 
-                                        ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                        : 'bg-white text-gray-600 hover:bg-gray-200 hover:scale-105 active:scale-95 shadow-sm'
-                                    }`}
-                                    title="Move to bottom"
-                                  >
-                                    ⤵
-                                  </button>
-                                  <button
                                     onClick={() => removeSetFromGig(gig.id, setIndex)}
-                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-xs bg-white text-red-600 hover:bg-red-100 hover:scale-105 active:scale-95 shadow-sm transition-all"
+                                    className="w-9 h-9 md:w-8 md:h-8 lg:w-7 lg:h-7 rounded-lg flex items-center justify-center text-sm md:text-xs bg-white text-red-600 hover:bg-red-100 active:bg-red-200 shadow-sm transition-all"
                                     title="Remove set from gig"
                                   >
                                     ×

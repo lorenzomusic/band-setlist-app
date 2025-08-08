@@ -104,18 +104,18 @@ export default function SongManager() {
     <div className="space-y-8">
       {/* Header */}
       <div className="bg-white rounded-apple shadow-apple overflow-hidden">
-        <div className="px-8 pt-8 pb-6 bg-gradient-to-r from-blue-50 to-purple-50">
-          <h1 className="text-apple-title-1 text-primary mb-2">📚 {t('songs.title')}</h1>
-          <p className="text-apple-body text-secondary">Manage your song collection</p>
+        <div className="px-4 md:px-8 pt-6 md:pt-8 pb-4 md:pb-6 bg-gradient-to-r from-blue-50 to-purple-50">
+          <h1 className="text-lg md:text-apple-title-1 text-primary mb-2">📚 {t('songs.title')}</h1>
+          <p className="text-apple-callout md:text-apple-body text-secondary">Manage your song collection</p>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="bg-white rounded-apple shadow-apple overflow-hidden">
-        <div className="px-8 py-6">
+        <div className="px-4 md:px-8 py-4 md:py-6">
           {/* Search and Actions */}
-          <div className="flex justify-between items-center apple-section-spacing">
-            <div className="w-64">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 apple-section-spacing">
+            <div className="flex-1 sm:max-w-xs">
               <AppleSearchInput
                 placeholder={t('songs.searchPlaceholder')}
                 value={searchTerm}

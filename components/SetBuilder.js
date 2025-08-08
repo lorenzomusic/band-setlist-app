@@ -5,7 +5,6 @@ import TagInput from './TagInput';
 import InstrumentChangeIndicator from './InstrumentChangeIndicator';
 import SetupSummary from './SetupSummary';
 import PDFGenerator from './PDFGenerator';
-import DraggableSong from './DraggableSong';
 import AppleButton from './ui/AppleButton';
 import AppleMetadataBadge from './ui/AppleMetadataBadge';
 import { safeDuration } from '../utils/duration';
@@ -991,19 +990,188 @@ export default function SetBuilder({ songs: propSongs }) {
             <SetAnalytics songs={activeSet?.songs || []} />
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            {/* Current Set - Take 2/3 width on large screens */}
-            <div className="xl:col-span-2">
+          {/* Mobile-First Responsive Layout */}
+          <div className="space-y-6 lg:grid lg:grid-cols-3 lg:gap-6 lg:space-y-0">
+            {/* Available Content - Show first on mobile for better UX */}
+            <div className="lg:order-2">
+              {/* Apple-style Available Songs/Medleys */}
+              <div className="bg-white rounded-apple shadow-apple overflow-hidden lg:sticky lg:top-6 lg:self-start">
+                <div className="px-4 md:px-6 pt-6 pb-4 border-b border-light">
+                  <h3 className="text-apple-title-3 text-primary">Available Content</h3>
+                </div>
+                
+                <div className="p-4 md:p-6 pb-0">
+                  {/* Toggle between Songs and Medleys */}
+                  <div className="flex items-center justify-center mb-4">
+                    <div className="flex bg-gray-100 rounded-lg p-1 w-full max-w-xs">
+                      <button
+                        onClick={() => setViewMode('songs')}
+                        className={`flex-1 px-3 md:px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                          viewMode === 'songs'
+                            ? 'bg-white text-primary shadow-sm'
+                            : 'text-gray-600 hover:text-primary'
+                        }`}
+                      >
+                        Songs ({getFilteredAvailableSongs().length})
+                      </button>
+                      <button
+                        onClick={() => setViewMode('medleys')}
+                        className={`flex-1 px-3 md:px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                          viewMode === 'medleys'
+                            ? 'bg-white text-primary shadow-sm'
+                            : 'text-gray-600 hover:text-primary'
+                        }`}
+                      >
+                        Medleys ({getFilteredAvailableMedleys().length})
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder={`Search ${viewMode}...`}
+                      value={availableSongFilters.searchText}
+                      onChange={(e) => updateAvailableFilter('searchText', e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-100 border-none rounded-apple-small text-apple-body text-primary placeholder-gray-500 outline-none focus:bg-gray-200 transition-colors pr-10"
+                    />
+                    {availableSongFilters.searchText && (
+                      <button
+                        onClick={() => updateAvailableFilter('searchText', '')}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-gray-300 hover:bg-gray-400 rounded-full flex items-center justify-center text-gray-600 hover:text-gray-800 transition-colors"
+                        title="Clear search"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="overflow-y-auto lg:max-h-96" style={{ maxHeight: '50vh' }}>
+                  {/* Songs or Medleys List */}
+                  {viewMode === 'songs' ? (
+                    // Songs view
+                    getFilteredAvailableSongs().length > 0 ? (
+                      getFilteredAvailableSongs().map((song, index) => (
+                        <div
+                          key={`available-songs-${song.id}-${index}`}
+                          className="px-4 md:px-6 py-4 border-b border-gray-50 last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors duration-150 active:bg-gray-100"
+                          onClick={async () => {
+                            if (!activeSet) {
+                              alert('Please select or create a set first');
+                              return;
+                            }
+                            if ((activeSet.songs || []).some(s => s.id === song.id)) {
+                              alert(`"${song.title}" is already in this set`);
+                              return;
+                            }
+                            const updatedSet = {
+                              ...activeSet,
+                              songs: [...(activeSet.songs || []), song]
+                            };
+                            try {
+                              const response = await fetch('/api/sets', {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(updatedSet)
+                              });
+                              if (response.ok) {
+                                setActiveSet(updatedSet);
+                                setSets(prev => prev.map(s => s.id === activeSet.id ? updatedSet : s));
+                                console.log('Added song:', song.title);
+                              } else {
+                                alert('Failed to save set. Please try again.');
+                              }
+                            } catch (err) {
+                              alert('Failed to save set. Please try again.');
+                              console.error(err);
+                            }
+                          }}
+                        >
+                          <div className="text-apple-body text-primary mb-0.5 font-medium">
+                            {song.title}
+                          </div>
+                          <div className="text-apple-callout text-secondary">
+                            {song.artist} • {song.key} • {song.duration}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-4 md:px-6 py-8 text-center">
+                        <div className="text-2xl opacity-30 mb-2">🔍</div>
+                        <p className="text-apple-body text-secondary">
+                          {availableSongFilters.searchText ? 'No songs found matching your search' : 'No songs available'}
+                        </p>
+                      </div>
+                    )
+                  ) : (
+                    // Medleys view
+                    getFilteredAvailableMedleys().length > 0 ? (
+                      getFilteredAvailableMedleys().map((medley, index) => (
+                        <div
+                          key={`available-medley-${medley.name}-${index}`}
+                          className="px-4 md:px-6 py-4 border-b border-gray-50 last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors duration-150 active:bg-gray-100"
+                          onClick={() => handleAddMedley(medley)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <h4 className="text-apple-body text-primary font-medium mb-1">{medley.name}</h4>
+                              <p className="text-apple-callout text-secondary mb-2">
+                                {medley.songCount} songs • {medley.totalDuration}m total
+                              </p>
+                              <div className="flex gap-2 mb-2 flex-wrap">
+                                {medley.languages.length > 0 && (
+                                  <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
+                                    {medley.languages.join(', ')}
+                                  </span>
+                                )}
+                                {medley.vocalists.length > 0 && (
+                                  <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
+                                    {medley.vocalists.join(', ')}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500 line-clamp-2">
+                                {medley.songs.map(song => song.title).join(' • ')}
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddMedley(medley);
+                              }}
+                              className="ml-4 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex-shrink-0"
+                            >
+                              Add Medley
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-4 md:px-6 py-8 text-center">
+                        <div className="text-2xl opacity-30 mb-2">🎼</div>
+                        <p className="text-apple-body text-secondary">
+                          {availableSongFilters.searchText ? 'No medleys found matching your search' : 'No medleys available'}
+                        </p>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Current Set - Full width on mobile, 2/3 on desktop */}
+            <div className="lg:col-span-2 lg:order-1">
               {/* Apple-style Active Set Display */}
               <div className="bg-white rounded-apple shadow-apple overflow-hidden">
                 {/* Apple-style panel header */}
-                <div className="px-8 pt-8 pb-6 border-b border-light bg-gradient-to-b from-gray-50 to-white">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h1 className="text-apple-title-1 text-primary mb-1">
+                <div className="px-4 md:px-8 pt-6 md:pt-8 pb-4 md:pb-6 border-b border-light bg-gradient-to-b from-gray-50 to-white">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h1 className="text-lg md:text-apple-title-1 text-primary mb-1 truncate">
                         {activeSet.name}
                       </h1>
-                      <p className="text-apple-body text-secondary">
+                      <p className="text-apple-callout md:text-apple-body text-secondary">
                         {activeSet.songs ? activeSet.songs.length : 0} songs • 
                         {activeSet.songs ? Math.ceil(activeSet.songs.reduce((total, song) => {
                           const duration = typeof song.duration === 'string' ? 
@@ -1018,18 +1186,20 @@ export default function SetBuilder({ songs: propSongs }) {
                     {organizedSet.some(item => item.type === 'medley') && (
                       <button
                         onClick={toggleAllMedleys}
-                        className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm font-medium"
+                        className="flex items-center gap-2 px-3 md:px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-xs md:text-sm font-medium flex-shrink-0 self-start sm:self-auto"
                         title={allMedleysCollapsed ? 'Expand all medleys' : 'Collapse all medleys'}
                       >
                         {allMedleysCollapsed ? (
                           <>
                             <span className="text-xs">📋</span>
-                            Expand All
+                            <span className="hidden sm:inline">Expand All</span>
+                            <span className="sm:hidden">Expand</span>
                           </>
                         ) : (
                           <>
                             <span className="text-xs">📝</span>
-                            Collapse All
+                            <span className="hidden sm:inline">Collapse All</span>
+                            <span className="sm:hidden">Collapse</span>
                           </>
                         )}
                       </button>
@@ -1043,7 +1213,7 @@ export default function SetBuilder({ songs: propSongs }) {
                 </div>
 
                 {/* Enhanced Set Display with Medley Grouping */}
-                <div className="px-8 py-6">
+                <div className="px-4 md:px-8 py-4 md:py-6">
                   {organizedSet && organizedSet.length > 0 ? (
                     <div className="space-y-4">
                       {organizedSet.map((item, index) => (
@@ -1075,10 +1245,10 @@ export default function SetBuilder({ songs: propSongs }) {
                                   <button
                                     onClick={() => handleMoveMedley(index, 'up')}
                                     disabled={index === 0}
-                                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
+                                    className={`w-9 h-9 md:w-8 md:h-8 lg:w-7 lg:h-7 rounded-lg flex items-center justify-center text-sm md:text-xs transition-all ${
                                       index === 0 
                                         ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                        : 'bg-white text-purple-600 hover:bg-purple-100 hover:scale-105 active:scale-95 shadow-sm'
+                                        : 'bg-white text-purple-600 hover:bg-purple-100 active:bg-purple-200 shadow-sm'
                                     }`}
                                     title="Move medley up"
                                   >
@@ -1087,10 +1257,10 @@ export default function SetBuilder({ songs: propSongs }) {
                                   <button
                                     onClick={() => handleMoveMedley(index, 'down')}
                                     disabled={index === organizedSet.length - 1}
-                                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all ${
+                                    className={`w-9 h-9 md:w-8 md:h-8 lg:w-7 lg:h-7 rounded-lg flex items-center justify-center text-sm md:text-xs transition-all ${
                                       index === organizedSet.length - 1 
                                         ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                        : 'bg-white text-purple-600 hover:bg-purple-100 hover:scale-105 active:scale-95 shadow-sm'
+                                        : 'bg-white text-purple-600 hover:bg-purple-100 active:bg-purple-200 shadow-sm'
                                     }`}
                                     title="Move medley down"
                                   >
@@ -1098,7 +1268,7 @@ export default function SetBuilder({ songs: propSongs }) {
                                   </button>
                                   <button
                                     onClick={() => handleRemoveMedley(index)}
-                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-xs bg-white text-red-600 hover:bg-red-100 hover:scale-105 active:scale-95 shadow-sm transition-all"
+                                    className="w-9 h-9 md:w-8 md:h-8 lg:w-7 lg:h-7 rounded-lg flex items-center justify-center text-sm md:text-xs bg-white text-red-600 hover:bg-red-100 active:bg-red-200 shadow-sm transition-all"
                                     title="Remove medley"
                                   >
                                     ×
@@ -1136,10 +1306,10 @@ export default function SetBuilder({ songs: propSongs }) {
                                             <button
                                               onClick={() => handleMoveItem(index, songIndex, 'up')}
                                               disabled={songIndex === 0}
-                                              className={`w-6 h-6 rounded flex items-center justify-center text-xs transition-all ${
+                                              className={`w-9 h-9 md:w-8 md:h-8 lg:w-6 lg:h-6 rounded flex items-center justify-center text-sm md:text-xs transition-all ${
                                                 songIndex === 0 
                                                   ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                                  : 'bg-white text-purple-600 hover:bg-purple-100 hover:scale-105 active:scale-95 shadow-sm'
+                                                  : 'bg-white text-purple-600 hover:bg-purple-100 active:bg-purple-200 shadow-sm'
                                               }`}
                                               title="Move song up in medley"
                                             >
@@ -1148,10 +1318,10 @@ export default function SetBuilder({ songs: propSongs }) {
                                             <button
                                               onClick={() => handleMoveItem(index, songIndex, 'down')}
                                               disabled={songIndex === item.songs.length - 1}
-                                              className={`w-6 h-6 rounded flex items-center justify-center text-xs transition-all ${
+                                              className={`w-9 h-9 md:w-8 md:h-8 lg:w-6 lg:h-6 rounded flex items-center justify-center text-sm md:text-xs transition-all ${
                                                 songIndex === item.songs.length - 1 
                                                   ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                                  : 'bg-white text-purple-600 hover:bg-purple-100 hover:scale-105 active:scale-95 shadow-sm'
+                                                  : 'bg-white text-purple-600 hover:bg-purple-100 active:bg-purple-200 shadow-sm'
                                               }`}
                                               title="Move song down in medley"
                                             >
@@ -1159,7 +1329,7 @@ export default function SetBuilder({ songs: propSongs }) {
                                             </button>
                                             <button
                                               onClick={() => removeSongFromSet(song.id)}
-                                              className="w-6 h-6 rounded flex items-center justify-center text-xs bg-white text-red-600 hover:bg-red-100 hover:scale-105 active:scale-95 shadow-sm transition-all"
+                                              className="w-9 h-9 md:w-8 md:h-8 lg:w-6 lg:h-6 rounded flex items-center justify-center text-sm md:text-xs bg-white text-red-600 hover:bg-red-100 active:bg-red-200 shadow-sm transition-all"
                                               title="Remove song from set"
                                             >
                                               ×
@@ -1211,14 +1381,14 @@ export default function SetBuilder({ songs: propSongs }) {
                                     {expandedSongs.has(item.id) ? '▼' : '▶'}
                                   </button>
                                   
-                                  <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="flex items-center space-x-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                     <button
                                       onClick={() => handleMoveItem(index, 0, 'up')}
                                       disabled={index === 0}
-                                      className={`w-6 h-6 rounded flex items-center justify-center text-xs transition-all ${
+                                      className={`w-9 h-9 md:w-8 md:h-8 lg:w-6 lg:h-6 rounded flex items-center justify-center text-sm md:text-xs transition-all ${
                                         index === 0 
                                           ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                          : 'bg-white text-gray-600 hover:bg-gray-200 hover:scale-105 active:scale-95 shadow-sm'
+                                          : 'bg-white text-gray-600 hover:bg-gray-200 active:bg-gray-300 shadow-sm'
                                       }`}
                                       title="Move song up"
                                     >
@@ -1227,10 +1397,10 @@ export default function SetBuilder({ songs: propSongs }) {
                                     <button
                                       onClick={() => handleMoveItem(index, 0, 'down')}
                                       disabled={index === organizedSet.length - 1}
-                                      className={`w-6 h-6 rounded flex items-center justify-center text-xs transition-all ${
+                                      className={`w-9 h-9 md:w-8 md:h-8 lg:w-6 lg:h-6 rounded flex items-center justify-center text-sm md:text-xs transition-all ${
                                         index === organizedSet.length - 1 
                                           ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                                          : 'bg-white text-gray-600 hover:bg-gray-200 hover:scale-105 active:scale-95 shadow-sm'
+                                          : 'bg-white text-gray-600 hover:bg-gray-200 active:bg-gray-300 shadow-sm'
                                       }`}
                                       title="Move song down"
                                     >
@@ -1238,7 +1408,7 @@ export default function SetBuilder({ songs: propSongs }) {
                                     </button>
                                     <button
                                       onClick={() => removeSongFromSet(item.id)}
-                                      className="w-6 h-6 rounded flex items-center justify-center text-xs bg-white text-red-600 hover:bg-red-100 hover:scale-105 active:scale-95 shadow-sm transition-all"
+                                      className="w-9 h-9 md:w-8 md:h-8 lg:w-6 lg:h-6 rounded flex items-center justify-center text-sm md:text-xs bg-white text-red-600 hover:bg-red-100 active:bg-red-200 shadow-sm transition-all"
                                       title="Remove song from set"
                                     >
                                       ×
@@ -1280,172 +1450,6 @@ export default function SetBuilder({ songs: propSongs }) {
               </div>
             </div>
 
-            {/* Apple-style Available Songs/Medleys - Now Sticky */}
-            <div className="sticky top-6 self-start">
-              <div className="bg-white rounded-apple shadow-apple overflow-hidden">
-                <div className="px-6 pt-6 pb-4 border-b border-light">
-                  <h3 className="text-apple-title-3 text-primary">Available Content</h3>
-                </div>
-                
-                <div className="p-6 pb-0">
-                  {/* Toggle between Songs and Medleys */}
-                  <div className="flex items-center justify-center mb-4">
-                    <div className="flex bg-gray-100 rounded-lg p-1">
-                      <button
-                        onClick={() => setViewMode('songs')}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                          viewMode === 'songs'
-                            ? 'bg-white text-primary shadow-sm'
-                            : 'text-gray-600 hover:text-primary'
-                        }`}
-                      >
-                        Songs ({getFilteredAvailableSongs().length})
-                      </button>
-                      <button
-                        onClick={() => setViewMode('medleys')}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                          viewMode === 'medleys'
-                            ? 'bg-white text-primary shadow-sm'
-                            : 'text-gray-600 hover:text-primary'
-                        }`}
-                      >
-                        Medleys ({getFilteredAvailableMedleys().length})
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder={`Search ${viewMode}...`}
-                      value={availableSongFilters.searchText}
-                      onChange={(e) => updateAvailableFilter('searchText', e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-100 border-none rounded-apple-small text-apple-body text-primary placeholder-gray-500 outline-none focus:bg-gray-200 transition-colors pr-10"
-                    />
-                    {availableSongFilters.searchText && (
-                      <button
-                        onClick={() => updateAvailableFilter('searchText', '')}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-gray-300 hover:bg-gray-400 rounded-full flex items-center justify-center text-gray-600 hover:text-gray-800 transition-colors"
-                        title="Clear search"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="overflow-y-auto" style={{ height: 'calc(100vh - 300px)', minHeight: '300px', maxHeight: '600px' }}>
-                  {/* Songs or Medleys List */}
-                  {viewMode === 'songs' ? (
-                    // Songs view
-                    getFilteredAvailableSongs().length > 0 ? (
-                      getFilteredAvailableSongs().map((song, index) => (
-                        <div
-                          key={`available-songs-${song.id}-${index}`}
-                          className="px-6 py-3 border-b border-gray-50 last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors duration-150"
-                          onClick={async () => {
-                            if (!activeSet) {
-                              alert('Please select or create a set first');
-                              return;
-                            }
-                            if ((activeSet.songs || []).some(s => s.id === song.id)) {
-                              alert(`"${song.title}" is already in this set`);
-                              return;
-                            }
-                            const updatedSet = {
-                              ...activeSet,
-                              songs: [...(activeSet.songs || []), song]
-                            };
-                            try {
-                              const response = await fetch('/api/sets', {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(updatedSet)
-                              });
-                              if (response.ok) {
-                                setActiveSet(updatedSet);
-                                setSets(prev => prev.map(s => s.id === activeSet.id ? updatedSet : s));
-                                console.log('Added song:', song.title);
-                              } else {
-                                alert('Failed to save set. Please try again.');
-                              }
-                            } catch (err) {
-                              alert('Failed to save set. Please try again.');
-                              console.error(err);
-                            }
-                          }}
-                        >
-                          <div className="text-apple-body text-primary mb-0.5">
-                            {song.title}
-                          </div>
-                          <div className="text-apple-callout text-secondary">
-                            {song.artist} • {song.key} • {song.duration}
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="px-6 py-8 text-center">
-                        <div className="text-2xl opacity-30 mb-2">🔍</div>
-                        <p className="text-apple-body text-secondary">
-                          {availableSongFilters.searchText ? 'No songs found matching your search' : 'No songs available'}
-                        </p>
-                      </div>
-                    )
-                  ) : (
-                    // Medleys view
-                    getFilteredAvailableMedleys().length > 0 ? (
-                      getFilteredAvailableMedleys().map((medley, index) => (
-                        <div
-                          key={`available-medley-${medley.name}-${index}`}
-                          className="px-6 py-4 border-b border-gray-50 last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors duration-150"
-                          onClick={() => handleAddMedley(medley)}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <h4 className="text-apple-body text-primary font-medium mb-1">{medley.name}</h4>
-                              <p className="text-apple-callout text-secondary mb-2">
-                                {medley.songCount} songs • {medley.totalDuration}m total
-                              </p>
-                              <div className="flex gap-2 mb-2">
-                                {medley.languages.length > 0 && (
-                                  <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
-                                    {medley.languages.join(', ')}
-                                  </span>
-                                )}
-                                {medley.vocalists.length > 0 && (
-                                  <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
-                                    {medley.vocalists.join(', ')}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {medley.songs.map(song => song.title).join(' • ')}
-                              </div>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation(); // Prevent double-click
-                                handleAddMedley(medley);
-                              }}
-                              className="ml-4 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
-                            >
-                              Add Medley
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="px-6 py-8 text-center">
-                        <div className="text-2xl opacity-30 mb-2">🎼</div>
-                        <p className="text-apple-body text-secondary">
-                          {availableSongFilters.searchText ? 'No medleys found matching your search' : 'No medleys available'}
-                        </p>
-                      </div>
-                    )
-                  )}
-                </div>
-              </div>
-            </div>
           </div>
         </>
       ) : (
