@@ -10,6 +10,7 @@ export default function CalendarFeedsPage() {
   
   const confirmedUrl = `${baseUrl}/api/calendar/confirmed.ics`;
   const pendingUrl = `${baseUrl}/api/calendar/pending.ics`;
+  const rehearsalsUrl = `${baseUrl}/api/calendar/rehearsals.ics`;
 
   const copyToClipboard = async (text) => {
     try {
@@ -30,10 +31,10 @@ export default function CalendarFeedsPage() {
             {/* Introduction */}
             <div className="text-center mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-                Subscribe to Your Gigs
+                Subscribe to Your Band Calendar
               </h2>
               <p className="text-gray-600">
-                Add your confirmed and pending gigs to your phone's calendar for easy access
+                Add your gigs and rehearsals to your phone's calendar for easy access
               </p>
             </div>
 
@@ -111,6 +112,45 @@ export default function CalendarFeedsPage() {
                 
                 <div className="bg-gray-50 rounded-lg p-3">
                   <code className="text-xs text-gray-700 break-all">{pendingUrl}</code>
+                </div>
+              </div>
+            </div>
+
+            {/* Rehearsals Calendar */}
+            <div className="bg-white rounded-xl p-6 border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Rehearsals</h3>
+                  <p className="text-sm text-gray-600">All your practice sessions and rehearsals</p>
+                </div>
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                  </svg>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <AppleButton
+                    onClick={() => window.open(rehearsalsUrl, '_blank')}
+                    className="flex-1"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Subscribe to Rehearsals
+                  </AppleButton>
+                  <AppleButton
+                    onClick={() => copyToClipboard(rehearsalsUrl)}
+                    variant="secondary"
+                  >
+                    Copy URL
+                  </AppleButton>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <code className="text-xs text-gray-700 break-all">{rehearsalsUrl}</code>
                 </div>
               </div>
             </div>

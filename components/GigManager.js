@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import ApplePanel from './ui/ApplePanel';
 import ApplePanelHeader from './ui/ApplePanelHeader';
 import AppleButton from './ui/AppleButton';
@@ -11,6 +11,7 @@ import EditGigForm from './EditGigForm';
 
 export default function GigManager() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [gigs, setGigs] = useState([]);
   const [sets, setSets] = useState([]);
   const [members, setMembers] = useState([]);
@@ -29,6 +30,25 @@ export default function GigManager() {
     loadSets();
     loadMembers();
   }, []);
+
+  // Handle gigId URL parameter
+  useEffect(() => {
+    const gigId = searchParams.get('gigId');
+    if (gigId && gigs.length > 0) {
+      // Find the gig and set search filter to show only this gig
+      const targetGig = gigs.find(g => g.id === gigId);
+      if (targetGig) {
+        // Set search to the gig name to filter it
+        setSearchTerm(targetGig.name);
+        // Expand the gig automatically
+        setExpandedGigs(prev => new Set([...prev, gigId]));
+        
+        // Clear the URL parameter after processing
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+  }, [searchParams, gigs]);
 
   const loadGigs = async () => {
     try {

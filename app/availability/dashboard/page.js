@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import ApplePanel from '@/components/ui/ApplePanel';
 import ApplePanelHeader from '@/components/ui/ApplePanelHeader';
 import AppleButton from '@/components/ui/AppleButton';
 import AppleSearchInput from '@/components/ui/AppleSearchInput';
 
-export default function AvailabilityDashboard() {
+export default function AvailabilityCalendar() {
+  const router = useRouter();
   const [availability, setAvailability] = useState([]);
   const [members, setMembers] = useState([]);
   const [gigs, setGigs] = useState([]);
+  const [rehearsals, setRehearsals] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -21,15 +24,21 @@ export default function AvailabilityDashboard() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Load members
+      // Load members - only core members for availability tracking
       const membersResponse = await fetch('/api/band-members');
       const membersData = await membersResponse.json();
-      setMembers(membersData);
+      const coreMembers = membersData.filter(member => member.isCore);
+      setMembers(coreMembers);
 
       // Load gigs
       const gigsResponse = await fetch('/api/gigs');
       const gigsData = await gigsResponse.json();
       setGigs(gigsData);
+
+      // Load rehearsals
+      const rehearsalsResponse = await fetch('/api/rehearsals');
+      const rehearsalsData = await rehearsalsResponse.json();
+      setRehearsals(rehearsalsData);
 
       // Load availability for the selected month
       const startDate = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1);
@@ -67,20 +76,33 @@ export default function AvailabilityDashboard() {
 
   const getAvailabilityStatus = (date) => {
     const dateAvailability = getAvailabilityForDate(date);
-    const coreMembers = members.filter(member => member.isCore);
+    const totalCoreMembers = members.length;
     
-    if (dateAvailability.length === 0) return 'unknown';
+    // Filter availability entries to only include core members
+    const coreMemberIds = members.map(m => m.id);
+    const coreAvailability = dateAvailability.filter(entry => coreMemberIds.includes(entry.memberId));
     
-    const availableMembers = dateAvailability.filter(entry => entry.status === 'available');
-    const unavailableMembers = dateAvailability.filter(entry => entry.status === 'unavailable');
-    const maybeMembers = dateAvailability.filter(entry => entry.status === 'maybe');
+    // If not all core members have provided availability, it's unknown
+    if (coreAvailability.length < totalCoreMembers) {
+      return 'unknown';
+    }
     
-    // If all core members are available
-    if (availableMembers.length === coreMembers.length) return 'full';
+    const availableMembers = coreAvailability.filter(entry => entry.status === 'available');
+    const unavailableMembers = coreAvailability.filter(entry => entry.status === 'unavailable');
+    const maybeMembers = coreAvailability.filter(entry => entry.status === 'maybe');
+    
+    // If all core members are available (and all have answered)
+    if (availableMembers.length === totalCoreMembers) {
+      return 'full';
+    }
     // If any core members are unavailable
-    if (unavailableMembers.length > 0) return 'conflict';
+    if (unavailableMembers.length > 0) {
+      return 'conflict';
+    }
     // If some core members are maybe
-    if (maybeMembers.length > 0) return 'partial';
+    if (maybeMembers.length > 0) {
+      return 'partial';
+    }
     
     return 'unknown';
   };
@@ -88,6 +110,11 @@ export default function AvailabilityDashboard() {
   const getGigsForDate = (date) => {
     const dateStr = date.toISOString().split('T')[0];
     return gigs.filter(gig => gig.date === dateStr);
+  };
+
+  const getRehearsalsForDate = (date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return rehearsals.filter(rehearsal => rehearsal.date === dateStr);
   };
 
   const getCalendarDays = () => {
@@ -138,6 +165,32 @@ export default function AvailabilityDashboard() {
     });
   };
 
+  const getGigStatusDot = (gig) => {
+    switch (gig.status) {
+      case 'confirmed':
+        return <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1" title="Confirmed gig"></span>;
+      case 'pending':
+        return <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full mr-1" title="Pending gig"></span>;
+      case 'canceled':
+        return <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-1" title="Canceled gig"></span>;
+      default:
+        return <span className="inline-block w-2 h-2 bg-gray-400 rounded-full mr-1" title="Status unknown"></span>;
+    }
+  };
+
+  const getRehearsalStatusDot = (rehearsal) => {
+    switch (rehearsal.status) {
+      case 'confirmed':
+        return <span className="inline-block w-2 h-2 bg-blue-600 rounded-full mr-1" title="Confirmed rehearsal"></span>;
+      case 'planned':
+        return <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-1" title="Planned rehearsal"></span>;
+      case 'cancelled':
+        return <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-1" title="Cancelled rehearsal"></span>;
+      default:
+        return <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-1" title="Rehearsal"></span>;
+    }
+  };
+
   const previousMonth = () => {
     setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1));
   };
@@ -155,7 +208,7 @@ export default function AvailabilityDashboard() {
       <div className="min-h-screen bg-gray-50 p-4">
         <div className="max-w-6xl mx-auto">
           <ApplePanel>
-            <ApplePanelHeader title="Availability Dashboard" />
+            <ApplePanelHeader title="Availability Calendar" />
             <div className="p-6">
               <div className="animate-pulse">
                 <div className="h-8 bg-gray-200 rounded mb-4"></div>
@@ -177,7 +230,7 @@ export default function AvailabilityDashboard() {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <ApplePanel>
-          <ApplePanelHeader title="Availability Dashboard" />
+          <ApplePanelHeader title="Availability Calendar" />
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-4">
@@ -191,18 +244,41 @@ export default function AvailabilityDashboard() {
                   Next →
                 </AppleButton>
               </div>
-              <div className="flex space-x-2">
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
-                  <span className="text-sm">All Available</span>
+              <div className="flex flex-wrap gap-4 text-sm">
+                <div className="text-xs font-medium text-gray-600 mr-2">Availability:</div>
+                <div className="flex items-center space-x-1">
+                  <div className="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
+                  <span>All Available</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-yellow-100 border border-yellow-300 rounded"></div>
-                  <span className="text-sm">Partial</span>
+                <div className="flex items-center space-x-1">
+                  <div className="w-3 h-3 bg-yellow-100 border border-yellow-300 rounded"></div>
+                  <span>Partial</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
-                  <span className="text-sm">Conflicts</span>
+                <div className="flex items-center space-x-1">
+                  <div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
+                  <span>Conflicts</span>
+                </div>
+                <div className="text-xs font-medium text-gray-600 ml-4 mr-2">Gig Status:</div>
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>Confirmed</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <span>Pending</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span>Canceled</span>
+                </div>
+                <div className="text-xs font-medium text-gray-600 ml-4 mr-2">Rehearsals:</div>
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                  <span>Confirmed</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                  <span>Planned</span>
                 </div>
               </div>
             </div>
@@ -225,6 +301,7 @@ export default function AvailabilityDashboard() {
                 const isCurrentMonth = date.getMonth() === selectedMonth.getMonth();
                 const availabilityStatus = getAvailabilityStatus(date);
                 const gigsForDate = getGigsForDate(date);
+                const rehearsalsForDate = getRehearsalsForDate(date);
                 const unavailableMembers = getUnavailableMembers(date);
                 const dateAvailability = getAvailabilityForDate(date);
                 
@@ -253,8 +330,21 @@ export default function AvailabilityDashboard() {
                     {gigsForDate.length > 0 && (
                       <div className="mt-1">
                         {gigsForDate.map(gig => (
-                          <div key={gig.id} className="text-xs bg-blue-100 text-blue-800 px-1 py-0.5 rounded mb-1">
+                          <div key={gig.id} className="text-xs bg-blue-100 text-blue-800 px-1 py-0.5 rounded mb-1 flex items-center">
+                            {getGigStatusDot(gig)}
                             {gig.name}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Rehearsals */}
+                    {rehearsalsForDate.length > 0 && (
+                      <div className="mt-1">
+                        {rehearsalsForDate.map(rehearsal => (
+                          <div key={rehearsal.id} className="text-xs bg-indigo-100 text-indigo-800 px-1 py-0.5 rounded mb-1 flex items-center">
+                            {getRehearsalStatusDot(rehearsal)}
+                            {rehearsal.name}
                           </div>
                         ))}
                       </div>
@@ -317,19 +407,20 @@ export default function AvailabilityDashboard() {
                 })}
               </h3>
               
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
                 {/* Availability Details */}
                 <div className="lg:col-span-1">
-                  <h4 className="font-semibold mb-3">Member Availability</h4>
+                  <h4 className="font-semibold mb-3">Member Availability (Core Members Only)</h4>
                   <div className="space-y-2">
                     {members.map(member => {
+                      // Format date as DD-MM-YYYY to match availability API format
+                      const day = selectedDate.getDate().toString().padStart(2, '0');
+                      const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
+                      const year = selectedDate.getFullYear();
+                      const dateString = `${day}-${month}-${year}`;
+                      
                       const memberAvailability = availability.find(
-                        entry => entry.memberId === member.id && 
-                        entry.dateString === selectedDate.toLocaleDateString('en-GB', { 
-                          day: '2-digit', 
-                          month: '2-digit', 
-                          year: 'numeric' 
-                        })
+                        entry => entry.memberId === member.id && entry.dateString === dateString
                       );
                       
                       const status = memberAvailability?.status || 'unknown';
@@ -413,18 +504,74 @@ export default function AvailabilityDashboard() {
                   {getGigsForDate(selectedDate).length > 0 ? (
                     <div className="space-y-2">
                       {getGigsForDate(selectedDate).map(gig => (
-                        <div key={gig.id} className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                          <div className="font-medium text-blue-900">{gig.name}</div>
-                          <div className="text-sm text-blue-700">{gig.venue}</div>
-                          <div className="text-sm text-blue-600">{gig.time}</div>
-                          <div className="text-xs text-blue-500 mt-1">
-                            Status: {gig.status}
+                        <div key={gig.id} className="p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                {getGigStatusDot(gig)}
+                                <div className="font-medium text-blue-900">{gig.name}</div>
+                              </div>
+                              <div className="text-sm text-blue-700">{gig.venue}</div>
+                              <div className="text-sm text-blue-600">{gig.time}</div>
+                              <div className="text-xs text-blue-500 mt-1">
+                                Status: {gig.status || 'pending'}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => router.push(`/gigs?gigId=${gig.id}`)}
+                              className="ml-3 px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
+                              title="View gig details"
+                            >
+                              View Gig
+                            </button>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
                     <div className="text-gray-500 text-sm">No gigs scheduled</div>
+                  )}
+                </div>
+                
+                {/* Rehearsals on this date */}
+                <div className="lg:col-span-1">
+                  <h4 className="font-semibold mb-3">Rehearsals on this date</h4>
+                  {getRehearsalsForDate(selectedDate).length > 0 ? (
+                    <div className="space-y-2">
+                      {getRehearsalsForDate(selectedDate).map(rehearsal => (
+                        <div key={rehearsal.id} className="p-3 bg-indigo-50 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-colors">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                {getRehearsalStatusDot(rehearsal)}
+                                <div className="font-medium text-indigo-900">{rehearsal.name}</div>
+                              </div>
+                              {rehearsal.location && (
+                                <div className="text-sm text-indigo-700">📍 {rehearsal.location}</div>
+                              )}
+                              <div className="text-sm text-indigo-600">{rehearsal.startTime} - {rehearsal.endTime}</div>
+                              <div className="text-xs text-indigo-500 mt-1">
+                                Status: {rehearsal.status || 'planned'}
+                              </div>
+                              {rehearsal.notes && (
+                                <div className="text-xs text-gray-600 mt-2 italic">
+                                  {rehearsal.notes.length > 50 ? `${rehearsal.notes.substring(0, 50)}...` : rehearsal.notes}
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => router.push('/rehearsals')}
+                              className="ml-3 px-3 py-1 bg-indigo-600 text-white text-xs rounded-md hover:bg-indigo-700 transition-colors"
+                              title="View rehearsal details"
+                            >
+                              View Rehearsal
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-gray-500 text-sm">No rehearsals scheduled</div>
                   )}
                 </div>
               </div>

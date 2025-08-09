@@ -19,11 +19,12 @@ const AppleLayout = ({ children }) => {
     { name: t('nav.setBuilder'), href: '/sets' },
     { name: t('nav.gigs'), href: '/gigs' },
     { 
-      name: t('nav.availability'), 
+      name: t('nav.planning'), 
       protected: true,
       dropdown: [
         { name: t('nav.setAvailability'), href: '/availability' },
-        { name: t('nav.dashboard'), href: '/availability/dashboard' },
+        { name: t('nav.calendar'), href: '/availability/dashboard' },
+        { name: t('nav.rehearsals'), href: '/rehearsals' },
         { name: t('nav.calendarFeeds'), href: '/calendar-feeds' }
       ]
     },

@@ -89,7 +89,9 @@ export default function AvailabilityPage() {
       const response = await fetch('/api/band-members');
       if (response.ok) {
         const membersData = await response.json();
-        setMembers(membersData);
+        // Only include core members in availability tracking
+        const coreMembers = membersData.filter(member => member.isCore);
+        setMembers(coreMembers);
       }
     } catch (error) {
       console.error('Error loading members:', error);
@@ -184,6 +186,24 @@ export default function AvailabilityPage() {
     const [day, month, year] = dateStr.split('-');
     const gigDateStr = `${year}-${month}-${day}`;
     return gigs.filter(gig => gig.date === gigDateStr);
+  };
+
+  const getGigStatusDot = (gigsForDay) => {
+    if (!gigsForDay || gigsForDay.length === 0) return null;
+    
+    // If any gig is confirmed, show green dot
+    const hasConfirmed = gigsForDay.some(gig => gig.status === 'confirmed');
+    if (hasConfirmed) {
+      return <div className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full" title="Confirmed gig"></div>;
+    }
+    
+    // If any gig is pending, show yellow dot
+    const hasPending = gigsForDay.some(gig => gig.status === 'pending' || !gig.status);
+    if (hasPending) {
+      return <div className="absolute top-1 right-1 w-2 h-2 bg-yellow-500 rounded-full" title="Pending gig"></div>;
+    }
+    
+    return null;
   };
 
   const cycleAvailability = async (date, memberId) => {
@@ -342,7 +362,7 @@ export default function AvailabilityPage() {
                   onClick={() => router.push('/availability/dashboard')}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  📊 Dashboard
+                  📊 Calendar
                 </button>
                 <button
                   onClick={() => router.push('/')}
@@ -404,28 +424,29 @@ export default function AvailabilityPage() {
                 {Array.from({ length: Math.ceil(days.length / 7) }, (_, weekIndex) => (
                   <div key={weekIndex} className="grid grid-cols-8 gap-0 border-b border-gray-100 last:border-b-0">
                     {/* Date Column */}
-                    <div className="bg-gray-50 p-2">
+                    <div className="bg-gray-50">
                       {days.slice(weekIndex * 7, (weekIndex + 1) * 7).map((day, dayIndex) => {
                         const gigsForDay = showGigs ? getGigsForDate(day) : [];
                         const isWeekendDay = day && isWeekend(currentDate, day);
                         
+                        // Determine gig status for border color
+                        const getGigBorderColor = (gigs) => {
+                          if (!gigs || gigs.length === 0) return '';
+                          const hasConfirmed = gigs.some(gig => gig.status === 'confirmed');
+                          if (hasConfirmed) return 'border-l-4 border-l-green-500';
+                          const hasPending = gigs.some(gig => gig.status === 'pending' || !gig.status);
+                          if (hasPending) return 'border-l-4 border-l-yellow-500';
+                          return '';
+                        };
+
                         return (
-                          <div key={dayIndex} className={`h-12 flex flex-col items-center justify-center relative ${
-                            day && isWeekendDay ? 'bg-blue-200' : ''
-                          }`}>
+                          <div key={dayIndex} className={`h-12 flex flex-col items-center justify-center relative border-b border-gray-100 last:border-b-0 ${
+                            day && isWeekendDay ? 'bg-gray-100' : 'bg-gray-50'
+                          } ${showGigs ? getGigBorderColor(gigsForDay) : ''}`}>
                             <div className="text-xs text-gray-500 font-medium">
                               {getDayOfWeek(currentDate, day)}
                             </div>
                             <div className="text-sm font-medium text-gray-900">{day}</div>
-                            
-                            {/* Gig indicators */}
-                            {showGigs && gigsForDay.length > 0 && (
-                              <div className="absolute -top-1 -right-1">
-                                <div className="bg-blue-600 text-white text-xs px-1 py-0.5 rounded-full min-w-[16px] h-4 flex items-center justify-center">
-                                  {gigsForDay.length}
-                                </div>
-                              </div>
-                            )}
                           </div>
                         );
                       })}
@@ -442,9 +463,9 @@ export default function AvailabilityPage() {
                           const hasGig = gigsForDay.length > 0;
                           
                           return (
-                            <div key={dayIndex} className={`h-12 flex items-center justify-center border-b border-gray-100 last:border-b-0 hover:bg-gray-50 relative ${
-                              isWeekendDay ? 'bg-blue-200' : ''
-                            } ${hasGig ? 'ring-1 ring-blue-400' : ''}`}>
+                            <div key={dayIndex} className={`h-12 flex items-center justify-center border-b border-gray-100 last:border-b-0 relative ${
+                              isWeekendDay ? 'bg-gray-100' : 'hover:bg-gray-50'
+                            }`}>
                               <button
                                 onClick={() => cycleAvailability(day, member.id)}
                                 onDoubleClick={() => openCommentModal(day, member.id, member.name)}
@@ -454,14 +475,6 @@ export default function AvailabilityPage() {
                                 {getStatusIcon(entry?.status)}
                               </button>
                               
-                              {/* Gig indicator for this member */}
-                              {showGigs && hasGig && (
-                                <div className="absolute -top-1 -right-1">
-                                  <div className="bg-blue-600 text-white text-xs px-1 py-0.5 rounded-full min-w-[12px] h-3 flex items-center justify-center text-[10px]">
-                                    {gigsForDay.length}
-                                  </div>
-                                </div>
-                              )}
                             </div>
                           );
                         })}
@@ -498,21 +511,21 @@ export default function AvailabilityPage() {
                 <span className="text-gray-700">Has Comment</span>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-xs font-bold">Fr</div>
-                <span className="text-gray-700">Weekend (Gig Days)</span>
+                <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center text-xs font-bold">Fr</div>
+                <span className="text-gray-700">Weekend (Fri/Sat)</span>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="w-6 h-6 bg-blue-600 text-white border-2 border-blue-600 rounded-full flex items-center justify-center text-xs font-bold">1</div>
-                <span className="text-gray-700">Gig Scheduled</span>
+                <div className="w-4 h-6 bg-green-500 rounded-sm"></div>
+                <span className="text-gray-700">Confirmed Gig</span>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="w-6 h-6 bg-white border-2 border-blue-400 rounded-full flex items-center justify-center text-xs font-bold ring-1 ring-blue-400">✓</div>
-                <span className="text-gray-700">Gig Day</span>
+                <div className="w-4 h-6 bg-yellow-500 rounded-sm"></div>
+                <span className="text-gray-700">Pending Gig</span>
               </div>
             </div>
             <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-xs text-blue-800 font-medium">
-                💡 Click once to cycle status • Double-click to add/edit comment • Weekend days (Fri/Sat) are highlighted for gig planning • Blue indicators show scheduled gigs
+                💡 Click once to cycle status • Double-click to add/edit comment • Weekend days (Fri/Sat) are highlighted for gig planning • Green left border shows confirmed gigs, yellow shows pending gigs
               </p>
             </div>
           </div>
