@@ -15,8 +15,10 @@ export default function AdminPage() {
   useEffect(() => {
     loadSongs();
     
-    // Check for Spotify auth callback
+    // Check for URL parameters to set active tab
     const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    
     if (urlParams.get('spotify_connected') === 'true') {
       localStorage.setItem('spotify_connected', JSON.stringify({ connected: true }));
       // Remove URL params
@@ -24,6 +26,10 @@ export default function AdminPage() {
       setActiveTab('spotify'); // Switch to Spotify tab
     } else if (urlParams.get('spotify_error')) {
       alert(`Spotify connection failed: ${urlParams.get('spotify_error')}`);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (tabParam && ['spotify', 'database', 'analytics', 'users', 'band-members'].includes(tabParam)) {
+      setActiveTab(tabParam);
+      // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);

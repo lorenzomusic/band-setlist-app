@@ -286,7 +286,7 @@ export default function BandMembersPage() {
                 <p className="text-apple-body text-secondary">Manage your band's core and replacement members</p>
               </div>
               <button
-                onClick={() => router.push('/admin')}
+                onClick={() => router.push('/admin?tab=band-members')}
                 className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
               >
                 ← Back to Admin
