@@ -123,12 +123,16 @@ export default function AvailabilityCalendar() {
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    
+    // Calculate days to subtract to get to Monday (getDay() returns 0 for Sunday, 1 for Monday, etc.)
+    const daysToSubtract = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+    startDate.setDate(startDate.getDate() - daysToSubtract);
     
     const days = [];
     const currentDate = new Date(startDate);
     
-    while (currentDate <= lastDay || currentDate.getDay() !== 0) {
+    // Continue until we have filled complete weeks and passed the last day of month
+    while (currentDate <= lastDay || currentDate.getDay() !== 1) {
       days.push(new Date(currentDate));
       currentDate.setDate(currentDate.getDate() + 1);
     }
@@ -290,7 +294,7 @@ export default function AvailabilityCalendar() {
           <div className="p-6">
             <div className="grid grid-cols-7 gap-1">
               {/* Day headers */}
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
                 <div key={day} className="p-2 text-center font-semibold text-gray-600">
                   {day}
                 </div>

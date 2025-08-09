@@ -156,20 +156,23 @@ export default function AvailabilityPage() {
   };
 
   const getDayLabel = (dayIndex) => {
-    const dayLabels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    // Monday-first layout: Mo, Tu, We, Th, Fr, Sa, Su
+    const dayLabels = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
     return dayLabels[dayIndex];
   };
 
   const getDayOfWeek = (date, day) => {
     if (!day) return null;
     const dayOfWeek = new Date(date.getFullYear(), date.getMonth(), day).getDay();
-    return getDayLabel(dayOfWeek);
+    // Convert Sunday-first (0=Sun, 1=Mon, etc.) to Monday-first (0=Mon, 1=Tue, etc.)
+    const mondayFirstIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    return getDayLabel(mondayFirstIndex);
   };
 
   const isWeekend = (date, day) => {
     if (!day) return false;
     const dayOfWeek = new Date(date.getFullYear(), date.getMonth(), day).getDay();
-    return dayOfWeek === 5 || dayOfWeek === 6; // Friday (5) or Saturday (6)
+    return dayOfWeek === 6 || dayOfWeek === 0; // Saturday (6) or Sunday (0)
   };
 
   const getAvailabilityForDate = (date, memberId) => {
