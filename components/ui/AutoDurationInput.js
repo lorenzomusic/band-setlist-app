@@ -65,9 +65,12 @@ export default function AutoDurationInput({
         setMinutes(val);
         updateParent(val, seconds);
         
-        // Auto-tab to seconds when 2 digits entered or when minutes >= 10 (since most songs are under 10 minutes)
-        if (val.length === 2 || (val.length === 1 && numVal >= 10)) {
-          setTimeout(() => secondsRef.current?.focus(), 0);
+        // Auto-tab to seconds when 2 digits entered or when minutes >= 4 (since most songs are 3-5 minutes)
+        if (val.length === 2 || (val.length === 1 && numVal >= 4)) {
+          setTimeout(() => {
+            secondsRef.current?.focus();
+            secondsRef.current?.select();
+          }, 0);
         }
       }
     }
@@ -140,6 +143,12 @@ export default function AutoDurationInput({
     }
   };
 
+  const handleInputClick = (inputRef) => {
+    setTimeout(() => {
+      inputRef.current?.select();
+    }, 0);
+  };
+
   return (
     <div className={`flex items-center ${className}`}>
       <input
@@ -148,21 +157,23 @@ export default function AutoDurationInput({
         value={minutes}
         onChange={handleMinutesChange}
         onKeyDown={handleMinutesKeyDown}
+        onClick={() => handleInputClick(minutesRef)}
         placeholder="MM"
-        className="w-12 text-center border-0 bg-transparent outline-none text-inherit font-inherit"
+        className="w-8 text-center border-0 bg-transparent outline-none text-inherit font-inherit"
         maxLength={2}
         required={required}
         {...props}
       />
-      <span className="text-gray-500 mx-1">:</span>
+      <span className="text-gray-500 mx-0.5">:</span>
       <input
         ref={secondsRef}
         type="text"
         value={seconds}
         onChange={handleSecondsChange}
         onKeyDown={handleSecondsKeyDown}
+        onClick={() => handleInputClick(secondsRef)}
         placeholder="SS"
-        className="w-12 text-center border-0 bg-transparent outline-none text-inherit font-inherit"
+        className="w-8 text-center border-0 bg-transparent outline-none text-inherit font-inherit"
         maxLength={2}
       />
     </div>
