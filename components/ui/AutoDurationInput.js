@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 export default function AutoDurationInput({ 
   value = '', 
@@ -14,28 +14,45 @@ export default function AutoDurationInput({
   const [seconds, setSeconds] = useState('');
   const minutesRef = useRef(null);
   const secondsRef = useRef(null);
+  const isUpdatingFromParent = useRef(false);
 
   // Parse initial value (expecting MM:SS format)
   useEffect(() => {
-    if (value) {
+    if (isUpdatingFromParent.current) return;
+    
+    if (value && value.includes(':')) {
       const [m, s] = value.split(':');
-      setMinutes(m || '');
-      setSeconds(s || '');
-    } else {
+      const newMinutes = m || '';
+      const newSeconds = s || '';
+      
+      if (newMinutes !== minutes || newSeconds !== seconds) {
+        setMinutes(newMinutes);
+        setSeconds(newSeconds);
+      }
+    } else if (!value && (minutes || seconds)) {
       setMinutes('');
       setSeconds('');
     }
   }, [value]);
 
   // Update parent when minutes or seconds change
-  useEffect(() => {
-    if (minutes && seconds) {
-      const durationValue = `${minutes}:${seconds.padStart(2, '0')}`;
+  const updateParent = useCallback((newMinutes, newSeconds) => {
+    isUpdatingFromParent.current = true;
+    
+    if (newMinutes && newSeconds) {
+      const durationValue = `${newMinutes}:${newSeconds.padStart(2, '0')}`;
       onChange?.(durationValue);
-    } else if (!minutes && !seconds) {
+    } else if (!newMinutes && !newSeconds) {
       onChange?.('');
+    } else if (newMinutes && !newSeconds) {
+      // Don't update parent until both fields have values or are both empty
+      return;
     }
-  }, [minutes, seconds, onChange]);
+    
+    setTimeout(() => {
+      isUpdatingFromParent.current = false;
+    }, 0);
+  }, [onChange]);
 
   const handleMinutesChange = (e) => {
     const val = e.target.value.replace(/\D/g, ''); // Only digits
@@ -46,10 +63,11 @@ export default function AutoDurationInput({
       // For song durations, minutes can be 0-99 (songs can be longer than an hour)
       if (val === '' || (numVal >= 0 && numVal <= 99)) {
         setMinutes(val);
+        updateParent(val, seconds);
         
         // Auto-tab to seconds when 2 digits entered or when minutes >= 10 (since most songs are under 10 minutes)
         if (val.length === 2 || (val.length === 1 && numVal >= 10)) {
-          secondsRef.current?.focus();
+          setTimeout(() => secondsRef.current?.focus(), 0);
         }
       }
     }
@@ -64,10 +82,11 @@ export default function AutoDurationInput({
       // Validate seconds (0-59)
       if (val === '' || (numVal >= 0 && numVal <= 59)) {
         setSeconds(val);
+        updateParent(minutes, val);
         
         // Auto-tab out when 2 digits entered or when seconds >= 6 (since max is 59)
         if (val.length === 2 || (val.length === 1 && numVal >= 6)) {
-          secondsRef.current?.blur();
+          setTimeout(() => secondsRef.current?.blur(), 0);
         }
       }
     }

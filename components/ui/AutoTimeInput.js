@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 export default function AutoTimeInput({ 
   value = '', 
@@ -14,28 +14,45 @@ export default function AutoTimeInput({
   const [minutes, setMinutes] = useState('');
   const hoursRef = useRef(null);
   const minutesRef = useRef(null);
+  const isUpdatingFromParent = useRef(false);
 
   // Parse initial value
   useEffect(() => {
-    if (value) {
+    if (isUpdatingFromParent.current) return;
+    
+    if (value && value.includes(':')) {
       const [h, m] = value.split(':');
-      setHours(h || '');
-      setMinutes(m || '');
-    } else {
+      const newHours = h || '';
+      const newMinutes = m || '';
+      
+      if (newHours !== hours || newMinutes !== minutes) {
+        setHours(newHours);
+        setMinutes(newMinutes);
+      }
+    } else if (!value && (hours || minutes)) {
       setHours('');
       setMinutes('');
     }
   }, [value]);
 
   // Update parent when hours or minutes change
-  useEffect(() => {
-    if (hours && minutes) {
-      const timeValue = `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+  const updateParent = useCallback((newHours, newMinutes) => {
+    isUpdatingFromParent.current = true;
+    
+    if (newHours && newMinutes) {
+      const timeValue = `${newHours.padStart(2, '0')}:${newMinutes.padStart(2, '0')}`;
       onChange?.(timeValue);
-    } else if (!hours && !minutes) {
+    } else if (!newHours && !newMinutes) {
       onChange?.('');
+    } else if (newHours && !newMinutes) {
+      // Don't update parent until both fields have values or are both empty
+      return;
     }
-  }, [hours, minutes, onChange]);
+    
+    setTimeout(() => {
+      isUpdatingFromParent.current = false;
+    }, 0);
+  }, [onChange]);
 
   const handleHoursChange = (e) => {
     const val = e.target.value.replace(/\D/g, ''); // Only digits
@@ -46,10 +63,14 @@ export default function AutoTimeInput({
       // Validate hours (0-23)
       if (val === '' || (numVal >= 0 && numVal <= 23)) {
         setHours(val);
+        updateParent(val, minutes);
         
         // Auto-tab to minutes when 2 digits entered or when hours >= 3 (since max is 23)
         if (val.length === 2 || (val.length === 1 && numVal >= 3)) {
-          minutesRef.current?.focus();
+          setTimeout(() => {
+            minutesRef.current?.focus();
+            minutesRef.current?.select();
+          }, 0);
         }
       }
     }
@@ -64,10 +85,11 @@ export default function AutoTimeInput({
       // Validate minutes (0-59)
       if (val === '' || (numVal >= 0 && numVal <= 59)) {
         setMinutes(val);
+        updateParent(hours, val);
         
         // Auto-tab out when 2 digits entered or when minutes >= 6 (since max is 59)
         if (val.length === 2 || (val.length === 1 && numVal >= 6)) {
-          minutesRef.current?.blur();
+          setTimeout(() => minutesRef.current?.blur(), 0);
         }
       }
     }
@@ -121,6 +143,12 @@ export default function AutoTimeInput({
     }
   };
 
+  const handleInputClick = (inputRef) => {
+    setTimeout(() => {
+      inputRef.current?.select();
+    }, 0);
+  };
+
   return (
     <div className={`flex items-center ${className}`}>
       <input
@@ -129,21 +157,23 @@ export default function AutoTimeInput({
         value={hours}
         onChange={handleHoursChange}
         onKeyDown={handleHoursKeyDown}
+        onClick={() => handleInputClick(hoursRef)}
         placeholder="HH"
-        className="w-12 text-center border-0 bg-transparent outline-none text-inherit font-inherit"
+        className="w-8 text-center border-0 bg-transparent outline-none text-inherit font-inherit"
         maxLength={2}
         required={required}
         {...props}
       />
-      <span className="text-gray-500 mx-1">:</span>
+      <span className="text-gray-500 mx-0.5">:</span>
       <input
         ref={minutesRef}
         type="text"
         value={minutes}
         onChange={handleMinutesChange}
         onKeyDown={handleMinutesKeyDown}
+        onClick={() => handleInputClick(minutesRef)}
         placeholder="MM"
-        className="w-12 text-center border-0 bg-transparent outline-none text-inherit font-inherit"
+        className="w-8 text-center border-0 bg-transparent outline-none text-inherit font-inherit"
         maxLength={2}
       />
     </div>
