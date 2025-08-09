@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import AppleButton from './ui/AppleButton';
 import AppleSearchInput from './ui/AppleSearchInput';
+import AutoDateInput from './ui/AutoDateInput';
+import AutoTimeInput from './ui/AutoTimeInput';
 
 export default function EditGigForm({ gig, onGigUpdated, onCancel }) {
   const [formData, setFormData] = useState({
@@ -157,25 +159,25 @@ export default function EditGigForm({ gig, onGigUpdated, onCancel }) {
           
           <div>
             <label className="apple-label">Date</label>
-            <input
-              type="date"
-              name="date"
-              className="apple-input"
-              value={formData.date}
-              onChange={handleChange}
-              required
-            />
+            <div className="apple-input">
+              <AutoDateInput
+                value={formData.date}
+                onChange={(value) => setFormData(prev => ({ ...prev, date: value }))}
+                className="w-full"
+                required
+              />
+            </div>
           </div>
           
           <div>
             <label className="apple-label">Time</label>
-            <input
-              type="time"
-              name="time"
-              className="apple-input"
-              value={formData.time}
-              onChange={handleChange}
-            />
+            <div className="apple-input">
+              <AutoTimeInput
+                value={formData.time}
+                onChange={(value) => setFormData(prev => ({ ...prev, time: value }))}
+                className="w-full"
+              />
+            </div>
           </div>
 
           <div>

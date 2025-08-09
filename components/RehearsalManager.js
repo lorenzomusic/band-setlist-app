@@ -7,6 +7,8 @@ import ApplePanelHeader from './ui/ApplePanelHeader';
 import AppleButton from './ui/AppleButton';
 import AppleSearchInput from './ui/AppleSearchInput';
 import AppleMetadataBadge from './ui/AppleMetadataBadge';
+import AutoDateInput from './ui/AutoDateInput';
+import AutoTimeInput from './ui/AutoTimeInput';
 
 export default function RehearsalManager() {
   const router = useRouter();
@@ -335,39 +337,42 @@ function RehearsalForm({ rehearsal, onSave, onCancel }) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Date *
             </label>
-            <input
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              required
-            />
+            <div className="w-full p-3 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+              <AutoDateInput
+                value={formData.date}
+                onChange={(value) => setFormData(prev => ({ ...prev, date: value }))}
+                className="w-full"
+                required
+              />
+            </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Start Time *
             </label>
-            <input
-              type="time"
-              value={formData.startTime}
-              onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              required
-            />
+            <div className="w-full p-3 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+              <AutoTimeInput
+                value={formData.startTime}
+                onChange={(value) => setFormData(prev => ({ ...prev, startTime: value }))}
+                className="w-full"
+                required
+              />
+            </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               End Time *
             </label>
-            <input
-              type="time"
-              value={formData.endTime}
-              onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              required
-            />
+            <div className="w-full p-3 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+              <AutoTimeInput
+                value={formData.endTime}
+                onChange={(value) => setFormData(prev => ({ ...prev, endTime: value }))}
+                className="w-full"
+                required
+              />
+            </div>
           </div>
 
         </div>

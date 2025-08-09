@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import TagInput from './TagInput';
+import AutoDurationInput from './ui/AutoDurationInput';
 
 export default function AddSongForm({ onSongAdded, onCancel }) {
   const [formData, setFormData] = useState({
@@ -206,14 +207,14 @@ export default function AddSongForm({ onSongAdded, onCancel }) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Duration (mm:ss)
             </label>
-            <input
-              type="text"
-              name="duration"
-              value={formData.duration}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue focus:border-transparent"
-              placeholder="4:32"
-            />
+            <div className="w-full p-3 border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue focus-within:border-transparent">
+              <AutoDurationInput
+                value={formData.duration}
+                onChange={(value) => setFormData(prev => ({ ...prev, duration: value }))}
+                className="w-full"
+                placeholder="MM:SS"
+              />
+            </div>
           </div>
 
           <div>

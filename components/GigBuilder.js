@@ -6,6 +6,8 @@ import ApplePanel from './ui/ApplePanel';
 import ApplePanelHeader from './ui/ApplePanelHeader';
 import AppleButton from './ui/AppleButton';
 import AppleSearchInput from './ui/AppleSearchInput';
+import AutoDateInput from './ui/AutoDateInput';
+import AutoTimeInput from './ui/AutoTimeInput';
 
 // Availability Modal Component
 function AvailabilityModal({ isOpen, onClose, date, availability, members }) {
@@ -278,13 +280,14 @@ export default function GigBuilder() {
             <div>
               <label className="apple-label">Date</label>
               <div className="flex space-x-2">
-                <input
-                  type="date"
-                  className="apple-input flex-1"
-                  value={gigData.date}
-                  onChange={(e) => handleInputChange('date', e.target.value)}
-                  required
-                />
+                <div className="apple-input flex-1">
+                  <AutoDateInput
+                    value={gigData.date}
+                    onChange={(value) => handleInputChange('date', value)}
+                    className="w-full"
+                    required
+                  />
+                </div>
                 <AppleButton
                   type="button"
                   variant="secondary"
@@ -299,12 +302,13 @@ export default function GigBuilder() {
             
             <div>
               <label className="apple-label">Time</label>
-              <input
-                type="time"
-                className="apple-input"
-                value={gigData.time}
-                onChange={(e) => handleInputChange('time', e.target.value)}
-              />
+              <div className="apple-input">
+                <AutoTimeInput
+                  value={gigData.time}
+                  onChange={(value) => handleInputChange('time', value)}
+                  className="w-full"
+                />
+              </div>
             </div>
 
             <div>

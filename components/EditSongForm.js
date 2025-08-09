@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import TagInput from './TagInput';
+import AutoDurationInput from './ui/AutoDurationInput';
 
 export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDeleted }) {
   const [formData, setFormData] = useState({
@@ -240,14 +241,14 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
             <label className="apple-label">
               Duration (mm:ss)
             </label>
-            <input
-              type="text"
-              name="duration"
-              value={formData.duration}
-              onChange={handleChange}
-              className="apple-input"
-              placeholder="4:32"
-            />
+            <div className="apple-input">
+              <AutoDurationInput
+                value={formData.duration}
+                onChange={(value) => setFormData(prev => ({ ...prev, duration: value }))}
+                className="w-full"
+                placeholder="MM:SS"
+              />
+            </div>
           </div>
 
           <div>
