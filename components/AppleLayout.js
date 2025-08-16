@@ -8,7 +8,7 @@ import { useLanguage } from './LanguageProvider';
 
 const AppleLayout = ({ children }) => {
   const pathname = usePathname();
-  const { isAuthenticated, user, bandMember, logout } = useAuth();
+  const { isAuthenticated, user, bandMember, impersonation, stopImpersonation, logout } = useAuth();
   const { language, changeLanguage, t } = useLanguage();
   const [openDropdown, setOpenDropdown] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -86,6 +86,15 @@ const AppleLayout = ({ children }) => {
     }
   };
 
+  const handleStopImpersonation = async () => {
+    if (confirm('Stop impersonation and return to your admin account?')) {
+      const result = await stopImpersonation();
+      if (!result.success) {
+        alert(`Failed to stop impersonation: ${result.error}`);
+      }
+    }
+  };
+
   // If not authenticated and not on a public route, show login prompt
   const publicRoutes = ['/login', '/register'];
   if (!isAuthenticated && !publicRoutes.includes(pathname)) {
@@ -119,6 +128,29 @@ const AppleLayout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
+      {/* Impersonation Status Bar */}
+      {impersonation?.isImpersonating && (
+        <div className="bg-orange-100 border-b border-orange-200 px-4 py-2">
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
+            <div className="flex items-center space-x-3">
+              <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium text-orange-800">
+                🎭 Admin Impersonation: You are viewing as <strong>{impersonation.targetUser?.username}</strong>
+              </span>
+              <span className="text-xs text-orange-600">
+                (Admin: {impersonation.originalUser?.username})
+              </span>
+            </div>
+            <button
+              onClick={handleStopImpersonation}
+              className="px-3 py-1 text-xs bg-orange-200 text-orange-800 rounded hover:bg-orange-300 transition-colors font-medium"
+            >
+              Stop Impersonation
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Mobile-First Responsive Header */}
       <header className="backdrop-apple border-b border-apple sticky top-0 z-50">
         {/* Mobile Header */}
@@ -269,8 +301,22 @@ const AppleLayout = ({ children }) => {
             
             {isAuthenticated && user && (
               <div className="flex items-center gap-3">
-                <div className="text-apple-callout text-secondary hidden lg:block">
-                  {user.name || user.email}
+                {/* User Info with Avatar */}
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-blue-600 text-sm font-medium">
+                      {user.username ? user.username.charAt(0).toUpperCase() : 'U'}
+                    </span>
+                  </div>
+                  <div className="hidden lg:block">
+                    <div className="text-apple-callout text-primary font-medium">
+                      {user.username || 'User'}
+                    </div>
+                    <div className="text-xs text-secondary">
+                      {user.isAdmin ? 'Admin' : 'Member'}
+                      {bandMember && ` • ${bandMember.instrument}`}
+                    </div>
+                  </div>
                 </div>
                 <button
                   onClick={handleLogout}
@@ -330,8 +376,24 @@ const AppleLayout = ({ children }) => {
               {/* Mobile User Info */}
               {user && (
                 <div className="py-4 border-t border-gray-100 mt-2">
-                  <div className="text-apple-callout text-secondary mb-3">
-                    {user.name || user.email}
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <span className="text-blue-600 text-sm font-medium">
+                        {user.username ? user.username.charAt(0).toUpperCase() : 'U'}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="text-apple-callout text-primary font-medium">
+                        {user.username || 'User'}
+                      </div>
+                      <div className="text-xs text-secondary">
+                        {user.isAdmin ? 'Admin' : 'Member'}
+                        {bandMember && ` • ${bandMember.instrument}`}
+                      </div>
+                      {user.email && (
+                        <div className="text-xs text-gray-500">{user.email}</div>
+                      )}
+                    </div>
                   </div>
                   <button
                     onClick={() => {

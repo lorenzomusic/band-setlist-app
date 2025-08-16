@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useAuth } from './AuthProvider';
 
 export default function UserManagementTab() {
+  const { impersonation, startImpersonation, stopImpersonation } = useAuth();
   const [users, setUsers] = useState([]);
   const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,6 +13,7 @@ export default function UserManagementTab() {
     role: 'member',
     expiresIn: '7' // days
   });
+  const [impersonating, setImpersonating] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -84,6 +87,25 @@ export default function UserManagementTab() {
     } catch (error) {
       console.error('Error deleting user:', error);
       alert('Failed to delete user');
+    }
+  };
+
+  const handleImpersonate = async (userId, username) => {
+    if (!confirm(`Start impersonating ${username}? You will see the app from their perspective.`)) return;
+
+    setImpersonating(true);
+    try {
+      const result = await startImpersonation(userId);
+      if (result.success) {
+        alert(`Now impersonating ${username}. You can stop impersonation from the header.`);
+      } else {
+        alert(`Failed to impersonate user: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error starting impersonation:', error);
+      alert('Failed to start impersonation');
+    } finally {
+      setImpersonating(false);
     }
   };
 
@@ -198,7 +220,6 @@ export default function UserManagementTab() {
               >
                 <option value="member">Band Member</option>
                 <option value="admin">Admin</option>
-                <option value="guest">Guest</option>
               </select>
             </div>
             <div>
@@ -264,6 +285,16 @@ export default function UserManagementTab() {
                   }`}>
                     {user.isActive ? 'Active' : 'Inactive'}
                   </span>
+                  {!user.isAdmin && user.isActive && (
+                    <button
+                      onClick={() => handleImpersonate(user.id, user.username)}
+                      disabled={impersonating}
+                      className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Impersonate this user to see the app from their perspective"
+                    >
+                      {impersonating ? 'Starting...' : 'Impersonate'}
+                    </button>
+                  )}
                   <button
                     onClick={() => toggleUserStatus(user.id, user.isActive)}
                     className={`px-3 py-1 text-xs rounded ${
@@ -344,14 +375,14 @@ export default function UserManagementTab() {
 
       {/* Info Box */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h5 className="font-medium text-blue-800 mb-2">ℹ️ How It Works</h5>
+        <h5 className="font-medium text-blue-800 mb-2">ℹ️ User & Band Member Workflow</h5>
         <ul className="text-sm text-blue-700 space-y-1">
-          <li>• Create invitations for band members you want to add</li>
-          <li>• Share the invitation link with them via email or message</li>
-          <li>• Users can only register with a valid invitation code</li>
-          <li>• Invitations expire automatically for security</li>
-          <li>• Admins can manage user permissions and status</li>
-          <li>• <strong>Band Member Linking:</strong> Use the "Copy ID" button to get user IDs for linking to band members</li>
+          <li>• <strong>Step 1:</strong> Create invitations with role "Admin" or "Band Member"</li>
+          <li>• <strong>Step 2:</strong> Share invitation links via email or message</li>
+          <li>• <strong>Step 3:</strong> Users register with invitation code and get user accounts</li>
+          <li>• <strong>Step 4:</strong> Go to Band Members tab to create band member profiles and link to user accounts</li>
+          <li>• <strong>Access Control:</strong> Core members get full access, replacement members have limited access</li>
+          <li>• <strong>User Impersonation:</strong> Click "Impersonate" to see the app from a user's perspective</li>
         </ul>
       </div>
     </div>

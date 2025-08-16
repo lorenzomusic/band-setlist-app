@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
+import { config, createKey } from '../../../lib/config';
 
 const redis = new Redis({
-  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
+  url: config.redis.url,
+  token: config.redis.token,
 });
 
 // GET /api/band-members - Get all band members
@@ -12,10 +13,10 @@ export async function GET() {
     console.log('Attempting to fetch band members from Redis...');
     let members;
     try {
-      members = await redis.get('band_members');
+      members = await redis.get(createKey('band-members'));
     } catch (error) {
       console.log('Redis data type conflict in GET, clearing corrupted data...');
-      await redis.del('band_members');
+      await redis.del(createKey('band-members'));
       members = null;
     }
     
@@ -48,10 +49,32 @@ export async function POST(request) {
     console.log('Creating band member:', { name, instrument, email, userId, isCore });
 
     // Validate required fields
-    if (!name || !instrument) {
-      console.log('Validation failed: missing name or instrument');
+    if (!name || !instrument || !userId) {
+      console.log('Validation failed: missing name, instrument, or userId');
       return NextResponse.json(
-        { error: 'Name and instrument are required' },
+        { error: 'Name, instrument, and user ID are required. All band members must be linked to a user account.' },
+        { status: 400 }
+      );
+    }
+
+    // Verify the userId exists and is a valid user
+    const users = await redis.get(createKey('users')) || [];
+    const user = users.find(u => u.id === userId && u.isActive);
+    
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Invalid user ID. The user must exist and be active.' },
+        { status: 400 }
+      );
+    }
+
+    // Check if this user is already linked to another band member
+    const existingMembersForValidation = await redis.get(createKey('band-members')) || [];
+    const existingMemberWithUser = existingMembersForValidation.find(m => m.userId === userId);
+    
+    if (existingMemberWithUser) {
+      return NextResponse.json(
+        { error: `User ${user.username} is already linked to band member "${existingMemberWithUser.name}".` },
         { status: 400 }
       );
     }
@@ -66,8 +89,8 @@ export async function POST(request) {
       id,
       name,
       instrument,
-      email: email || null,
-      userId: userId || null,
+      email: email || user.email || null,
+      userId,
       isCore,
       createdAt: new Date().toISOString()
     };
@@ -79,11 +102,11 @@ export async function POST(request) {
     console.log('Getting existing members from Redis...');
     let existingMembers;
     try {
-      const members = await redis.get('band_members');
+      const members = await redis.get(createKey('band-members'));
       existingMembers = Array.isArray(members) ? members : [];
     } catch (error) {
       console.log('Redis data type conflict in POST, clearing corrupted data...');
-      await redis.del('band_members');
+      await redis.del(createKey('band-members'));
       existingMembers = [];
     }
     console.log('Existing members:', existingMembers);
@@ -94,7 +117,7 @@ export async function POST(request) {
     
     // Store updated array in Redis
     console.log('Storing in Redis...');
-    await redis.set('band_members', updatedMembers);
+    await redis.set(createKey('band-members'), updatedMembers);
     console.log('Successfully stored member in Redis');
 
     return NextResponse.json(member, { status: 201 });
@@ -128,11 +151,11 @@ export async function PUT(request) {
     // Check if member exists
     let existingMembers;
     try {
-      const members = await redis.get('band_members');
+      const members = await redis.get(createKey('band-members'));
       existingMembers = Array.isArray(members) ? members : [];
     } catch (error) {
       console.log('Redis data type conflict in PUT, clearing corrupted data...');
-      await redis.del('band_members');
+      await redis.del(createKey('band-members'));
       existingMembers = [];
     }
     
@@ -158,7 +181,7 @@ export async function PUT(request) {
     // Update in Redis
     const updatedMembers = [...existingMembers];
     updatedMembers[memberIndex] = updatedMember;
-    await redis.set('band_members', updatedMembers);
+    await redis.set(createKey('band-members'), updatedMembers);
 
     return NextResponse.json(updatedMember);
   } catch (error) {
@@ -186,11 +209,11 @@ export async function DELETE(request) {
     // Check if member exists
     let existingMembers;
     try {
-      const members = await redis.get('band_members');
+      const members = await redis.get(createKey('band-members'));
       existingMembers = Array.isArray(members) ? members : [];
     } catch (error) {
       console.log('Redis data type conflict in DELETE, clearing corrupted data...');
-      await redis.del('band_members');
+      await redis.del(createKey('band-members'));
       existingMembers = [];
     }
     
@@ -205,7 +228,7 @@ export async function DELETE(request) {
 
     // Delete from Redis
     const updatedMembers = existingMembers.filter(member => member.id !== id);
-    await redis.set('band_members', updatedMembers);
+    await redis.set(createKey('band-members'), updatedMembers);
 
     return NextResponse.json({ message: 'Band member deleted successfully' });
   } catch (error) {

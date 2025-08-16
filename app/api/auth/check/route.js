@@ -45,21 +45,47 @@ export async function GET(request) {
     const authConfig = await redis.get(createKey('auth_config'));
     const hasUsers = users.length > 0 || authConfig !== null;
     
+    
     if (authenticated) {
       // Check if user is a band member
       const bandMembers = await redis.get(createKey('band-members')) || [];
       const bandMember = bandMembers.find(member => member.userId === session.userId);
       
-      return NextResponse.json({
+      // Handle impersonation
+      const response = {
         authenticated: true,
         user: {
           id: session.userId,
-          username: session.username,
+          username: session.user?.username || session.username,
+          email: session.user?.email,
           isAdmin: session.isAdmin
         },
         bandMember: bandMember || null,
         hasUsers
-      });
+      };
+
+      // Add impersonation info if currently impersonating
+      if (session.impersonating) {
+        response.impersonating = {
+          isImpersonating: true,
+          originalUser: {
+            id: session.impersonating.originalUserId,
+            username: session.impersonating.originalUser.username
+          },
+          targetUser: {
+            id: session.impersonating.targetUserId,
+            username: session.impersonating.targetUser.username,
+            email: session.impersonating.targetUser.email
+          },
+          startedAt: session.impersonating.startedAt
+        };
+      } else {
+        response.impersonating = {
+          isImpersonating: false
+        };
+      }
+      
+      return NextResponse.json(response);
     } else {
       return NextResponse.json({
         authenticated: false,

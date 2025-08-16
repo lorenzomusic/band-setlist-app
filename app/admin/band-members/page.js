@@ -236,32 +236,6 @@ export default function BandMembersPage() {
     }
   };
 
-  const initializeCoreMembers = async () => {
-    const coreMembers = [
-      { name: 'Kim', instrument: 'Drummer', email: '', userId: '', isCore: true },
-      { name: 'Flemming', instrument: 'Bass player', email: '', userId: '', isCore: true },
-      { name: 'Rikke', instrument: 'Lead vocal', email: '', userId: '', isCore: true },
-      { name: 'Kenneth', instrument: 'Keys', email: '', userId: '', isCore: true },
-      { name: 'Lorentz', instrument: 'Lead vocal and guitar', email: '', userId: '', isCore: true }
-    ];
-
-    try {
-      for (const member of coreMembers) {
-        await fetch('/api/band-members', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(member),
-        });
-      }
-      loadMembers();
-      alert('Core members initialized successfully!');
-    } catch (error) {
-      console.error('Error initializing core members:', error);
-      alert('Failed to initialize core members');
-    }
-  };
 
   if (loading) {
     return (
@@ -343,14 +317,6 @@ export default function BandMembersPage() {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-apple-title-2 text-primary">Band Members</h2>
             <div className="flex gap-3">
-              {members.length === 0 && (
-                <button
-                  onClick={initializeCoreMembers}
-                  className="px-4 py-2 bg-blue text-white rounded-lg hover:bg-blue-600 transition-colors"
-                >
-                  Initialize Core Members
-                </button>
-              )}
               <button
                 onClick={() => {
                   setShowAddForm(true);
@@ -409,14 +375,17 @@ export default function BandMembersPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Link to User Account (optional)
+                      User Account *
                     </label>
                     <UserDropdown
                       value={formData.userId}
                       onChange={(userId) => setFormData({ ...formData, userId: userId })}
-                      users={users}
-                      placeholder="Search and select a user..."
+                      users={users.filter(u => !members.some(m => m.userId === u.id) || editingMember?.userId === u.id)}
+                      placeholder="Search and select a user account..."
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      All band members must be linked to a user account. Only shows users not already linked to other members.
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center">
@@ -460,7 +429,7 @@ export default function BandMembersPage() {
               <div className="text-center py-12">
                 <div className="text-3xl opacity-30 mb-2">👥</div>
                 <p className="text-apple-body text-secondary">No band members yet</p>
-                <p className="text-sm text-gray-500 mt-2">Click "Initialize Core Members" to add the 5 core members</p>
+                <p className="text-sm text-gray-500 mt-2">Create user invitations first, then add band members and link them to user accounts.</p>
               </div>
             ) : (
               members.map((member) => (

@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import crypto from 'crypto';
+import { config, createKey } from '../../../../lib/config';
 
 const redis = new Redis({
-  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
+  url: config.redis.url,
+  token: config.redis.token,
 });
 
 // Generate invitation ID
@@ -21,7 +22,7 @@ async function verifyAdminSession(request) {
       return null;
     }
     
-    const sessionData = await redis.get(`session:${sessionToken}`);
+    const sessionData = await redis.get(createKey(`session:${sessionToken}`));
     
     if (!sessionData || !sessionData.isAdmin) {
       return null;
@@ -43,7 +44,7 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const invitations = await redis.get('invitations') || [];
+    const invitations = await redis.get(createKey('invitations')) || [];
 
     return NextResponse.json(invitations);
   } catch (error) {
@@ -68,8 +69,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Email, role, and expiration are required' }, { status: 400 });
     }
 
-    if (!['admin', 'member', 'guest'].includes(role)) {
-      return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
+    if (!['admin', 'member'].includes(role)) {
+      return NextResponse.json({ error: 'Invalid role. Must be admin or member.' }, { status: 400 });
     }
 
     // Generate unique invitation code
@@ -91,9 +92,9 @@ export async function POST(request) {
     };
 
     // Add invitation to list
-    const existingInvitations = await redis.get('invitations') || [];
+    const existingInvitations = await redis.get(createKey('invitations')) || [];
     const updatedInvitations = [...existingInvitations, invitation];
-    await redis.set('invitations', updatedInvitations);
+    await redis.set(createKey('invitations'), updatedInvitations);
 
     return NextResponse.json(invitation);
   } catch (error) {

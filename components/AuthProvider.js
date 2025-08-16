@@ -21,6 +21,7 @@ export function AuthProvider({ children }) {
   const [bandMember, setBandMember] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [impersonation, setImpersonation] = useState({ isImpersonating: false });
   const router = useRouter();
   const pathname = usePathname();
 
@@ -36,6 +37,7 @@ export function AuthProvider({ children }) {
       setIsAuthenticated(data.authenticated);
       setUser(data.authenticated ? data.user : null);
       setBandMember(data.authenticated ? data.bandMember : null);
+      setImpersonation(data.authenticated ? data.impersonating : { isImpersonating: false });
       
       // Handle redirects based on authentication status
       if (data.authenticated) {
@@ -60,6 +62,7 @@ export function AuthProvider({ children }) {
       setIsAuthenticated(false);
       setUser(null);
       setBandMember(null);
+      setImpersonation({ isImpersonating: false });
       
       // On error, redirect non-public routes to login
       const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
@@ -102,7 +105,54 @@ export function AuthProvider({ children }) {
       setIsAuthenticated(false);
       setUser(null);
       setBandMember(null);
+      setImpersonation({ isImpersonating: false });
       router.push('/login');
+    }
+  };
+
+  const startImpersonation = async (userId) => {
+    try {
+      const response = await fetch('/api/admin/impersonate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Refresh auth status to get updated impersonation data
+        await checkAuthStatus();
+        return { success: true, ...data };
+      } else {
+        return { success: false, error: data.error };
+      }
+    } catch (error) {
+      console.error('Impersonation error:', error);
+      return { success: false, error: 'Failed to start impersonation' };
+    }
+  };
+
+  const stopImpersonation = async () => {
+    try {
+      const response = await fetch('/api/admin/impersonate', {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Refresh auth status to get restored admin session
+        await checkAuthStatus();
+        return { success: true, ...data };
+      } else {
+        return { success: false, error: data.error };
+      }
+    } catch (error) {
+      console.error('Stop impersonation error:', error);
+      return { success: false, error: 'Failed to stop impersonation' };
     }
   };
 
@@ -126,8 +176,11 @@ export function AuthProvider({ children }) {
     bandMember,
     isAuthenticated,
     isLoading,
+    impersonation,
     login,
     logout,
+    startImpersonation,
+    stopImpersonation,
     checkAuthStatus
   };
 

@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import crypto from 'crypto';
+import { config, createKey } from '../../../../lib/config';
 
 const redis = new Redis({
-  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
+  url: config.redis.url,
+  token: config.redis.token,
 });
 
 // Hash password with salt
@@ -52,7 +53,7 @@ export async function POST(request) {
     }
 
     // Validate invitation code
-    const invitations = await redis.get('invitations') || [];
+    const invitations = await redis.get(createKey('invitations')) || [];
     const invitation = invitations.find(inv => inv.code === invitationCode);
 
     if (!invitation) {
@@ -74,7 +75,7 @@ export async function POST(request) {
     }
 
     // Check if username already exists
-    const existingUsers = await redis.get('users') || [];
+    const existingUsers = await redis.get(createKey('users')) || [];
     const usernameExists = existingUsers.some(user => user.username === username);
     const emailExists = existingUsers.some(user => user.email === email);
 
@@ -108,7 +109,7 @@ export async function POST(request) {
 
     // Add user to users list
     const updatedUsers = [...existingUsers, newUser];
-    await redis.set('users', updatedUsers);
+    await redis.set(createKey('users'), updatedUsers);
 
     // Mark invitation as used
     const updatedInvitations = invitations.map(inv => 
@@ -116,7 +117,7 @@ export async function POST(request) {
         ? { ...inv, usedAt: new Date().toISOString() }
         : inv
     );
-    await redis.set('invitations', updatedInvitations);
+    await redis.set(createKey('invitations'), updatedInvitations);
 
     // Create session for the new user
     const sessionToken = generateSessionToken();
@@ -129,7 +130,7 @@ export async function POST(request) {
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
     };
     
-    await redis.set(`session:${sessionToken}`, sessionData, { ex: 24 * 60 * 60 });
+    await redis.set(createKey(`session:${sessionToken}`), sessionData, { ex: 24 * 60 * 60 });
 
     const response = NextResponse.json({ 
       success: true, 

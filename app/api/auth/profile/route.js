@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
+import { config, createKey } from '../../../../lib/config';
 
 const redis = new Redis({
-  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
+  url: config.redis.url,
+  token: config.redis.token,
 });
 
 // Verify user session
@@ -15,7 +16,7 @@ async function verifySession(request) {
       return null;
     }
     
-    const sessionData = await redis.get(`session:${sessionToken}`);
+    const sessionData = await redis.get(createKey(`session:${sessionToken}`));
     
     if (!sessionData) {
       return null;
@@ -38,7 +39,7 @@ export async function GET(request) {
     }
 
     // Get user information
-    const users = await redis.get('users') || [];
+    const users = await redis.get(createKey('users')) || [];
     const user = users.find(u => u.id === session.userId);
     
     if (!user) {

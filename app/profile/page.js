@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useLanguage } from '../../components/LanguageProvider';
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, bandMember, isAuthenticated, logout } = useAuth();
   const { t } = useLanguage();
   const router = useRouter();
   const [userInfo, setUserInfo] = useState(null);
@@ -170,6 +170,42 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+
+      {/* Band Member Information */}
+      {bandMember && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h2 className="text-apple-title-2 text-primary mb-4">Band Member Info</h2>
+          <div className="flex items-center space-x-3">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+              bandMember.isCore ? 'bg-green-100' : 'bg-orange-100'
+            }`}>
+              <span className="text-lg">
+                {bandMember.isCore ? '⭐' : '🔄'}
+              </span>
+            </div>
+            <div>
+              <div className="font-medium text-gray-800">{bandMember.name}</div>
+              <div className="text-sm text-gray-600">{bandMember.instrument}</div>
+              <div className={`text-xs px-2 py-1 rounded-full inline-block mt-1 ${
+                bandMember.isCore 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-orange-100 text-orange-800'
+              }`}>
+                {bandMember.isCore ? 'Core Member' : 'Replacement Member'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!bandMember && userInfo && !userInfo.isAdmin && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <h3 className="font-medium text-yellow-800 mb-2">⚠️ Band Member Profile Not Linked</h3>
+          <p className="text-sm text-yellow-700">
+            Your user account is not linked to a band member profile. Contact your band admin to create your band member profile and link it to your account.
+          </p>
+        </div>
+      )}
 
       {/* Change Password */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">

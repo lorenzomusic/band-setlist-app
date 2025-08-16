@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import crypto from 'crypto';
+import { config, createKey } from '../../../lib/config';
 
 const redis = new Redis({
-  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
+  url: config.redis.url,
+  token: config.redis.token,
 });
 
 // Verify user session
@@ -16,7 +17,7 @@ async function verifySession(request) {
       return null;
     }
     
-    const sessionData = await redis.get(`session:${sessionToken}`);
+    const sessionData = await redis.get(createKey(`session:${sessionToken}`));
     
     if (!sessionData) {
       return null;
@@ -54,7 +55,7 @@ export async function POST(request) {
     }
 
     // Get user information
-    const users = await redis.get('users') || [];
+    const users = await redis.get(createKey('users')) || [];
     const userIndex = users.findIndex(u => u.id === session.userId);
     
     if (userIndex === -1) {
@@ -83,10 +84,10 @@ export async function POST(request) {
     };
 
     users[userIndex] = updatedUser;
-    await redis.set('users', users);
+    await redis.set(createKey('users'), users);
 
     // Invalidate all sessions for this user (force re-login)
-    const allSessions = await redis.keys('session:*');
+    const allSessions = await redis.keys(createKey('session:*'));
     for (const sessionKey of allSessions) {
       const sessionData = await redis.get(sessionKey);
       if (sessionData && sessionData.userId === session.userId) {
