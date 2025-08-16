@@ -359,7 +359,10 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <h3 className="text-apple-title-3 text-primary">Band Member Management</h3>
                   <button
-                    onClick={() => window.location.href = '/admin/band-members'}
+                    onClick={() => {
+                      const url = new URL('/admin/band-members', window.location.origin);
+                      window.location.href = url.toString();
+                    }}
                     className="px-4 py-2 bg-blue text-white rounded-lg hover:bg-blue-600 transition-colors"
                   >
                     Manage Band Members →

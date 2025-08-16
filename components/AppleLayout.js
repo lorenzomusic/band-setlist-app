@@ -33,7 +33,8 @@ const AppleLayout = ({ children }) => {
       protected: true,
       dropdown: [
         { name: t('nav.profile'), href: '/profile' },
-        { name: t('nav.admin'), href: '/admin' }
+        { name: t('nav.admin'), href: '/admin' },
+        { name: 'Band Members', href: '/admin/band-members' }
       ]
     }
   ];
