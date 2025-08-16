@@ -18,6 +18,7 @@ const PUBLIC_ROUTES = ['/login', '/register'];
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [bandMember, setBandMember] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const router = useRouter();
@@ -33,7 +34,8 @@ export function AuthProvider({ children }) {
       const data = await response.json();
       
       setIsAuthenticated(data.authenticated);
-      setUser(data.authenticated ? { isAdmin: data.isAdmin } : null);
+      setUser(data.authenticated ? data.user : null);
+      setBandMember(data.authenticated ? data.bandMember : null);
       
       // Handle redirects based on authentication status
       if (data.authenticated) {
@@ -57,6 +59,7 @@ export function AuthProvider({ children }) {
       console.error('Auth check error:', error);
       setIsAuthenticated(false);
       setUser(null);
+      setBandMember(null);
       
       // On error, redirect non-public routes to login
       const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
@@ -82,7 +85,8 @@ export function AuthProvider({ children }) {
 
     if (response.ok) {
       setIsAuthenticated(true);
-      setUser({ isAdmin: data.isAdmin });
+      setUser(data.user);
+      setBandMember(data.bandMember);
       return { success: true, ...data };
     } else {
       return { success: false, error: data.error };
@@ -97,6 +101,7 @@ export function AuthProvider({ children }) {
     } finally {
       setIsAuthenticated(false);
       setUser(null);
+      setBandMember(null);
       router.push('/login');
     }
   };
@@ -118,6 +123,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     user,
+    bandMember,
     isAuthenticated,
     isLoading,
     login,

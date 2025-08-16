@@ -46,6 +46,10 @@ export async function GET(request) {
     const hasUsers = users.length > 0 || authConfig !== null;
     
     if (authenticated) {
+      // Check if user is a band member
+      const bandMembers = await redis.get(createKey('band-members')) || [];
+      const bandMember = bandMembers.find(member => member.userId === session.userId);
+      
       return NextResponse.json({
         authenticated: true,
         user: {
@@ -53,6 +57,7 @@ export async function GET(request) {
           username: session.username,
           isAdmin: session.isAdmin
         },
+        bandMember: bandMember || null,
         hasUsers
       });
     } else {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useAuth } from '../../../components/AuthProvider';
 import ApplePanel from '../../../components/ui/ApplePanel';
 import ApplePanelHeader from '../../../components/ui/ApplePanelHeader';
 import AppleButton from '../../../components/ui/AppleButton';
@@ -10,8 +11,10 @@ export default function GigDetailPage() {
   const router = useRouter();
   const params = useParams();
   const gigId = params.id;
+  const { user, bandMember } = useAuth();
   
   const [gig, setGig] = useState(null);
+  const [songs, setSongs] = useState([]);
   const [members, setMembers] = useState([]);
   const [comments, setComments] = useState([]);
   const [availability, setAvailability] = useState([]);
@@ -19,9 +22,31 @@ export default function GigDetailPage() {
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [currentUser, setCurrentUser] = useState('Current User'); // TODO: Get from auth
+  
+  // Check if user is a replacement member (non-core member)
+  const isReplacementMember = bandMember && !bandMember.isCore;
+
+  // Helper function to resolve song IDs to current song data
+  const resolveSong = (songId) => {
+    const id = typeof songId === 'string' ? songId : songId.id;
+    const currentSong = songs.find(s => s.id === id);
+    return currentSong || { id, title: 'Unknown Song', artist: 'Unknown' };
+  };
+  
+  // Helper function to get status text for display
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'pending': return '⏳ Pending';
+      case 'confirmed': return '✅ Confirmed';
+      case 'completed': return '🎉 Completed';
+      case 'cancelled': return '❌ Cancelled';
+      default: return '⏳ Pending';
+    }
+  };
 
   useEffect(() => {
     loadGig();
+    loadSongs();
     loadMembers();
     loadComments();
     loadCurrentUser();
@@ -59,6 +84,18 @@ export default function GigDetailPage() {
       }
     } catch (error) {
       console.error('Error loading current user:', error);
+    }
+  };
+
+  const loadSongs = async () => {
+    try {
+      const response = await fetch('/api/songs');
+      if (response.ok) {
+        const songsData = await response.json();
+        setSongs(songsData);
+      }
+    } catch (error) {
+      console.error('Error loading songs:', error);
     }
   };
 
@@ -344,32 +381,44 @@ export default function GigDetailPage() {
                   <div>
                     <label className="apple-label">Status</label>
                     <div className="flex items-center space-x-3">
-                      <select
-                        className="apple-input"
-                        value={gig.status || 'pending'}
-                        onChange={(e) => handleStatusChange(e.target.value)}
-                      >
-                        <option value="pending">⏳ Pending</option>
-                        <option value="confirmed">✅ Confirmed</option>
-                        <option value="completed">🎉 Completed</option>
-                        <option value="cancelled">❌ Cancelled</option>
-                      </select>
+                      {isReplacementMember ? (
+                        <p className="text-gray-900">{getStatusText(gig.status || 'pending')}</p>
+                      ) : (
+                        <select
+                          className="apple-input"
+                          value={gig.status || 'pending'}
+                          onChange={(e) => handleStatusChange(e.target.value)}
+                        >
+                          <option value="pending">⏳ Pending</option>
+                          <option value="confirmed">✅ Confirmed</option>
+                          <option value="completed">🎉 Completed</option>
+                          <option value="cancelled">❌ Cancelled</option>
+                        </select>
+                      )}
                     </div>
                   </div>
 
                   <div>
                     <label className="apple-label">Contract</label>
                     <div className="flex items-center space-x-3">
-                      <input
-                        type="checkbox"
-                        id="contractUploaded"
-                        checked={gig.contractUploaded || false}
-                        onChange={handleContractToggle}
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                      />
-                      <label htmlFor="contractUploaded" className="text-sm text-gray-700">
-                        Contract uploaded
-                      </label>
+                      {isReplacementMember ? (
+                        <p className="text-gray-900">
+                          {gig.contractUploaded ? '✅ Contract uploaded' : '⏳ No contract'}
+                        </p>
+                      ) : (
+                        <>
+                          <input
+                            type="checkbox"
+                            id="contractUploaded"
+                            checked={gig.contractUploaded || false}
+                            onChange={handleContractToggle}
+                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                          />
+                          <label htmlFor="contractUploaded" className="text-sm text-gray-700">
+                            Contract uploaded
+                          </label>
+                        </>
+                      )}
                       {gig.contractUploaded && (
                         <AppleButton size="sm" variant="secondary">
                           📄 Download
@@ -493,18 +542,36 @@ export default function GigDetailPage() {
                         </h4>
                         {set.songs && set.songs.length > 0 ? (
                           <div className="space-y-2">
-                            {set.songs.map((song, songIndex) => (
-                              <div key={songIndex} className="flex items-center space-x-3 p-2 bg-white rounded border">
-                                <span className="text-sm text-gray-500 w-8">#{songIndex + 1}</span>
-                                <div className="flex-1">
-                                  <div className="font-medium">{song.title}</div>
-                                  <div className="text-sm text-gray-600">by {song.artist}</div>
+                            {set.songs.map((songId, songIndex) => {
+                              const song = resolveSong(songId);
+                              return (
+                                <div key={songIndex} className="flex items-center space-x-3 p-2 bg-white rounded border">
+                                  <span className="text-sm text-gray-500 w-8">#{songIndex + 1}</span>
+                                  <div className="flex-1">
+                                    <div className="font-medium">{song.title}</div>
+                                    <div className="text-sm text-gray-600">by {song.artist}</div>
+                                    {song.key && (
+                                      <div className="text-xs text-gray-500">Key: {song.key}</div>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    {song.duration && (
+                                      <span className="text-sm text-gray-500">{song.duration}</span>
+                                    )}
+                                    {song.youtubeLink && (
+                                      <a
+                                        href={song.youtubeLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                                      >
+                                        🎵 Recording
+                                      </a>
+                                    )}
+                                  </div>
                                 </div>
-                                {song.duration && (
-                                  <span className="text-sm text-gray-500">{song.duration}</span>
-                                )}
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         ) : (
                           <p className="text-gray-500 text-sm">No songs in this set</p>

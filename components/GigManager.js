@@ -939,6 +939,18 @@ export default function GigManager() {
                                               <div><span className="font-medium">Guitar:</span> {song.guitar || 'Not set'}</div>
                                             </div>
                                           </div>
+                                          {song.youtubeLink && (
+                                            <div className="mt-2 pt-2 border-t border-gray-200">
+                                              <a
+                                                href={song.youtubeLink}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                                              >
+                                                🎵 Recording
+                                              </a>
+                                            </div>
+                                          )}
                                         </div>
                                       )}
                                     </div>

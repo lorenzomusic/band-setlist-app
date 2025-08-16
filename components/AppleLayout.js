@@ -8,10 +8,13 @@ import { useLanguage } from './LanguageProvider';
 
 const AppleLayout = ({ children }) => {
   const pathname = usePathname();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, bandMember, logout } = useAuth();
   const { language, changeLanguage, t } = useLanguage();
   const [openDropdown, setOpenDropdown] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Check if user is a replacement band member (non-core member)
+  const isReplacementMember = bandMember && !bandMember.isCore;
   
   const navigation = [
     { name: t('nav.home'), href: '/' },
@@ -39,10 +42,30 @@ const AppleLayout = ({ children }) => {
     }
   ];
 
-  // Filter navigation based on authentication
-  const visibleNavigation = navigation.filter(item => 
-    !item.protected || isAuthenticated
-  );
+  // Filter navigation based on authentication and user type
+  const visibleNavigation = navigation.filter(item => {
+    // Check authentication first
+    if (item.protected && !isAuthenticated) {
+      return false;
+    }
+    
+    // For replacement members, only show Gigs and Settings (profile only)
+    if (isReplacementMember) {
+      if (item.href === '/gigs') {
+        return true; // Allow gigs
+      }
+      if (item.name === t('nav.settings')) {
+        // Filter settings dropdown to only show profile
+        item.dropdown = item.dropdown.filter(dropdownItem => 
+          dropdownItem.name === t('nav.profile')
+        );
+        return true;
+      }
+      return false; // Hide everything else
+    }
+    
+    return true; // Show all navigation for core members and admins
+  });
 
   // Close dropdown when clicking outside
   useEffect(() => {

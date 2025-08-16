@@ -76,15 +76,16 @@ export default function SetBuilder({ songs: propSongs }) {
         // Set songs state
         setSongs(songsData);
         
-        // Update sets with fresh song data
+        // Update sets with fresh song data - now sets store song IDs
         const updatedSets = setsData.map(set => ({
           ...set,
-          songs: set.songs.map(setSong => {
+          songs: (set.songs || []).map(songId => {
+            // If it's already a song object (old format), use its ID
+            const id = typeof songId === 'string' ? songId : songId.id;
             // Find the current version of this song
-            const currentSong = songsData.find(s => s.id === setSong.id);
-            // Return the current song data, or fall back to stored data
-            return currentSong || setSong;
-          })
+            const currentSong = songsData.find(s => s.id === id);
+            return currentSong || { id, title: 'Unknown Song', artist: 'Unknown' };
+          }).filter(song => song) // Remove any null/undefined songs
         }));
         
         setSets(updatedSets);
@@ -157,18 +158,21 @@ export default function SetBuilder({ songs: propSongs }) {
       console.log('No active set to add to');
       return;
     }
-    const existingIndex = (activeSet?.songs || []).findIndex(s => s.id === song.id);
+    const existingIndex = (activeSet?.songs || []).findIndex(songId => {
+      const id = typeof songId === 'string' ? songId : songId.id;
+      return id === song.id;
+    });
     if (existingIndex !== -1) {
       // Song already exists - show user-friendly message
       console.log('Song already in set at position', existingIndex);
       alert(`"${song.title}" is already in this set`);
       return; // For now, don't reorder - just prevent duplicates
     } else {
-      // New song - add to set
+      // New song - add to set (store only song ID)
       console.log('Adding new song to set');
       const updatedSet = {
         ...activeSet,
-        songs: [...(activeSet?.songs || []), song]
+        songs: [...(activeSet?.songs || []), song.id]
       };
       console.log('Updated set with new song:', updatedSet.name, 'now has', updatedSet.songs.length, 'songs');
       setSets(prevSets => 
@@ -180,12 +184,15 @@ export default function SetBuilder({ songs: propSongs }) {
     }
   }, [activeSet, setSets, setActiveSet]);
 
-  const removeSongFromSet = async (songId) => {
+  const removeSongFromSet = async (songIdToRemove) => {
     if (!activeSet) return;
     
     const updatedSet = {
       ...activeSet,
-      songs: activeSet.songs.filter(s => s.id !== songId)
+      songs: activeSet.songs.filter(songId => {
+        const id = typeof songId === 'string' ? songId : songId.id;
+        return id !== songIdToRemove;
+      })
     };
     
     try {
@@ -319,7 +326,10 @@ export default function SetBuilder({ songs: propSongs }) {
   const getAvailableSongs = () => {
     if (!songs || songs.length === 0) return [];
     if (!activeSet) return songs;
-    return songs.filter(song => !(activeSet?.songs || []).some(setSong => setSong.id === song.id));
+    return songs.filter(song => !(activeSet?.songs || []).some(songId => {
+      const id = typeof songId === 'string' ? songId : songId.id;
+      return id === song.id;
+    }));
   };
 
   // Get available medleys (medleys not fully in the current set)
@@ -341,11 +351,15 @@ export default function SetBuilder({ songs: propSongs }) {
       return;
     }
     
-    // Add all songs from the medley to the current set
+    // Add all songs from the medley to the current set (store only IDs)
     const updatedSongs = [...(activeSet.songs || [])];
     medley.songs.forEach(song => {
-      if (!updatedSongs.find(s => s.id === song.id)) {
-        updatedSongs.push(song);
+      const existingSongId = updatedSongs.find(songId => {
+        const id = typeof songId === 'string' ? songId : songId.id;
+        return id === song.id;
+      });
+      if (!existingSongId) {
+        updatedSongs.push(song.id);
       }
     });
     
@@ -1119,13 +1133,16 @@ export default function SetBuilder({ songs: propSongs }) {
                               alert('Please select or create a set first');
                               return;
                             }
-                            if ((activeSet.songs || []).some(s => s.id === song.id)) {
+                            if ((activeSet.songs || []).some(songId => {
+                              const id = typeof songId === 'string' ? songId : songId.id;
+                              return id === song.id;
+                            })) {
                               alert(`"${song.title}" is already in this set`);
                               return;
                             }
                             const updatedSet = {
                               ...activeSet,
-                              songs: [...(activeSet.songs || []), song]
+                              songs: [...(activeSet.songs || []), song.id]
                             };
                             try {
                               const response = await fetch('/api/sets', {
@@ -1404,6 +1421,18 @@ export default function SetBuilder({ songs: propSongs }) {
                                               <div><span className="font-medium">Backing Track:</span> {song.backingTrack ? 'Yes' : 'No'}</div>
                                             </div>
                                           </div>
+                                          {song.youtubeLink && (
+                                            <div className="mt-3 pt-3 border-t border-gray-200">
+                                              <a
+                                                href={song.youtubeLink}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                                              >
+                                                🎵 Recording
+                                              </a>
+                                            </div>
+                                          )}
                                         </div>
                                       )}
                                     </div>

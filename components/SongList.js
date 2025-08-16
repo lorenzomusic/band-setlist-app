@@ -116,9 +116,9 @@ export default function SongList() {
                   href={song.youtubeLink} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="inline-flex items-center bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  className="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
-                  🎵 Listen on YouTube
+                  🎵 Listen to Recording
                 </a>
               </div>
             )}

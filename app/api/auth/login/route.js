@@ -110,7 +110,8 @@ export async function POST(request) {
             id: 'admin',
             username: 'admin',
             isAdmin: true
-          }
+          },
+          bandMember: null // Admin is not a band member
         });
         
         response.cookies.set('session', sessionToken, {
@@ -155,7 +156,11 @@ export async function POST(request) {
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
     };
     
-    await redis.set(`session:${sessionToken}`, sessionData, { ex: 24 * 60 * 60 });
+    await redis.set(createKey(`session:${sessionToken}`), sessionData, { ex: 24 * 60 * 60 });
+
+    // Check if user is a band member
+    const bandMembers = await redis.get(createKey('band-members')) || [];
+    const bandMember = bandMembers.find(member => member.userId === user.id);
 
     const response = NextResponse.json({ 
       success: true, 
@@ -166,7 +171,8 @@ export async function POST(request) {
         username: user.username,
         email: user.email,
         isAdmin: user.isAdmin
-      }
+      },
+      bandMember: bandMember || null
     });
     
     response.cookies.set('session', sessionToken, {

@@ -384,9 +384,9 @@ export default function PerformanceView({ songs, onSetSelect, onGigSelect }) {
                                 href={song.youtubeLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                                className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                               >
-                                YouTube
+                                🎵 Recording
                               </a>
                             )}
                           </div>

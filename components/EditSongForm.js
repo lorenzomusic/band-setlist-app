@@ -253,7 +253,7 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
 
           <div>
             <label className="apple-label">
-              YouTube Link
+              Recording
             </label>
             <input
               type="url"
