@@ -240,12 +240,7 @@ export default function GigBuilder() {
     'Guitar',
     'Bass Guitar',
     'Drums',
-    'Keys',
-    'Saxophone',
-    'Trumpet',
-    'Trombone',
-    'Violin',
-    'Other'
+    'Keys'
   ];
 
   return (

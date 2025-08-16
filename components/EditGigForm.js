@@ -120,12 +120,7 @@ export default function EditGigForm({ gig, onGigUpdated, onCancel }) {
     'Guitar',
     'Bass Guitar',
     'Drums',
-    'Keys',
-    'Saxophone',
-    'Trumpet',
-    'Trombone',
-    'Violin',
-    'Other'
+    'Keys'
   ];
 
   return (
