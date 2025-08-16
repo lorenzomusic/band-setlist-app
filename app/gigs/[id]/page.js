@@ -545,7 +545,7 @@ export default function GigDetailPage() {
                             {set.songs.map((songId, songIndex) => {
                               const song = resolveSong(songId);
                               return (
-                                <div key={songIndex} className="flex items-center space-x-3 p-2 bg-white rounded border">
+                                <div key={`${setIndex}-${song.id || songIndex}`} className="flex items-center space-x-3 p-2 bg-white rounded border">
                                   <span className="text-sm text-gray-500 w-8">#{songIndex + 1}</span>
                                   <div className="flex-1">
                                     <div className="font-medium">{song.title}</div>
