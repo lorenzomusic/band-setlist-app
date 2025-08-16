@@ -509,7 +509,7 @@ export default function GigDetailPage() {
                       console.log('Lineup item:', item);
                       const memberName = getMemberName(item.memberId);
                       return (
-                        <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                        <div key={`lineup-${gigId}-${item.instrument}-${item.memberId || index}`} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
                           <div>
                             <div className="font-medium text-gray-900">{item.instrument}</div>
                             <div className="text-sm text-gray-600">
@@ -530,13 +530,13 @@ export default function GigDetailPage() {
             )}
 
             {/* Sets */}
-            {gig.sets && gig.sets.length > 0 && (
+            {gig.sets && gig.sets.length > 0 && songs.length > 0 && (
               <ApplePanel>
                 <ApplePanelHeader title="Setlist" />
                 <div className="px-8 pb-8">
                   <div className="space-y-4">
                     {gig.sets.map((set, setIndex) => (
-                      <div key={setIndex} className="p-4 bg-gray-50 rounded-lg border">
+                      <div key={`gig-${gigId}-set-${set.id || setIndex}`} className="p-4 bg-gray-50 rounded-lg border">
                         <h4 className="font-medium text-gray-900 mb-3">
                           Set {setIndex + 1}: {set.name}
                         </h4>
@@ -545,11 +545,11 @@ export default function GigDetailPage() {
                             {set.songs.map((songId, songIndex) => {
                               const song = resolveSong(songId);
                               return (
-                                <div key={`${setIndex}-${song.id || songIndex}`} className="flex items-center space-x-3 p-2 bg-white rounded border">
+                                <div key={`gig-${gigId}-set-${setIndex}-song-${song.id || `idx-${songIndex}`}`} className="flex items-center space-x-3 p-2 bg-white rounded border">
                                   <span className="text-sm text-gray-500 w-8">#{songIndex + 1}</span>
                                   <div className="flex-1">
-                                    <div className="font-medium">{song.title}</div>
-                                    <div className="text-sm text-gray-600">by {song.artist}</div>
+                                    <div className="font-medium">{song.title || 'Unknown Song'}</div>
+                                    <div className="text-sm text-gray-600">by {song.artist || 'Unknown Artist'}</div>
                                     {song.key && (
                                       <div className="text-xs text-gray-500">Key: {song.key}</div>
                                     )}

@@ -38,6 +38,13 @@ export default function SetBuilder({ songs: propSongs }) {
   const [durationFilter, setDurationFilter] = useState('all');
   const skipNextReorganize = useRef(false);
 
+  // Helper function to resolve song IDs to current song data
+  const resolveSong = (songId) => {
+    const id = typeof songId === 'string' ? songId : songId.id;
+    const currentSong = songs.find(s => s.id === id);
+    return currentSong || { id, title: 'Unknown Song', artist: 'Unknown' };
+  };
+
   // Load sets and songs on component mount
   useEffect(() => {
     loadSets();
@@ -46,12 +53,14 @@ export default function SetBuilder({ songs: propSongs }) {
   // Reorganize set helper function
   const reorganizeActiveSet = useCallback(() => {
     if (activeSet && activeSet.songs) {
-      const organized = organizeSetByMedleys(activeSet.songs);
+      // Resolve song IDs to current song data before organizing
+      const resolvedSongs = activeSet.songs.map(songId => resolveSong(songId));
+      const organized = organizeSetByMedleys(resolvedSongs);
       setOrganizedSet(organized);
     } else {
       setOrganizedSet([]);
     }
-  }, [activeSet]);
+  }, [activeSet, songs]);
 
   // Add this effect to reorganize the set when activeSet changes (switching sets or loading)
   useEffect(() => {
@@ -76,16 +85,13 @@ export default function SetBuilder({ songs: propSongs }) {
         // Set songs state
         setSongs(songsData);
         
-        // Update sets with fresh song data - now sets store song IDs
+        // Update sets to ensure song IDs are stored properly
         const updatedSets = setsData.map(set => ({
           ...set,
           songs: (set.songs || []).map(songId => {
-            // If it's already a song object (old format), use its ID
-            const id = typeof songId === 'string' ? songId : songId.id;
-            // Find the current version of this song
-            const currentSong = songsData.find(s => s.id === id);
-            return currentSong || { id, title: 'Unknown Song', artist: 'Unknown' };
-          }).filter(song => song) // Remove any null/undefined songs
+            // If it's already a song object (old format), extract its ID
+            return typeof songId === 'string' ? songId : songId.id;
+          }).filter(id => id) // Remove any null/undefined IDs
         }));
         
         setSets(updatedSets);
@@ -250,7 +256,8 @@ export default function SetBuilder({ songs: propSongs }) {
 
   // Calculate total duration
   const calculateTotalDuration = (setSongs) => {
-    const totalMinutes = setSongs.reduce((total, song) => {
+    const resolvedSongs = setSongs.map(songId => resolveSong(songId));
+    const totalMinutes = resolvedSongs.reduce((total, song) => {
       if (song.duration) {
         return total + safeDuration(song.duration);
       }
@@ -268,7 +275,8 @@ export default function SetBuilder({ songs: propSongs }) {
 
   // Calculate total duration in minutes for filtering
   const calculateTotalDurationMinutes = (setSongs) => {
-    return setSongs.reduce((total, song) => {
+    const resolvedSongs = setSongs.map(songId => resolveSong(songId));
+    return resolvedSongs.reduce((total, song) => {
       if (song.duration) {
         return total + safeDuration(song.duration);
       }
@@ -278,10 +286,11 @@ export default function SetBuilder({ songs: propSongs }) {
 
   // Check for instrument changes
   const getInstrumentWarnings = (setSongs) => {
+    const resolvedSongs = setSongs.map(songId => resolveSong(songId));
     const warnings = [];
-    for (let i = 1; i < setSongs.length; i++) {
-      const prevSong = setSongs[i - 1];
-      const currentSong = setSongs[i];
+    for (let i = 1; i < resolvedSongs.length; i++) {
+      const prevSong = resolvedSongs[i - 1];
+      const currentSong = resolvedSongs[i];
       
       if (prevSong.bassGuitar !== currentSong.bassGuitar) {
         warnings.push(`Bass change after "${prevSong.title}": ${prevSong.bassGuitar} → ${currentSong.bassGuitar}`);
@@ -694,19 +703,21 @@ export default function SetBuilder({ songs: propSongs }) {
   };
 
   // Language Analytics Functions
-  const calculateLanguageStats = (songs) => {
-    if (!songs || songs.length === 0) {
+  const calculateLanguageStats = (songIds) => {
+    if (!songIds || songIds.length === 0) {
       return { danish: 0, english: 0, totalDuration: 0 };
     }
+    
+    const resolvedSongs = songIds.map(songId => resolveSong(songId));
 
-    const totalDuration = songs.reduce((sum, song) => {
+    const totalDuration = resolvedSongs.reduce((sum, song) => {
       if (song.duration) {
         return sum + safeDuration(song.duration);
       }
       return sum;
     }, 0);
 
-    const danishDuration = songs
+    const danishDuration = resolvedSongs
       .filter(song => song.language === 'danish')
       .reduce((sum, song) => {
         if (song.duration) {
@@ -715,7 +726,7 @@ export default function SetBuilder({ songs: propSongs }) {
         return sum;
       }, 0);
 
-    const englishDuration = songs
+    const englishDuration = resolvedSongs
       .filter(song => song.language === 'english')
       .reduce((sum, song) => {
         if (song.duration) {
@@ -734,19 +745,21 @@ export default function SetBuilder({ songs: propSongs }) {
   };
 
   // Vocalist Analytics Functions
-  const calculateVocalistStats = (songs) => {
-    if (!songs || songs.length === 0) {
+  const calculateVocalistStats = (songIds) => {
+    if (!songIds || songIds.length === 0) {
       return { rikke: 0, lorentz: 0, both: 0, totalDuration: 0 };
     }
+    
+    const resolvedSongs = songIds.map(songId => resolveSong(songId));
 
-    const totalDuration = songs.reduce((sum, song) => {
+    const totalDuration = resolvedSongs.reduce((sum, song) => {
       if (song.duration) {
         return sum + safeDuration(song.duration);
       }
       return sum;
     }, 0);
 
-    const rikkeDuration = songs
+    const rikkeDuration = resolvedSongs
       .filter(song => song.vocalist === 'Rikke' || song.vocalist === 'Both')
       .reduce((sum, song) => {
         if (song.duration) {
@@ -757,7 +770,7 @@ export default function SetBuilder({ songs: propSongs }) {
         return sum;
       }, 0);
 
-    const lorentzDuration = songs
+    const lorentzDuration = resolvedSongs
       .filter(song => song.vocalist === 'Lorentz' || song.vocalist === 'Both')
       .reduce((sum, song) => {
         if (song.duration) {
@@ -768,7 +781,7 @@ export default function SetBuilder({ songs: propSongs }) {
         return sum;
       }, 0);
 
-    const bothDuration = songs
+    const bothDuration = resolvedSongs
       .filter(song => song.vocalist === 'Both')
       .reduce((sum, song) => {
         if (song.duration) {
@@ -1239,12 +1252,7 @@ export default function SetBuilder({ songs: propSongs }) {
                       </h1>
                       <p className="text-apple-callout md:text-apple-body text-secondary">
                         {activeSet.songs ? activeSet.songs.length : 0} songs • 
-                        {activeSet.songs ? Math.ceil(activeSet.songs.reduce((total, song) => {
-                          const duration = typeof song.duration === 'string' ? 
-                            song.duration.split(':').reduce((acc, time) => (60 * acc) + +time, 0) / 60 :
-                            song.duration || 0;
-                          return total + duration;
-                        }, 0)) : 0} minutes total
+                        {calculateTotalDuration(activeSet.songs || [])} total
                       </p>
                     </div>
                     

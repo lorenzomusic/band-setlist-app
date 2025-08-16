@@ -8,12 +8,14 @@ import AppleButton from './ui/AppleButton';
 import AppleSearchInput from './ui/AppleSearchInput';
 import AppleMetadataBadge from './ui/AppleMetadataBadge';
 import EditGigForm from './EditGigForm';
+import { organizeSetByMedleys, getMedleyStats } from '../utils/medley';
 
 export default function GigManager() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [gigs, setGigs] = useState([]);
   const [sets, setSets] = useState([]);
+  const [songs, setSongs] = useState([]);
   const [members, setMembers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -23,11 +25,20 @@ export default function GigManager() {
   const [expandedSets, setExpandedSets] = useState(new Set());
   const [expandedSongs, setExpandedSongs] = useState(new Set());
   const [expandedGigs, setExpandedGigs] = useState(new Set());
+  const [collapsedMedleys, setCollapsedMedleys] = useState(new Set());
   const [editingGigId, setEditingGigId] = useState(null);
+
+  // Helper function to resolve song IDs to current song data
+  const resolveSong = (songId) => {
+    const id = typeof songId === 'string' ? songId : songId.id;
+    const currentSong = songs.find(s => s.id === id);
+    return currentSong || { id, title: 'Unknown Song', artist: 'Unknown' };
+  };
 
   useEffect(() => {
     loadGigs();
     loadSets();
+    loadSongs();
     loadMembers();
   }, []);
 
@@ -73,6 +84,18 @@ export default function GigManager() {
       }
     } catch (error) {
       console.error('Error loading sets:', error);
+    }
+  };
+
+  const loadSongs = async () => {
+    try {
+      const response = await fetch('/api/songs');
+      if (response.ok) {
+        const data = await response.json();
+        setSongs(data);
+      }
+    } catch (error) {
+      console.error('Error loading songs:', error);
     }
   };
 
@@ -530,6 +553,18 @@ export default function GigManager() {
     });
   };
 
+  const toggleMedleyCollapse = (medleyId) => {
+    setCollapsedMedleys(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(medleyId)) {
+        newSet.delete(medleyId);
+      } else {
+        newSet.add(medleyId);
+      }
+      return newSet;
+    });
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -903,59 +938,160 @@ export default function GigManager() {
                             {/* Expanded Set Details */}
                             {expandedSets.has(set.id) && (
                               <div className="mt-4 space-y-2">
-                                {set.songs && set.songs.length > 0 ? (
-                                  set.songs.map((song, songIndex) => (
-                                    <div key={song.id} className="flex items-center justify-between p-2 bg-white rounded border border-gray-200">
-                                      <div className="flex items-center space-x-3">
-                                        <span className="text-xs text-gray-600 w-6 text-center font-mono bg-gray-100 rounded px-1">#{songIndex + 1}</span>
-                                        <div>
-                                          <div className="text-sm font-medium">{song.title}</div>
-                                          <div className="text-xs text-gray-500">
-                                            {song.artist && song.artist.toString().trim() !== '' ? `by ${song.artist}` : 'Artist not specified'}
-                                          </div>
-                                        </div>
-                                      </div>
-                                      
-                                      <div className="flex items-center space-x-2">
-                                        <button
-                                          onClick={() => toggleSongExpansion(song.id)}
-                                          className="text-gray-500 hover:text-gray-700 transition-colors p-1"
-                                          title={expandedSongs.has(song.id) ? 'Collapse details' : 'Expand details'}
-                                        >
-                                          {expandedSongs.has(song.id) ? '▼' : '▶'}
-                                        </button>
-                                      </div>
-                                      
-                                      {/* Expanded Song Details */}
-                                      {expandedSongs.has(song.id) && (
-                                        <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200 animate-fade-in">
-                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                                            <div>
-                                              <div><span className="font-medium">Key:</span> {song.key || 'Not set'}</div>
-                                              <div><span className="font-medium">Duration:</span> {song.duration || 'Not set'}</div>
+                                {set.songs && set.songs.length > 0 ? (() => {
+                                  // Resolve all song IDs to song objects
+                                  const resolvedSongs = set.songs.map(songId => resolveSong(songId));
+                                  // Organize by medleys
+                                  const organized = organizeSetByMedleys(resolvedSongs);
+                                  
+                                  return organized.map((item, index) => {
+                                    if (item.type === 'medley') {
+                                      const medleyStats = getMedleyStats(item.songs);
+                                      return (
+                                        <div key={`gig-manager-${set.id}-medley-${item.id}`} className="bg-purple-50 border border-purple-200 rounded-lg overflow-hidden">
+                                          {/* Medley Header */}
+                                          <div className="flex items-center justify-between p-4 bg-purple-100 border-b border-purple-200">
+                                            <div className="flex items-center space-x-3">
+                                              <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                                              <div>
+                                                <div className="font-medium text-purple-900">{item.name}</div>
+                                                <div className="text-xs text-purple-600 bg-purple-200 px-2 py-1 rounded-full">
+                                                  {medleyStats.songCount} songs • {medleyStats.totalDuration} min
+                                                </div>
+                                              </div>
                                             </div>
-                                            <div>
-                                              <div><span className="font-medium">Bass:</span> {song.bassGuitar || 'Not set'}</div>
-                                              <div><span className="font-medium">Guitar:</span> {song.guitar || 'Not set'}</div>
-                                            </div>
+                                            <button
+                                              onClick={() => toggleMedleyCollapse(item.id)}
+                                              className="text-purple-600 hover:text-purple-800 transition-colors p-1"
+                                              title={collapsedMedleys.has(item.id) ? 'Expand medley' : 'Collapse medley'}
+                                            >
+                                              {collapsedMedleys.has(item.id) ? '▶' : '▼'}
+                                            </button>
                                           </div>
-                                          {song.youtubeLink && (
-                                            <div className="mt-2 pt-2 border-t border-gray-200">
-                                              <a
-                                                href={song.youtubeLink}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-                                              >
-                                                🎵 Recording
-                                              </a>
+                                          
+                                          {/* Medley Songs */}
+                                          {!collapsedMedleys.has(item.id) && (
+                                            <div className="p-2 space-y-1">
+                                              {item.songs.map((song, songIndex) => (
+                                                <div key={`gig-manager-${set.id}-medley-${item.id}-song-${song.id}`} className="group bg-white p-3 rounded-lg border-l-4 border-purple-300 hover:bg-purple-50 transition-colors">
+                                                  <div className="flex items-center justify-between">
+                                                    <div className="flex items-center space-x-3">
+                                                      <span className="text-xs text-purple-600 w-8 text-center font-mono bg-purple-100 rounded px-1">#{song.medleyPosition || songIndex + 1}</span>
+                                                      <div>
+                                                        <div className="text-sm font-medium">{song.title || 'Unknown Song'}</div>
+                                                        <div className="text-xs text-gray-500">
+                                                          {song.artist && song.artist.toString().trim() !== '' ? `by ${song.artist}` : 'Artist not specified'}
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center space-x-2">
+                                                      <button
+                                                        onClick={() => toggleSongExpansion(song.id)}
+                                                        className={`w-9 h-9 md:w-8 md:h-8 lg:w-7 lg:h-7 rounded-lg flex items-center justify-center text-sm md:text-xs transition-all ${
+                                                          expandedSongs.has(song.id) 
+                                                            ? 'bg-purple-500 text-white' 
+                                                            : 'bg-white text-purple-600 hover:bg-purple-100 active:bg-purple-200 shadow-sm'
+                                                        }`}
+                                                        title={expandedSongs.has(song.id) ? 'Collapse details' : 'Expand details'}
+                                                      >
+                                                        {expandedSongs.has(song.id) ? '▼' : '▶'}
+                                                      </button>
+                                                    </div>
+                                                  </div>
+                                                  
+                                                  {/* Expanded Song Details */}
+                                                  {expandedSongs.has(song.id) && (
+                                                    <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200 animate-fade-in">
+                                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                                                        <div>
+                                                          <div><span className="font-medium">Key:</span> {song.key || 'Not set'}</div>
+                                                          <div><span className="font-medium">Duration:</span> {song.duration || 'Not set'}</div>
+                                                        </div>
+                                                        <div>
+                                                          <div><span className="font-medium">Bass:</span> {song.bassGuitar || 'Not set'}</div>
+                                                          <div><span className="font-medium">Guitar:</span> {song.guitar || 'Not set'}</div>
+                                                        </div>
+                                                      </div>
+                                                      {song.youtubeLink && (
+                                                        <div className="mt-2 pt-2 border-t border-gray-200">
+                                                          <a
+                                                            href={song.youtubeLink}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                                                          >
+                                                            🎵 Recording
+                                                          </a>
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              ))}
                                             </div>
                                           )}
                                         </div>
-                                      )}
-                                    </div>
-                                  ))
-                                ) : (
+                                      );
+                                    } else {
+                                      // Individual song
+                                      const song = item.song;
+                                      return (
+                                        <div key={`gig-manager-${set.id}-song-${song.id}`} className="p-2 bg-white rounded border border-gray-200">
+                                          <div className="flex items-center justify-between">
+                                            <div className="flex items-center space-x-3">
+                                              <span className="text-xs text-gray-600 w-6 text-center font-mono bg-gray-100 rounded px-1">#{index + 1}</span>
+                                              <div>
+                                                <div className="text-sm font-medium">{song.title || 'Unknown Song'}</div>
+                                                <div className="text-xs text-gray-500">
+                                                  {song.artist && song.artist.toString().trim() !== '' ? `by ${song.artist}` : 'Artist not specified'}
+                                                </div>
+                                              </div>
+                                            </div>
+                                            
+                                            <div className="flex items-center space-x-2">
+                                              <button
+                                                onClick={() => toggleSongExpansion(song.id)}
+                                                className="text-gray-500 hover:text-gray-700 transition-colors p-1"
+                                                title={expandedSongs.has(song.id) ? 'Collapse details' : 'Expand details'}
+                                              >
+                                                {expandedSongs.has(song.id) ? '▼' : '▶'}
+                                              </button>
+                                            </div>
+                                          </div>
+                                          
+                                          {/* Expanded Song Details */}
+                                          {expandedSongs.has(song.id) && (
+                                            <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200 animate-fade-in">
+                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                                                <div>
+                                                  <div><span className="font-medium">Key:</span> {song.key || 'Not set'}</div>
+                                                  <div><span className="font-medium">Duration:</span> {song.duration || 'Not set'}</div>
+                                                </div>
+                                                <div>
+                                                  <div><span className="font-medium">Bass:</span> {song.bassGuitar || 'Not set'}</div>
+                                                  <div><span className="font-medium">Guitar:</span> {song.guitar || 'Not set'}</div>
+                                                </div>
+                                              </div>
+                                              {song.youtubeLink && (
+                                                <div className="mt-2 pt-2 border-t border-gray-200">
+                                                  <a
+                                                    href={song.youtubeLink}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                                                  >
+                                                    🎵 Recording
+                                                  </a>
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    }
+                                  });
+                                })() : (
                                   <div className="text-center py-4 text-gray-500 text-sm">
                                     No songs in this set
                                   </div>
