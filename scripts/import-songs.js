@@ -7,6 +7,15 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config({ path: '.env.local' });
 
+// Key prefix for development environment
+const keyPrefix = process.env.NODE_ENV === 'production' 
+  ? 'prod:' 
+  : process.env.NODE_ENV === 'staging' 
+    ? 'staging:' 
+    : 'dev:';
+
+const createKey = (key) => `${keyPrefix}${key}`;
+
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
   token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
@@ -26,7 +35,8 @@ async function importSongs() {
     const results = Papa.parse(csvData, {
       header: true,
       skipEmptyLines: true,
-      dynamicTyping: false
+      dynamicTyping: false,
+      delimiter: ';'
     });
     
     console.log(`📊 Found ${results.data.length} songs in CSV`);
@@ -63,10 +73,10 @@ async function importSongs() {
     
     // Clear existing songs and import new ones
     console.log('🗑️ Clearing existing songs...');
-    await redis.set('songs', []);
+    await redis.set(createKey('songs'), []);
     
     console.log('💾 Importing new songs...');
-    await redis.set('songs', songs);
+    await redis.set(createKey('songs'), songs);
     
     console.log('🎉 Import completed successfully!');
     console.log(`📈 Total songs in database: ${songs.length}`);
