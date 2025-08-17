@@ -29,6 +29,26 @@ export function AuthProvider({ children }) {
     checkAuthStatus();
   }, [pathname]);
 
+  // Route protection for replacement members
+  useEffect(() => {
+    if (isAuthenticated && bandMember && !bandMember.isCore && !isLoading) {
+      const allowedRoutes = ['/gigs', '/profile'];
+      const isAllowedRoute = allowedRoutes.some(route => pathname.startsWith(route)) || pathname === '/';
+      
+      if (!isAllowedRoute) {
+        console.log('Replacement member blocked from:', pathname);
+        router.push('/gigs');
+      }
+    }
+  }, [isAuthenticated, bandMember, pathname, isLoading, router]);
+
+  // Redirect replacement members from home to gigs
+  useEffect(() => {
+    if (isAuthenticated && bandMember && !bandMember.isCore && pathname === '/') {
+      router.push('/gigs');
+    }
+  }, [isAuthenticated, bandMember, pathname, router]);
+
   const checkAuthStatus = async () => {
     try {
       const response = await fetch('/api/auth/check');

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import crypto from 'crypto';
-import { config, createKey } from '../../../lib/config';
+import { config, createKey } from '../../../../lib/config';
 
 const redis = new Redis({
   url: config.redis.url,

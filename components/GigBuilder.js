@@ -162,14 +162,23 @@ export default function GigBuilder() {
     }));
   };
 
-  const handleLineupChange = (instrument, memberId, isReplacement) => {
+  const handleLineupChange = (instrument, memberId) => {
     setGigData(prev => {
       const newLineup = [...prev.lineup];
       const existingIndex = newLineup.findIndex(item => item.instrument === instrument);
       
+      // Find the selected member to get their isCore status
+      const selectedMember = members.find(member => member.id === memberId);
+      const isReplacement = selectedMember ? !selectedMember.isCore : false;
+      
       if (existingIndex !== -1) {
-        newLineup[existingIndex] = { instrument, memberId, isReplacement };
-      } else {
+        if (memberId) {
+          newLineup[existingIndex] = { instrument, memberId, isReplacement };
+        } else {
+          // Remove the lineup item if no member is selected
+          newLineup.splice(existingIndex, 1);
+        }
+      } else if (memberId) {
         newLineup.push({ instrument, memberId, isReplacement });
       }
       
@@ -359,28 +368,23 @@ export default function GigBuilder() {
                     <select
                       className="flex-1 apple-input"
                       value={lineupItem?.memberId || ''}
-                      onChange={(e) => handleLineupChange(instrument, e.target.value, false)}
+                      onChange={(e) => handleLineupChange(instrument, e.target.value)}
                     >
                       <option value="">Select member...</option>
                       {members.map(member => (
                         <option key={member.id} value={member.id}>
-                          {member.name} ({member.instrument})
+                          {member.name} ({member.instrument}) {!member.isCore ? '(Replacement)' : ''}
                         </option>
                       ))}
                     </select>
                     
                     {lineupItem?.memberId && (
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id={`replacement-${instrument}`}
-                          checked={lineupItem?.isReplacement || false}
-                          onChange={(e) => handleLineupChange(instrument, lineupItem.memberId, e.target.checked)}
-                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                        />
-                        <label htmlFor={`replacement-${instrument}`} className="text-xs text-gray-600">
-                          Replacement
-                        </label>
+                      <div className="text-xs text-gray-600">
+                        {lineupItem?.isReplacement ? (
+                          <span className="text-orange-600 font-medium">🔄 Replacement Member</span>
+                        ) : (
+                          <span className="text-green-600 font-medium">⭐ Core Member</span>
+                        )}
                       </div>
                     )}
                   </div>

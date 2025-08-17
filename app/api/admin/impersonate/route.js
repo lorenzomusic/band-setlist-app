@@ -59,12 +59,20 @@ export async function POST(request) {
     // Get the session token from cookie
     const sessionToken = request.cookies.get('session')?.value;
     
+    // Get the original admin user data from users list
+    const originalUser = users.find(u => u.id === session.userId);
+    
     // Update the session to include impersonation data
     const updatedSession = {
       ...session,
       impersonating: {
         originalUserId: session.userId,
-        originalUser: session.user,
+        originalUser: {
+          id: session.userId,
+          username: originalUser?.username || session.user?.username || 'Admin',
+          email: originalUser?.email || session.user?.email || '',
+          isAdmin: true
+        },
         targetUserId: userId,
         targetUser: {
           id: targetUser.id,
@@ -122,7 +130,12 @@ export async function DELETE(request) {
     // Restore original admin session
     const restoredSession = {
       userId: session.impersonating.originalUserId,
-      user: session.impersonating.originalUser,
+      user: {
+        id: session.impersonating.originalUser.id,
+        username: session.impersonating.originalUser.username,
+        email: session.impersonating.originalUser.email,
+        isAdmin: session.impersonating.originalUser.isAdmin
+      },
       isAdmin: true,
       expiresAt: session.expiresAt,
       createdAt: session.createdAt

@@ -70,12 +70,12 @@ export async function GET(request) {
           isImpersonating: true,
           originalUser: {
             id: session.impersonating.originalUserId,
-            username: session.impersonating.originalUser.username
+            username: session.impersonating.originalUser?.username || 'Admin'
           },
           targetUser: {
             id: session.impersonating.targetUserId,
-            username: session.impersonating.targetUser.username,
-            email: session.impersonating.targetUser.email
+            username: session.impersonating.targetUser?.username || 'Unknown User',
+            email: session.impersonating.targetUser?.email || ''
           },
           startedAt: session.impersonating.startedAt
         };
