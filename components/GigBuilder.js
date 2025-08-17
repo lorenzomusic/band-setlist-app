@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from './LanguageProvider';
 import ApplePanel from './ui/ApplePanel';
 import ApplePanelHeader from './ui/ApplePanelHeader';
 import AppleButton from './ui/AppleButton';
@@ -10,7 +11,7 @@ import AutoDateInput from './ui/AutoDateInput';
 import AutoTimeInput from './ui/AutoTimeInput';
 
 // Availability Modal Component
-function AvailabilityModal({ isOpen, onClose, date, availability, members }) {
+function AvailabilityModal({ isOpen, onClose, date, availability, members, t }) {
   if (!isOpen) return null;
 
   const getAvailabilityForMember = (memberId) => {
@@ -40,7 +41,7 @@ function AvailabilityModal({ isOpen, onClose, date, availability, members }) {
       <div className="bg-white rounded-apple shadow-apple p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">
-            Availability for {new Date(date).toLocaleDateString('en-US', { 
+            {t('gigBuilder.availabilityFor')} {new Date(date).toLocaleDateString('en-US', { 
               weekday: 'long', 
               year: 'numeric', 
               month: 'long', 
@@ -69,9 +70,9 @@ function AvailabilityModal({ isOpen, onClose, date, availability, members }) {
                 <div className={`flex items-center space-x-2 ${getStatusColor(status)}`}>
                   <span className="text-lg">{getStatusIcon(status)}</span>
                   <span className="font-medium">
-                    {status === 'available' ? 'Available' :
-                     status === 'unavailable' ? 'Unavailable' :
-                     status === 'maybe' ? 'Maybe' : 'Unknown'}
+                    {status === 'available' ? t('gigBuilder.available') :
+                     status === 'unavailable' ? t('gigBuilder.unavailable') :
+                     status === 'maybe' ? t('gigBuilder.maybe') : t('gigDetail.unknown')}
                   </span>
                 </div>
               </div>
@@ -80,32 +81,32 @@ function AvailabilityModal({ isOpen, onClose, date, availability, members }) {
         </div>
         
         <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <h4 className="font-medium text-blue-900 mb-2">Summary</h4>
+          <h4 className="font-medium text-blue-900 mb-2">{t('gigBuilder.summary')}</h4>
           <div className="grid grid-cols-3 gap-4 text-sm">
             <div className="text-center">
               <div className="text-green-600 font-bold">
                 {availability.filter(a => a.status === 'available').length}
               </div>
-              <div className="text-gray-600">Available</div>
+              <div className="text-gray-600">{t('gigBuilder.available')}</div>
             </div>
             <div className="text-center">
               <div className="text-yellow-600 font-bold">
                 {availability.filter(a => a.status === 'maybe').length}
               </div>
-              <div className="text-gray-600">Maybe</div>
+              <div className="text-gray-600">{t('gigBuilder.maybe')}</div>
             </div>
             <div className="text-center">
               <div className="text-red-600 font-bold">
                 {availability.filter(a => a.status === 'unavailable').length}
               </div>
-              <div className="text-gray-600">Unavailable</div>
+              <div className="text-gray-600">{t('gigBuilder.unavailable')}</div>
             </div>
           </div>
         </div>
         
         <div className="mt-6 flex justify-end">
           <AppleButton onClick={onClose} variant="secondary">
-            Close
+            {t('gigBuilder.close')}
           </AppleButton>
         </div>
       </div>
@@ -115,6 +116,7 @@ function AvailabilityModal({ isOpen, onClose, date, availability, members }) {
 
 export default function GigBuilder() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [gigData, setGigData] = useState({
     name: '',
     venue: '',
@@ -255,8 +257,8 @@ export default function GigBuilder() {
     <div className="apple-container">
       <ApplePanel>
         <ApplePanelHeader
-          title="Create New Gig"
-          subtitle="Set up your next performance"
+          title={t('gigBuilder.title')}
+          subtitle={t('gigBuilder.subtitle')}
         />
         
         <form onSubmit={handleSubmit} className="space-y-6 px-8 pb-8">

@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from 'react';
+import { useLanguage } from './LanguageProvider';
 import TagInput from './TagInput';
 import AutoDurationInput from './ui/AutoDurationInput';
 
 export default function AddSongForm({ onSongAdded, onCancel }) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     title: '',
     artist: '',
