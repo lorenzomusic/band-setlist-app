@@ -16,7 +16,6 @@ export default function EditGigForm({ gig, onGigUpdated, onCancel }) {
     notes: gig.notes || '',
     status: gig.status || 'pending',
     lineup: gig.lineup || [],
-    contractUploaded: gig.contractUploaded || false
   });
   const [saving, setSaving] = useState(false);
   const [members, setMembers] = useState([]);
@@ -51,8 +50,7 @@ export default function EditGigForm({ gig, onGigUpdated, onCancel }) {
       notes: gig.notes || '',
       status: gig.status || 'pending',
       lineup: gig.lineup || [],
-      contractUploaded: gig.contractUploaded || false
-    });
+      });
   }, [gig]);
 
   const handleChange = (e) => {
@@ -199,21 +197,6 @@ export default function EditGigForm({ gig, onGigUpdated, onCancel }) {
             </select>
           </div>
 
-          <div>
-            <label className="apple-label">Contract Uploaded</label>
-            <div className="flex items-center space-x-3">
-              <input
-                type="checkbox"
-                name="contractUploaded"
-                checked={formData.contractUploaded}
-                onChange={handleChange}
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-              />
-              <label className="text-sm text-gray-700">
-                Contract has been uploaded
-              </label>
-            </div>
-          </div>
         </div>
         
         <div>

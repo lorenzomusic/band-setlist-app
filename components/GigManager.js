@@ -21,7 +21,6 @@ export default function GigManager() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
   const [showSetSelector, setShowSetSelector] = useState(null);
-  const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(null);
   const [expandedSets, setExpandedSets] = useState(new Set());
   const [expandedSongs, setExpandedSongs] = useState(new Set());
   const [expandedGigs, setExpandedGigs] = useState(new Set());
@@ -33,6 +32,18 @@ export default function GigManager() {
     const id = typeof songId === 'string' ? songId : songId.id;
     const currentSong = songs.find(s => s.id === id);
     return currentSong || { id, title: 'Unknown Song', artist: 'Unknown' };
+  };
+
+  // Helper function to resolve set IDs to current set data
+  const resolveSet = (setIdOrSet) => {
+    // If it's already a set object (old format), return as is for backwards compatibility
+    if (typeof setIdOrSet === 'object' && setIdOrSet.name) {
+      return setIdOrSet;
+    }
+    // If it's a set ID, find the current set data
+    const setId = typeof setIdOrSet === 'string' ? setIdOrSet : setIdOrSet.id;
+    const currentSet = sets.find(s => s.id === setId);
+    return currentSet || { id: setId, name: 'Unknown Set', songs: [] };
   };
 
   useEffect(() => {
@@ -119,7 +130,7 @@ export default function GigManager() {
 
     const updatedGig = {
       ...gig,
-      sets: [...(gig.sets || []), setToAdd]
+      sets: [...(gig.sets || []), setId]
     };
 
     try {
@@ -138,59 +149,6 @@ export default function GigManager() {
     }
   };
 
-  const createSpotifyPlaylist = async (gig) => {
-    setIsCreatingPlaylist(gig.id);
-    
-    try {
-      // Get all songs from all sets in the gig
-      const allSongs = [];
-      gig.sets?.forEach(set => {
-        set.songs?.forEach(song => {
-          allSongs.push(song);
-        });
-      });
-
-      if (allSongs.length === 0) {
-        alert('This gig has no songs to create a playlist from');
-        return;
-      }
-
-      const response = await fetch('/api/spotify/playlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: `${gig.name} - Setlist`,
-          description: `Setlist for ${gig.name}${gig.venue ? ` at ${gig.venue}` : ''}${gig.date ? ` on ${new Date(gig.date).toLocaleDateString()}` : ''}. Created by Greatest Gig app.`,
-          songs: allSongs,
-          public: false // Default to private, user can change in Spotify
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const { playlistUrl, found, notFound, total } = data;
-        
-        const message = `Spotify playlist created! 🎵\n\n` +
-          `• Found: ${found}/${total} songs\n` +
-          `• Added to playlist: ${found} songs\n` +
-          `${notFound > 0 ? `• Not found on Spotify: ${notFound} songs\n` : ''}` +
-          `\nPlaylist: "${gig.name} - Setlist"\n` +
-          `Click OK to open in Spotify`;
-
-        if (confirm(message)) {
-          window.open(playlistUrl, '_blank');
-        }
-      } else {
-        const error = await response.json();
-        alert(`Failed to create playlist: ${error.error || 'Unknown error'}\n\nMake sure you're connected to Spotify in the admin panel.`);
-      }
-    } catch (error) {
-      console.error('Error creating Spotify playlist:', error);
-      alert('Error creating Spotify playlist. Please try again.');
-    } finally {
-      setIsCreatingPlaylist(null);
-    }
-  };
 
   const removeSetFromGig = async (gigId, setIndex) => {
     const gig = gigs.find(g => g.id === gigId);
@@ -665,171 +623,149 @@ export default function GigManager() {
               ) : (
                 filteredGigs.map((gig) => (
                   <div key={gig.id} className="apple-card apple-card-spacing">
-                    {/* Mobile-First Gig Header */}
-                    <div className="space-y-4">
-                      {/* Title and Status */}
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="apple-subheading truncate">{gig.name}</h3>
-                          <p className="apple-text text-gray-600 truncate">{gig.venue || 'No venue'}</p>
-                          <p className="apple-text-sm text-gray-500">
-                            {formatDate(gig.date)} {gig.time && `at ${gig.time}`}
-                          </p>
-                        </div>
+                    {/* Clean Collapsed Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="apple-subheading truncate">{gig.name}</h3>
+                        <p className="apple-text text-gray-600 truncate">{gig.venue || 'No venue'}</p>
+                        <p className="apple-text-sm text-gray-500">
+                          {formatDate(gig.date)} {gig.time && `at ${gig.time}`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
                         {getStatusBadge(gig.status)}
-                      </div>
-
-                      {/* Quick Stats - Mobile friendly */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <div className="text-sm font-semibold text-gray-700">{gig.sets?.length || 0}</div>
-                          <div className="text-xs text-gray-500">Sets</div>
-                        </div>
-                        <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <div className="text-sm font-semibold text-gray-700">{calculateGigDuration(gig.sets)}</div>
-                          <div className="text-xs text-gray-500">Duration</div>
-                        </div>
-                        <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <div className="text-sm font-semibold text-gray-700">{getCommentCount(gig.comments)}</div>
-                          <div className="text-xs text-gray-500">Comments</div>
-                        </div>
-                        <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <button
-                            onClick={() => toggleGigExpansion(gig.id)}
-                            className="text-blue-600 hover:text-blue-800 transition-colors touch-target w-full"
-                            title={expandedGigs.has(gig.id) ? 'Collapse details' : 'View details'}
-                          >
-                            <div className="text-sm font-semibold">{expandedGigs.has(gig.id) ? '▼' : '▶'}</div>
-                            <div className="text-xs">Details</div>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Mobile-First Action Buttons */}
-                      <div className="space-y-3">
-                        {/* Primary Actions Row */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <AppleButton 
-                            variant="secondary" 
-                            size="sm"
-                            onClick={() => router.push(`/gigs/${gig.id}`)}
-                            className="w-full"
-                          >
-                            View Details
-                          </AppleButton>
-                          <AppleButton 
-                            variant="secondary" 
-                            size="sm"
-                            onClick={() => startEditingGig(gig.id)}
-                            className="w-full"
-                          >
-                            Edit
-                          </AppleButton>
-                        </div>
-                        
-                        {/* Secondary Actions Row */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          <AppleButton 
-                            variant="secondary" 
-                            size="sm"
-                            onClick={() => setShowSetSelector(showSetSelector === gig.id ? null : gig.id)}
-                            className="w-full"
-                          >
-                            Add Set
-                          </AppleButton>
-                          
-                          <AppleButton 
-                            variant="secondary" 
-                            size="sm"
-                            onClick={() => createSpotifyPlaylist(gig)}
-                            disabled={isCreatingPlaylist === gig.id || !gig.sets?.length}
-                            className="w-full"
-                          >
-                            {isCreatingPlaylist === gig.id ? (
-                              <div className="flex items-center justify-center gap-1">
-                                <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
-                                <span className="hidden sm:inline">Creating...</span>
-                                <span className="sm:hidden">...</span>
-                              </div>
-                            ) : (
-                              <>
-                                <span className="hidden sm:inline">🎵 Spotify Playlist</span>
-                                <span className="sm:hidden">🎵 Spotify</span>
-                              </>
-                            )}
-                          </AppleButton>
-                          
-                          <div className="relative">
-                            <select
-                              onChange={(e) => {
-                                if (e.target.value) {
-                                  generatePDF(gig, e.target.value);
-                                  e.target.value = '';
-                                }
-                              }}
-                              className="appearance-none bg-panel border border-apple text-primary font-medium text-sm px-3 py-2 rounded-apple-button shadow-apple hover:shadow-apple-hover transition-apple cursor-pointer w-full touch-target"
-                              defaultValue=""
-                            >
-                              <option value="" disabled>📄 Print PDF</option>
-                              <option value="stage-simple">🎤 Stage - Simple</option>
-                              <option value="stage-detailed">🎤 Stage - Detailed</option>
-                              <option value="sound-engineer">🔊 Sound Engineer</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        {/* Danger Zone */}
-                        <div className="pt-2 border-t border-gray-100">
-                          <AppleButton 
-                            variant="secondary" 
-                            size="sm"
-                            onClick={() => deleteGig(gig.id)}
-                            className="w-full text-red-600 hover:bg-red-50 hover:text-red-700"
-                          >
-                            Delete Gig
-                          </AppleButton>
-                        </div>
+                        <button
+                          onClick={() => toggleGigExpansion(gig.id)}
+                          className="text-blue-600 hover:text-blue-800 transition-colors p-2 hover:bg-blue-50 rounded-lg"
+                          title={expandedGigs.has(gig.id) ? 'Collapse details' : 'View details'}
+                        >
+                          <div className="text-lg font-semibold">{expandedGigs.has(gig.id) ? '▼' : '▶'}</div>
+                        </button>
                       </div>
                     </div>
 
                     {/* Expanded Gig Details */}
                     {expandedGigs.has(gig.id) && (
-                      <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200 animate-fade-in">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <div><span className="font-medium">Gig Name:</span> {gig.name}</div>
-                            <div><span className="font-medium">Venue:</span> {gig.venue || 'Not specified'}</div>
-                            <div><span className="font-medium">Date:</span> {formatDate(gig.date)}</div>
-                            <div><span className="font-medium">Time:</span> {gig.time || 'Not specified'}</div>
-                            <div><span className="font-medium">Status:</span> {getStatusBadge(gig.status)}</div>
-                            <div><span className="font-medium">Contract:</span> {gig.contractUploaded ? '✅ Uploaded' : '❌ Not uploaded'}</div>
+                      <div className="mt-4 space-y-4">
+                        {/* Quick Stats */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          <div className="text-center p-3 bg-gray-50 rounded-lg">
+                            <div className="text-sm font-semibold text-gray-700">{gig.sets?.length || 0}</div>
+                            <div className="text-xs text-gray-500">Sets</div>
                           </div>
-                          <div>
-                            <div><span className="font-medium">Address:</span> {gig.address || 'Not specified'}</div>
-                            <div><span className="font-medium">Sets:</span> {gig.sets?.length || 0} sets</div>
-                            <div><span className="font-medium">Duration:</span> {calculateGigDuration(gig.sets)}</div>
-                            <div><span className="font-medium">Comments:</span> {getCommentCount(gig.comments)}</div>
-                            <div><span className="font-medium">Notes:</span> {gig.notes || 'No notes'}</div>
+                          <div className="text-center p-3 bg-gray-50 rounded-lg">
+                            <div className="text-sm font-semibold text-gray-700">{calculateGigDuration(gig.sets)}</div>
+                            <div className="text-xs text-gray-500">Duration</div>
+                          </div>
+                          <div className="text-center p-3 bg-gray-50 rounded-lg">
+                            <div className="text-sm font-semibold text-gray-700">{getCommentCount(gig.comments)}</div>
+                            <div className="text-xs text-gray-500">Comments</div>
                           </div>
                         </div>
-                        
-                        {/* Lineup Display */}
-                        {gig.lineup && gig.lineup.length > 0 && (
-                          <div className="mt-4">
-                            <div className="font-medium text-gray-700 mb-2">Band Lineup:</div>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                              {gig.lineup.map((item, index) => (
-                                <div key={index} className="flex items-center space-x-2 p-2 bg-white rounded border">
-                                  <span className="text-xs text-gray-500">{item.instrument}</span>
-                                  <span className="text-sm font-medium">{getMemberName(item.memberId)}</span>
-                                  {item.isReplacement && (
-                                    <span className="text-xs bg-orange-100 text-orange-800 px-1 rounded">Replacement</span>
-                                  )}
-                                </div>
-                              ))}
+
+                        {/* Action Buttons */}
+                        <div className="space-y-3">
+                          {/* Primary Actions Row */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <AppleButton 
+                              variant="secondary" 
+                              size="sm"
+                              onClick={() => router.push(`/gigs/${gig.id}`)}
+                              className="w-full"
+                            >
+                              View Details
+                            </AppleButton>
+                            <AppleButton 
+                              variant="secondary" 
+                              size="sm"
+                              onClick={() => startEditingGig(gig.id)}
+                              className="w-full"
+                            >
+                              Edit
+                            </AppleButton>
+                          </div>
+                          
+                          {/* Secondary Actions Row */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <AppleButton 
+                              variant="secondary" 
+                              size="sm"
+                              onClick={() => setShowSetSelector(showSetSelector === gig.id ? null : gig.id)}
+                              className="w-full"
+                            >
+                              Add Set
+                            </AppleButton>
+                            
+                            
+                            <div className="relative">
+                              <select
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    generatePDF(gig, e.target.value);
+                                    e.target.value = '';
+                                  }
+                                }}
+                                className="appearance-none bg-panel border border-apple text-primary font-medium text-sm px-3 py-2 rounded-apple-button shadow-apple hover:shadow-apple-hover transition-apple cursor-pointer w-full touch-target"
+                                defaultValue=""
+                              >
+                                <option value="" disabled>📄 Print PDF</option>
+                                <option value="stage-simple">🎤 Stage - Simple</option>
+                                <option value="stage-detailed">🎤 Stage - Detailed</option>
+                                <option value="sound-engineer">🔊 Sound Engineer</option>
+                              </select>
                             </div>
                           </div>
-                        )}
+
+                          {/* Danger Zone */}
+                          <div className="pt-2 border-t border-gray-100">
+                            <AppleButton 
+                              variant="secondary" 
+                              size="sm"
+                              onClick={() => deleteGig(gig.id)}
+                              className="w-full text-red-600 hover:bg-red-50 hover:text-red-700"
+                            >
+                              Delete Gig
+                            </AppleButton>
+                          </div>
+                        </div>
+
+                        {/* Detailed Information */}
+                        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <div><span className="font-medium">Gig Name:</span> {gig.name}</div>
+                              <div><span className="font-medium">Venue:</span> {gig.venue || 'Not specified'}</div>
+                              <div><span className="font-medium">Date:</span> {formatDate(gig.date)}</div>
+                              <div><span className="font-medium">Time:</span> {gig.time || 'Not specified'}</div>
+                              <div><span className="font-medium">Status:</span> {getStatusBadge(gig.status)}</div>
+                            </div>
+                            <div>
+                              <div><span className="font-medium">Address:</span> {gig.address || 'Not specified'}</div>
+                              <div><span className="font-medium">Sets:</span> {gig.sets?.length || 0} sets</div>
+                              <div><span className="font-medium">Duration:</span> {calculateGigDuration(gig.sets)}</div>
+                              <div><span className="font-medium">Comments:</span> {getCommentCount(gig.comments)}</div>
+                              <div><span className="font-medium">Notes:</span> {gig.notes || 'No notes'}</div>
+                            </div>
+                          </div>
+                          
+                          {/* Lineup Display */}
+                          {gig.lineup && gig.lineup.length > 0 && (
+                            <div className="mt-4">
+                              <div className="font-medium text-gray-700 mb-2">Band Lineup:</div>
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                {gig.lineup.map((item, index) => (
+                                  <div key={index} className="flex items-center space-x-2 p-2 bg-white rounded border">
+                                    <span className="text-xs text-gray-500">{item.instrument}</span>
+                                    <span className="text-sm font-medium">{getMemberName(item.memberId)}</span>
+                                    {item.isReplacement && (
+                                      <span className="text-xs bg-orange-100 text-orange-800 px-1 rounded">Replacement</span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
 
@@ -869,9 +805,12 @@ export default function GigManager() {
                       </div>
                     )}
 
-                    {gig.sets && gig.sets.length > 0 && (
+                    {/* Sets Display - Only show when expanded */}
+                    {expandedGigs.has(gig.id) && gig.sets && gig.sets.length > 0 && (
                       <div className="space-y-3">
-                        {gig.sets.map((set, setIndex) => (
+                        {gig.sets.map((setIdOrSet, setIndex) => {
+                          const set = resolveSet(setIdOrSet);
+                          return (
                           <div key={setIndex} className="group bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200 apple-item-spacing">
                             <div className="flex justify-between items-center">
                               <div className="flex items-center gap-4">
@@ -1099,7 +1038,8 @@ export default function GigManager() {
                               </div>
                             )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>

@@ -94,7 +94,6 @@ export async function POST(request) {
       status: newGig.status || 'pending',
       comments: newGig.comments || [],
       lineup: newGig.lineup || [],
-      contractUploaded: newGig.contractUploaded || false,
       createdAt: new Date().toISOString()
     };
     

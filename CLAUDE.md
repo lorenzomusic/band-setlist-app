@@ -35,7 +35,6 @@ This is a Next.js 15 application using React 19 for a band management system cal
   - `/api/availability` - Band member availability tracking
   - `/api/auth/*` - Authentication endpoints (login, register, profile)
   - `/api/admin/*` - Administrative functions (user management, invitations)
-  - `/api/spotify/*` - Spotify integration features
 
 ### Frontend Structure
 - **Layout**: Uses `AppleLayout` component providing navigation and auth-aware UI
@@ -43,18 +42,15 @@ This is a Next.js 15 application using React 19 for a band management system cal
 - **Key Components**:
   - `SetListBuilder` - Drag-and-drop setlist creation
   - `GigManager` - Comprehensive gig management with status tracking
-  - `SpotifyIntegration` - Spotify API integration for playlists
   - `AISetlistBuilder` - AI-powered setlist generation
   - `PerformanceView` - Live performance tracking
 
 ### Song Data Model
-Songs include: title, artist, key, duration, bassGuitar, guitar, language (danish/english), vocalist (Rikke/Lorentz/Both), youtubeLink, spotifyUrl, backingTrack, form, medley info, notes, and tags.
+Songs include: title, artist, key, duration, bassGuitar, guitar, language (danish/english), vocalist (Rikke/Lorentz/Both), youtubeLink, backingTrack, form, medley info, notes, and tags.
 
 ### Gig Management
 Gigs support status tracking (pending, confirmed, canceled), comments system, lineup management, and calendar feed generation (ICS format).
 
-### Spotify Integration
-Full OAuth integration with playlist creation, song search, and account disconnection features.
 
 ### Scripts Directory
 - `import-songs.js` - CSV import functionality for bulk song data
@@ -64,4 +60,4 @@ Full OAuth integration with playlist creation, song search, and account disconne
 - Uses Tailwind CSS for styling with Apple-inspired design system
 - ESLint configured with Next.js core web vitals
 - Type checking available through Next.js built-in TypeScript support
-- Environment variables required for Redis and Spotify integration
+- Environment variables required for Redis integration

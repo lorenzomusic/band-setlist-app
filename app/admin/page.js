@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import SpotifyIntegration from '../../components/SpotifyIntegration';
 import UserManagementTab from '../../components/UserManagementTab';
 import { useLanguage } from '../../components/LanguageProvider';
 
@@ -9,7 +8,7 @@ export default function AdminPage() {
   const { t } = useLanguage();
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('spotify');
+  const [activeTab, setActiveTab] = useState('database');
 
   // Load songs
   useEffect(() => {
@@ -19,15 +18,7 @@ export default function AdminPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get('tab');
     
-    if (urlParams.get('spotify_connected') === 'true') {
-      localStorage.setItem('spotify_connected', JSON.stringify({ connected: true }));
-      // Remove URL params
-      window.history.replaceState({}, document.title, window.location.pathname);
-      setActiveTab('spotify'); // Switch to Spotify tab
-    } else if (urlParams.get('spotify_error')) {
-      alert(`Spotify connection failed: ${urlParams.get('spotify_error')}`);
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (tabParam && ['spotify', 'database', 'analytics', 'users', 'band-members'].includes(tabParam)) {
+    if (tabParam && ['database', 'analytics', 'users', 'band-members'].includes(tabParam)) {
       setActiveTab(tabParam);
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -71,9 +62,6 @@ export default function AdminPage() {
 
   const songsWithoutDurations = songs.length - songsWithDurations;
 
-  // Count songs with/without Spotify URLs
-  const songsWithSpotifyUrl = songs.filter(song => song.spotify_url).length;
-  const songsWithoutSpotifyUrl = songs.length - songsWithSpotifyUrl;
 
   if (loading) {
     return (
@@ -123,17 +111,6 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-apple shadow-apple p-6">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">🎧</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-gray-600 text-sm">{t('admin.spotifyUrls')}</p>
-                <p className="text-2xl font-bold text-green-600">{songsWithSpotifyUrl}</p>
-              </div>
-            </div>
-          </div>
 
           <div className="bg-white rounded-apple shadow-apple p-6">
             <div className="flex items-center">
@@ -142,7 +119,7 @@ export default function AdminPage() {
               </div>
               <div className="ml-4">
                 <p className="text-gray-600 text-sm">{t('admin.missingData')}</p>
-                <p className="text-2xl font-bold text-red-600">{songsWithoutDurations + songsWithoutSpotifyUrl}</p>
+                <p className="text-2xl font-bold text-red-600">{songsWithoutDurations}</p>
               </div>
             </div>
           </div>
@@ -152,16 +129,6 @@ export default function AdminPage() {
         <div className="bg-white rounded-apple shadow-apple overflow-hidden">
           <div className="border-b border-gray-200">
             <nav className="flex">
-              <button
-                onClick={() => setActiveTab('spotify')}
-                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'spotify'
-                    ? 'border-blue text-blue bg-blue-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                🎵 Spotify Integration
-              </button>
               <button
                 onClick={() => setActiveTab('database')}
                 className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
@@ -206,12 +173,6 @@ export default function AdminPage() {
           </div>
 
           <div className="p-6">
-            {activeTab === 'spotify' && (
-              <SpotifyIntegration 
-                songs={songs} 
-                onSongUpdated={handleSongUpdated} 
-              />
-            )}
 
             {activeTab === 'database' && (
               <div className="space-y-6">
@@ -243,13 +204,9 @@ export default function AdminPage() {
                         <span className="font-medium">{songsWithDurations}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">With Spotify URLs:</span>
-                        <span className="font-medium">{songsWithSpotifyUrl}</span>
-                      </div>
-                      <div className="flex justify-between">
                         <span className="text-gray-600">Completion Rate:</span>
                         <span className="font-medium">
-                          {songs.length > 0 ? Math.round(((songsWithDurations + songsWithSpotifyUrl) / (songs.length * 2)) * 100) : 0}%
+                          {songs.length > 0 ? Math.round((songsWithDurations / songs.length) * 100) : 0}%
                         </span>
                       </div>
                     </div>
@@ -259,10 +216,9 @@ export default function AdminPage() {
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <h5 className="font-medium text-yellow-800 mb-2">⚠️ Important Notes</h5>
                   <ul className="text-sm text-yellow-700 space-y-1">
-                    <li>• Duration and Spotify URL updates are permanent and will affect all sets and gigs</li>
+                    <li>• Duration updates are permanent and will affect all sets and gigs</li>
                     <li>• The system expects durations in MM:SS format (e.g., "3:45")</li>
                     <li>• Always backup your data before making bulk changes</li>
-                    <li>• Spotify integration requires authentication for playlist creation</li>
                   </ul>
                 </div>
               </div>
@@ -328,10 +284,6 @@ export default function AdminPage() {
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue">{songsWithDurations}</div>
                       <div className="text-xs text-gray-600">Complete Durations</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">{songsWithSpotifyUrl}</div>
-                      <div className="text-xs text-gray-600">Spotify URLs</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-green-600">

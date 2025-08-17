@@ -36,7 +36,7 @@ export async function POST(request) {
   try {
     // Add language to the destructuring
     const songData = await request.json();
-    const { title, artist, key, duration, bassGuitar, guitar, language, vocalist, youtubeLink, spotifyUrl, backingTrack, form, medley, medleyPosition, notes, tags } = songData;
+    const { title, artist, key, duration, bassGuitar, guitar, language, vocalist, youtubeLink, backingTrack, form, medley, medleyPosition, notes, tags } = songData;
 
     // Add language validation
     if (!language || !['danish', 'english'].includes(language.toLowerCase())) {
@@ -78,7 +78,6 @@ export async function POST(request) {
       language: language.toLowerCase(),
       vocalist,
       youtubeLink,
-      spotifyUrl,
       backingTrack,
       form,
       medley,
@@ -103,7 +102,7 @@ export async function POST(request) {
 export async function PUT(request) {
   try {
     const songData = await request.json();
-    const { id, title, artist, key, duration, bassGuitar, guitar, language, vocalist, youtubeLink, spotifyUrl, backingTrack, form, medley, medleyPosition, notes, tags } = songData;
+    const { id, title, artist, key, duration, bassGuitar, guitar, language, vocalist, youtubeLink, backingTrack, form, medley, medleyPosition, notes, tags } = songData;
 
     if (!id) {
       return Response.json({ error: 'Song ID is required' }, { status: 400 });
@@ -148,7 +147,6 @@ export async function PUT(request) {
       language: language.toLowerCase(),
       vocalist,
       youtubeLink,
-      spotifyUrl,
       backingTrack,
       form,
       medley,

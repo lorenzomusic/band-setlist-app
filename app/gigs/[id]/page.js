@@ -6,6 +6,7 @@ import { useAuth } from '../../../components/AuthProvider';
 import ApplePanel from '../../../components/ui/ApplePanel';
 import ApplePanelHeader from '../../../components/ui/ApplePanelHeader';
 import AppleButton from '../../../components/ui/AppleButton';
+import { organizeSetByMedleys, getMedleyStats } from '../../../utils/medley';
 
 export default function GigDetailPage() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function GigDetailPage() {
   
   const [gig, setGig] = useState(null);
   const [songs, setSongs] = useState([]);
+  const [sets, setSets] = useState([]);
   const [members, setMembers] = useState([]);
   const [comments, setComments] = useState([]);
   const [availability, setAvailability] = useState([]);
@@ -22,6 +24,7 @@ export default function GigDetailPage() {
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [currentUser, setCurrentUser] = useState('Current User'); // TODO: Get from auth
+  const [collapsedMedleys, setCollapsedMedleys] = useState(new Set());
   
   // Check if user is a replacement member (non-core member)
   const isReplacementMember = bandMember && !bandMember.isCore;
@@ -31,6 +34,18 @@ export default function GigDetailPage() {
     const id = typeof songId === 'string' ? songId : songId.id;
     const currentSong = songs.find(s => s.id === id);
     return currentSong || { id, title: 'Unknown Song', artist: 'Unknown' };
+  };
+
+  // Helper function to resolve set IDs to current set data
+  const resolveSet = (setIdOrSet) => {
+    // If it's already a set object (old format), return as is for backwards compatibility
+    if (typeof setIdOrSet === 'object' && setIdOrSet.name) {
+      return setIdOrSet;
+    }
+    // If it's a set ID, find the current set data
+    const setId = typeof setIdOrSet === 'string' ? setIdOrSet : setIdOrSet.id;
+    const currentSet = sets.find(s => s.id === setId);
+    return currentSet || { id: setId, name: 'Unknown Set', songs: [] };
   };
   
   // Helper function to get status text for display
@@ -44,9 +59,22 @@ export default function GigDetailPage() {
     }
   };
 
+  const toggleMedleyCollapse = (medleyId) => {
+    setCollapsedMedleys(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(medleyId)) {
+        newSet.delete(medleyId);
+      } else {
+        newSet.add(medleyId);
+      }
+      return newSet;
+    });
+  };
+
   useEffect(() => {
     loadGig();
     loadSongs();
+    loadSets();
     loadMembers();
     loadComments();
     loadCurrentUser();
@@ -99,6 +127,18 @@ export default function GigDetailPage() {
     }
   };
 
+  const loadSets = async () => {
+    try {
+      const response = await fetch('/api/sets');
+      if (response.ok) {
+        const setsData = await response.json();
+        setSets(setsData);
+      }
+    } catch (error) {
+      console.error('Error loading sets:', error);
+    }
+  };
+
   const loadGig = async () => {
     try {
       const response = await fetch('/api/gigs');
@@ -128,7 +168,6 @@ export default function GigDetailPage() {
             status: foundGig.status || 'pending',
             comments: foundGig.comments || [],
             lineup: foundGig.lineup || [],
-            contractUploaded: foundGig.contractUploaded || false
           };
           setGig(gigWithFallbacks);
         } else {
@@ -204,23 +243,6 @@ export default function GigDetailPage() {
     }
   };
 
-  const handleContractToggle = async () => {
-    try {
-      const response = await fetch(`/api/gigs/${gigId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ...gig, contractUploaded: !gig.contractUploaded }),
-      });
-
-      if (response.ok) {
-        setGig(prev => ({ ...prev, contractUploaded: !prev.contractUploaded }));
-      }
-    } catch (error) {
-      console.error('Error updating contract status:', error);
-    }
-  };
 
   const submitComment = async () => {
     if (!newComment.trim()) return;
@@ -398,34 +420,6 @@ export default function GigDetailPage() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="apple-label">Contract</label>
-                    <div className="flex items-center space-x-3">
-                      {isReplacementMember ? (
-                        <p className="text-gray-900">
-                          {gig.contractUploaded ? '✅ Contract uploaded' : '⏳ No contract'}
-                        </p>
-                      ) : (
-                        <>
-                          <input
-                            type="checkbox"
-                            id="contractUploaded"
-                            checked={gig.contractUploaded || false}
-                            onChange={handleContractToggle}
-                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                          />
-                          <label htmlFor="contractUploaded" className="text-sm text-gray-700">
-                            Contract uploaded
-                          </label>
-                        </>
-                      )}
-                      {gig.contractUploaded && (
-                        <AppleButton size="sm" variant="secondary">
-                          📄 Download
-                        </AppleButton>
-                      )}
-                    </div>
-                  </div>
 
                   <div>
                     <label className="apple-label">Venue</label>
@@ -530,54 +524,133 @@ export default function GigDetailPage() {
             )}
 
             {/* Sets */}
-            {gig.sets && gig.sets.length > 0 && songs.length > 0 && (
+            {gig.sets && gig.sets.length > 0 && songs.length > 0 && sets.length > 0 && (
               <ApplePanel>
                 <ApplePanelHeader title="Setlist" />
                 <div className="px-8 pb-8">
                   <div className="space-y-4">
-                    {gig.sets.map((set, setIndex) => (
+                    {gig.sets.map((setIdOrSet, setIndex) => {
+                      const set = resolveSet(setIdOrSet);
+                      return (
                       <div key={`gig-${gigId}-set-${set.id || setIndex}`} className="p-4 bg-gray-50 rounded-lg border">
                         <h4 className="font-medium text-gray-900 mb-3">
                           Set {setIndex + 1}: {set.name}
                         </h4>
-                        {set.songs && set.songs.length > 0 ? (
-                          <div className="space-y-2">
-                            {set.songs.map((songId, songIndex) => {
-                              const song = resolveSong(songId);
-                              return (
-                                <div key={`gig-${gigId}-set-${setIndex}-song-${song.id || `idx-${songIndex}`}`} className="flex items-center space-x-3 p-2 bg-white rounded border">
-                                  <span className="text-sm text-gray-500 w-8">#{songIndex + 1}</span>
-                                  <div className="flex-1">
-                                    <div className="font-medium">{song.title || 'Unknown Song'}</div>
-                                    <div className="text-sm text-gray-600">by {song.artist || 'Unknown Artist'}</div>
-                                    {song.key && (
-                                      <div className="text-xs text-gray-500">Key: {song.key}</div>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    {song.duration && (
-                                      <span className="text-sm text-gray-500">{song.duration}</span>
-                                    )}
-                                    {song.youtubeLink && (
-                                      <a
-                                        href={song.youtubeLink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-                                      >
-                                        🎵 Recording
-                                      </a>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
+                        {set.songs && set.songs.length > 0 ? (() => {
+                          // Resolve all song IDs to song objects
+                          const resolvedSongs = set.songs.map(songId => resolveSong(songId));
+                          // Organize by medleys
+                          const organized = organizeSetByMedleys(resolvedSongs);
+                          
+                          return (
+                            <div className="space-y-2">
+                              {organized.map((item, index) => {
+                                if (item.type === 'medley') {
+                                  const medleyStats = getMedleyStats(item.songs);
+                                  return (
+                                    <div key={`gig-detail-${set.id}-medley-${item.id}`} className="bg-purple-50 border border-purple-200 rounded-lg overflow-hidden">
+                                      {/* Medley Header */}
+                                      <div className="flex items-center justify-between p-4 bg-purple-100 border-b border-purple-200">
+                                        <div className="flex items-center space-x-3">
+                                          <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                                          <div>
+                                            <div className="font-medium text-purple-900">{item.name}</div>
+                                            <div className="text-xs text-purple-700">
+                                              {medleyStats.songCount} songs • {medleyStats.totalDuration} min
+                                              {medleyStats.languages.length > 0 && ` • ${medleyStats.languages.join(', ')}`}
+                                              {medleyStats.vocalists.length > 0 && ` • ${medleyStats.vocalists.join(', ')}`}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <button
+                                          onClick={() => toggleMedleyCollapse(item.id)}
+                                          className="text-purple-600 hover:text-purple-800 transition-colors p-1"
+                                          title={collapsedMedleys.has(item.id) ? 'Expand medley' : 'Collapse medley'}
+                                        >
+                                          {collapsedMedleys.has(item.id) ? '▶' : '▼'}
+                                        </button>
+                                      </div>
+                                      
+                                      {/* Medley Songs */}
+                                      {!collapsedMedleys.has(item.id) && (
+                                        <div className="p-2 space-y-1">
+                                          {item.songs.map((song, songIndex) => (
+                                            <div key={`gig-detail-${set.id}-medley-${item.id}-song-${song.id}`} className="group bg-white p-3 rounded-lg border-l-4 border-purple-300 hover:bg-purple-50 transition-colors">
+                                              <div className="flex items-center justify-between">
+                                                <div className="flex items-center space-x-3">
+                                                  <span className="text-xs text-purple-600 w-8 text-center font-mono bg-purple-100 rounded px-1">#{song.medleyPosition || songIndex + 1}</span>
+                                                  <div>
+                                                    <div className="text-sm font-medium">{song.title || 'Unknown Song'}</div>
+                                                    <div className="text-xs text-gray-500">
+                                                      {song.artist && song.artist.toString().trim() !== '' ? `by ${song.artist}` : 'Artist not specified'}
+                                                    </div>
+                                                    {song.key && (
+                                                      <div className="text-xs text-gray-500">Key: {song.key}</div>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                  {song.duration && (
+                                                    <span className="text-xs text-purple-600 font-mono">{song.duration}</span>
+                                                  )}
+                                                  {song.youtubeLink && (
+                                                    <a
+                                                      href={song.youtubeLink}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      className="px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700 transition-colors"
+                                                    >
+                                                      🎵
+                                                    </a>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                } else {
+                                  // Individual song
+                                  const song = item.song;
+                                  return (
+                                    <div key={`gig-detail-${set.id}-song-${song.id}`} className="flex items-center space-x-3 p-3 bg-white rounded border">
+                                      <span className="text-sm text-gray-500 w-8">#{index + 1}</span>
+                                      <div className="flex-1">
+                                        <div className="font-medium">{song.title || 'Unknown Song'}</div>
+                                        <div className="text-sm text-gray-600">by {song.artist || 'Unknown Artist'}</div>
+                                        {song.key && (
+                                          <div className="text-xs text-gray-500">Key: {song.key}</div>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                        {song.duration && (
+                                          <span className="text-sm text-gray-500">{song.duration}</span>
+                                        )}
+                                        {song.youtubeLink && (
+                                          <a
+                                            href={song.youtubeLink}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                                          >
+                                            🎵 Recording
+                                          </a>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                              })}
+                            </div>
+                          );
+                        })() : (
                           <p className="text-gray-500 text-sm">No songs in this set</p>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </ApplePanel>

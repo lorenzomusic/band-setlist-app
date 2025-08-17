@@ -10,7 +10,6 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
     artist: song.artist || '',
     key: song.key || '',
     youtubeLink: song.youtubeLink || '',
-    spotifyUrl: song.spotifyUrl || '',
     duration: song.duration || '',
     bassGuitar: song.bassGuitar || '4-string',
     guitar: song.guitar || 'Electric',
@@ -24,7 +23,6 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
     tags: song.tags || [],
   });
   const [saving, setSaving] = useState(false);
-  const [isSearchingSpotify, setIsSearchingSpotify] = useState(false);
 
   // Update form data when song changes
   useEffect(() => {
@@ -33,8 +31,7 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
       artist: song.artist || '',
       key: song.key || '',
       youtubeLink: song.youtubeLink || '',
-      spotifyUrl: song.spotifyUrl || '',
-      duration: song.duration || '',
+        duration: song.duration || '',
       bassGuitar: song.bassGuitar || '4-string',
       guitar: song.guitar || 'Electric',
       language: song.language || 'english',
@@ -63,44 +60,6 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
     }));
   };
 
-  const searchSpotify = async () => {
-    if (!formData.title || !formData.artist) {
-      alert('Please enter both title and artist before searching Spotify');
-      return;
-    }
-
-    setIsSearchingSpotify(true);
-    try {
-      const response = await fetch('/api/spotify/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: formData.title,
-          artist: formData.artist
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.url) {
-          setFormData(prev => ({
-            ...prev,
-            spotifyUrl: data.url
-          }));
-          alert(`Found Spotify track! Confidence: ${data.confidence}%`);
-        } else {
-          alert('No Spotify track found for this song');
-        }
-      } else {
-        alert('Failed to search Spotify. Make sure you\'re connected in the admin panel.');
-      }
-    } catch (error) {
-      console.error('Spotify search error:', error);
-      alert('Error searching Spotify');
-    } finally {
-      setIsSearchingSpotify(false);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -265,40 +224,6 @@ export default function EditSongForm({ song, onSongUpdated, onCancel, onSongDele
             />
           </div>
 
-          <div>
-            <label className="apple-label">
-              🎵 Spotify URL
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="url"
-                name="spotifyUrl"
-                value={formData.spotifyUrl}
-                onChange={handleChange}
-                className="apple-input flex-1"
-                placeholder="https://open.spotify.com/track/..."
-              />
-              <button
-                type="button"
-                onClick={searchSpotify}
-                disabled={isSearchingSpotify}
-                className="px-3 py-2 bg-green-600 text-white rounded-apple-button hover:bg-green-700 transition-apple-fast disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                title="Search for this song on Spotify"
-              >
-                {isSearchingSpotify ? '🔍' : '🎵'}
-              </button>
-            </div>
-            {formData.spotifyUrl && (
-              <a
-                href={formData.spotifyUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-green-600 hover:text-green-700 text-sm mt-1 inline-block"
-              >
-                🎵 Open in Spotify
-              </a>
-            )}
-          </div>
 
           <div>
             <label className="apple-label">
