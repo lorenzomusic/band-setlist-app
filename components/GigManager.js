@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useLanguage } from './LanguageProvider';
 import ApplePanel from './ui/ApplePanel';
 import ApplePanelHeader from './ui/ApplePanelHeader';
 import AppleButton from './ui/AppleButton';
@@ -13,6 +14,7 @@ import { organizeSetByMedleys, getMedleyStats } from '../utils/medley';
 export default function GigManager() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
   const [gigs, setGigs] = useState([]);
   const [sets, setSets] = useState([]);
   const [songs, setSongs] = useState([]);
@@ -31,7 +33,7 @@ export default function GigManager() {
   const resolveSong = (songId) => {
     const id = typeof songId === 'string' ? songId : songId.id;
     const currentSong = songs.find(s => s.id === id);
-    return currentSong || { id, title: 'Unknown Song', artist: 'Unknown' };
+    return currentSong || { id, title: t('gigManager.unknownSong'), artist: t('gigManager.unknownArtist') };
   };
 
   // Helper function to resolve set IDs to current set data
@@ -43,7 +45,7 @@ export default function GigManager() {
     // If it's a set ID, find the current set data
     const setId = typeof setIdOrSet === 'string' ? setIdOrSet : setIdOrSet.id;
     const currentSet = sets.find(s => s.id === setId);
-    return currentSet || { id: setId, name: 'Unknown Set', songs: [] };
+    return currentSet || { id: setId, name: t('gigManager.unknownSet'), songs: [] };
   };
 
   useEffect(() => {
@@ -528,8 +530,8 @@ export default function GigManager() {
       {/* Header */}
       <div className="bg-white rounded-apple shadow-apple overflow-hidden">
         <div className="px-4 md:px-8 pt-6 md:pt-8 pb-4 md:pb-6 bg-gradient-to-r from-blue-50 to-purple-50">
-          <h1 className="text-lg md:text-apple-title-1 text-primary mb-2">🎤 Gig Manager</h1>
-          <p className="text-apple-callout md:text-apple-body text-secondary">View and manage your upcoming gigs</p>
+          <h1 className="text-lg md:text-apple-title-1 text-primary mb-2">🎤 {t('gigManager.title')}</h1>
+          <p className="text-apple-callout md:text-apple-body text-secondary">{t('gigs.subtitle')}</p>
         </div>
       </div>
 
@@ -542,13 +544,13 @@ export default function GigManager() {
             <div className="flex flex-col sm:flex-row gap-4 sm:justify-between sm:items-center">
               <div className="flex-1 sm:max-w-xs">
                 <AppleSearchInput
-                  placeholder="Search gigs..."
+                  placeholder={t('gigManager.searchGigs')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
               <AppleButton onClick={() => router.push('/gig-builder')}>
-                Create New Gig
+                {t('gigBuilder.createGig')}
               </AppleButton>
             </div>
             
@@ -563,7 +565,7 @@ export default function GigManager() {
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-300'
                   }`}
                 >
-                  All
+                  {t('gigManager.allStatuses')}
                 </button>
                 <button
                   onClick={() => setStatusFilter('pending')}
@@ -573,7 +575,7 @@ export default function GigManager() {
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-300'
                   }`}
                 >
-                  ⏳ Pending
+                  ⏳ {t('gigManager.pending')}
                 </button>
                 <button
                   onClick={() => setStatusFilter('confirmed')}
@@ -583,7 +585,7 @@ export default function GigManager() {
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-300'
                   }`}
                 >
-                  ✅ Confirmed
+                  ✅ {t('gigManager.confirmed')}
                 </button>
                 <button
                   onClick={() => setStatusFilter('completed')}
@@ -593,7 +595,7 @@ export default function GigManager() {
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-300'
                   }`}
                 >
-                  🎉 Completed
+                  🎉 {t('gigManager.completed')}
                 </button>
                 <button
                   onClick={() => setStatusFilter('cancelled')}
@@ -603,7 +605,7 @@ export default function GigManager() {
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-300'
                   }`}
                 >
-                  ❌ Cancelled
+                  ❌ {t('gigManager.cancelled')}
                 </button>
               </div>
             </div>
@@ -612,13 +614,13 @@ export default function GigManager() {
           {/* Gigs List */}
           {isLoading ? (
             <div className="text-center py-12">
-              <div className="apple-loading">Loading gigs...</div>
+              <div className="apple-loading">{t('gigManager.loading')}</div>
             </div>
           ) : (
             <div className="space-y-6">
               {filteredGigs.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-gray-500">No gigs found</p>
+                  <p className="text-gray-500">{t('gigManager.noGigsFound')}</p>
                 </div>
               ) : (
                 filteredGigs.map((gig) => (
@@ -693,7 +695,7 @@ export default function GigManager() {
                               onClick={() => setShowSetSelector(showSetSelector === gig.id ? null : gig.id)}
                               className="w-full"
                             >
-                              Add Set
+                              {t('gigManager.addSet')}
                             </AppleButton>
                             
                             
@@ -781,7 +783,7 @@ export default function GigManager() {
                     {/* Set Selector */}
                     {showSetSelector === gig.id && (
                       <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <h4 className="font-medium text-blue-800 mb-3">Add Set to Gig</h4>
+                        <h4 className="font-medium text-blue-800 mb-3">{t('gigManager.addSet')}</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                           {getAvailableSets(gig.id).length > 0 ? (
                             getAvailableSets(gig.id).map(set => (
@@ -792,7 +794,7 @@ export default function GigManager() {
                               >
                                 <div className="font-medium text-blue-800">{set.name}</div>
                                 <div className="text-sm text-blue-600">
-                                  {set.songs?.length || 0} songs
+                                  {set.songs?.length || 0} {t('gigManager.songs')}
                                 </div>
                               </button>
                             ))
@@ -822,7 +824,7 @@ export default function GigManager() {
                                 <div>
                                   <h5 className="font-medium">Set {setIndex + 1}: {set.name}</h5>
                                   <p className="text-gray-500 text-sm">
-                                    {set.songs?.length || 0} songs
+                                    {set.songs?.length || 0} {t('gigManager.songs')}
                                   </p>
                                 </div>
                               </div>
@@ -847,7 +849,7 @@ export default function GigManager() {
                                         ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
                                         : 'bg-white text-gray-600 hover:bg-gray-200 active:bg-gray-300 shadow-sm'
                                     }`}
-                                    title="Move up"
+                                    title={t('gigManager.moveUp')}
                                   >
                                     ↑
                                   </button>
@@ -859,7 +861,7 @@ export default function GigManager() {
                                         ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
                                         : 'bg-white text-gray-600 hover:bg-gray-200 active:bg-gray-300 shadow-sm'
                                     }`}
-                                    title="Move down"
+                                    title={t('gigManager.moveDown')}
                                   >
                                     ↓
                                   </button>
@@ -895,7 +897,7 @@ export default function GigManager() {
                                               <div>
                                                 <div className="font-medium text-purple-900">{item.name}</div>
                                                 <div className="text-xs text-purple-600 bg-purple-200 px-2 py-1 rounded-full">
-                                                  {medleyStats.songCount} songs • {medleyStats.totalDuration} min
+                                                  {medleyStats.songCount} {t('gigManager.songs')} • {medleyStats.totalDuration} {t('gigDetail.min')}
                                                 </div>
                                               </div>
                                             </div>
@@ -1032,7 +1034,7 @@ export default function GigManager() {
                                   });
                                 })() : (
                                   <div className="text-center py-4 text-gray-500 text-sm">
-                                    No songs in this set
+                                    {t('gigManager.noSetsInGig')}
                                   </div>
                                 )}
                               </div>

@@ -84,6 +84,7 @@
   },
   "gigs": {
     "title": "Gig Management",
+    "subtitle": "View and manage your upcoming gigs",
     "createNewGig": "Create New Gig",
     "noGigs": "No gigs scheduled",
     "gigName": "Gig Name",
@@ -268,7 +269,8 @@
     "moveDown": "Move down",
     "removeSet": "Remove set from gig",
     "unknownSong": "Unknown Song",
-    "unknownArtist": "Unknown Artist"
+    "unknownArtist": "Unknown Artist",
+    "unknownSet": "Unknown Set"
   },
   "gigDetail": {
     "title": "Gig Details",

@@ -84,6 +84,7 @@
   },
   "gigs": {
     "title": "Koncert Administration",
+    "subtitle": "Se og administrer dine kommende koncerter",
     "createNewGig": "Opret Ny Koncert",
     "noGigs": "Ingen koncerter planlagt",
     "gigName": "Koncert Navn",
@@ -267,7 +268,8 @@
     "moveDown": "Flyt ned",
     "removeSet": "Fjern set fra koncert",
     "unknownSong": "Ukendt Sang",
-    "unknownArtist": "Ukendt Kunstner"
+    "unknownArtist": "Ukendt Kunstner",
+    "unknownSet": "Ukendt Set"
   },
   "gigDetail": {
     "title": "Koncert Detaljer",
